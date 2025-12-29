@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digitivia - Operations</title>
+    <title>DIGITIVIA - Operations</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         :root {
             /* GLOSSY DARK BLUE THEME VARIABLES */
-            --bg-body-gradient: linear-gradient(135deg, #1c3b57 0%, #0d1b2a 100%); /* Deep Dark Blue Gradient */
+            --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
             
             /* Glassmorphism Variables */
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            --blur-amount: 15px;
+            --blur-amount: 20px;
 
             /* Sidebar specific */
-            --sidebar-bg: rgba(13, 27, 42, 0.6); /* Very dark blue, semi-transparent */
-            --sidebar-active: rgba(41, 128, 185, 0.4); /* Highlight color */
+            --sidebar-bg: rgba(13, 27, 42, 0.85); 
+            --sidebar-active: rgba(52, 152, 219, 0.4); 
             
             /* Text Colors */
             --text-main: #e0e6ed;
@@ -28,7 +28,7 @@
             --text-header: #ffffff;
 
             /* Accents */
-            --primary: #3498db; /* Baby Blue / Bright Blue */
+            --primary: #3498db; 
             --primary-hover: #2980b9;
             --success: #2ecc71;
             --warning: #f1c40f;
@@ -36,10 +36,7 @@
             --info: #9b59b6;
         }
 
-        /* RTL Support Variables */
-        html[dir="rtl"] {
-            --sidebar-width: 270px;
-        }
+        html[dir="rtl"] { --sidebar-width: 270px; }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
@@ -52,7 +49,7 @@
             font-size: 14px;
         }
 
-        /* --- GLOSSY SIDEBAR --- */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: 270px;
             background: var(--sidebar-bg);
@@ -64,7 +61,7 @@
             transition: all 0.3s;
             flex-shrink: 0;
             height: 100vh; 
-            z-index: 100;
+            z-index: 1000;
         }
         html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
 
@@ -84,47 +81,46 @@
             height: 45px; 
             margin-right: 12px; 
             object-fit: contain; 
-            /* Optional: Add a glow or background to logo if it's transparent */
-            filter: drop-shadow(0 0 5px rgba(52, 152, 219, 0.5));
+            filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6));
         }
         html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
 
-        /* Navigation */
         #nav-container {
             flex-grow: 1;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            padding-top: 10px;
+            padding-top: 15px;
         }
-
-        /* Scrollbar Styling */
         #nav-container::-webkit-scrollbar { width: 5px; }
         #nav-container::-webkit-scrollbar-track { background: transparent; }
         #nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-        .nav-links { list-style: none; padding: 0 10px; margin-bottom: 15px; }
-        .nav-header { padding: 15px 20px 8px 20px; font-size: 0.7rem; text-transform: uppercase; color: var(--primary); font-weight: 700; letter-spacing: 1.2px; opacity: 0.8; }
-        
+        /* FIXED: Section Header Alignment */
+        .nav-header {
+            padding: 20px 30px 10px 30px; /* Aligns with nav-items padding + margin */
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
         .nav-item { 
-            padding: 12px 15px; 
-            margin-bottom: 4px;
-            border-radius: 8px;
+            padding: 14px 15px; 
+            margin-bottom: 6px;
+            border-radius: 10px;
             display: flex; 
             align-items: center; 
             cursor: pointer; 
-            transition: 0.25s ease; 
+            transition: all 0.25s ease; 
             color: var(--text-muted); 
             font-weight: 500;
+            border: 1px solid transparent;
         }
-        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-header); }
-        .nav-item.active { 
-            background: var(--sidebar-active); 
-            color: #fff; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
+        .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-header); transform: translateX(5px); }
+        .nav-item.active { background: var(--sidebar-active); color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
         .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
         html[dir="rtl"] .nav-item i { margin-right: 0; margin-left: 10px; }
 
@@ -137,10 +133,9 @@
             position: relative;
         }
 
-        /* Glossy Top Header */
         .top-header {
             height: 80px;
-            background: rgba(13, 27, 42, 0.4); /* Slightly lighter than sidebar */
+            background: rgba(13, 27, 42, 0.4); 
             backdrop-filter: blur(var(--blur-amount));
             -webkit-backdrop-filter: blur(var(--blur-amount));
             border-bottom: 1px solid var(--glass-border);
@@ -162,35 +157,27 @@
             padding-left: 20px;
             border-left: 1px solid var(--glass-border);
         }
-        html[dir="rtl"] .branding-logos {
-            margin-left: 0; padding-left: 0;
-            margin-right: 20px; padding-right: 20px;
-            border-left: none; border-right: 1px solid var(--glass-border);
-        }
-
-        /* Top Right Logo Styling */
+        html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
         .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
 
         .user-controls { display: flex; align-items: center; gap: 15px; }
-        
         .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
-        .icon-btn:hover { color: var(--primary); }
+        .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
         .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
 
         .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
-        .dropdown img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+        .dropdown img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
         
-        /* Dashboard Content Scroll Area */
         .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
         .page-title { 
-            margin-bottom: 25px; 
-            font-size: 1.8rem; 
+            margin-bottom: 30px; 
+            font-size: 2rem; 
             font-weight: 700; 
             color: var(--text-header); 
             display: flex; 
             justify-content: space-between; 
             align-items: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
         
         /* --- GLOSSY CARD COMPONENTS --- */
@@ -203,13 +190,15 @@
             box-shadow: var(--glass-shadow);
             border: 1px solid var(--glass-border);
             height: 100%;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             color: var(--text-main);
+            display: flex;
+            flex-direction: column;
         }
         .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
-            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255,255,255,0.25);
         }
 
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
@@ -220,7 +209,7 @@
             background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); 
             color: #fff; 
             border: none; 
-            padding: 10px 20px; 
+            padding: 10px 24px; 
             border-radius: 8px; 
             cursor: pointer; 
             font-size: 0.9rem; 
@@ -229,9 +218,9 @@
             align-items: center; 
             gap: 8px; 
             box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
-            transition: 0.2s;
+            transition: all 0.2s;
         }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
         
         .btn-outline { 
             background-color: rgba(255,255,255,0.05); 
@@ -244,66 +233,205 @@
             transition: 0.2s;
         }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
-        
-        /* Dashboard Grid Layouts */
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 25px; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
-        
-        /* WFM Charts */
-        .wfm-chart-container { display: flex; align-items: flex-end; justify-content: space-between; height: 200px; padding-top: 20px; }
-        .wfm-bar-group { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 10%; height: 100%; justify-content: flex-end; }
-        .wfm-bar { width: 100%; background: var(--primary); border-radius: 4px 4px 0 0; position: relative; transition: height 0.5s; opacity: 0.8; }
-        .wfm-bar.adherence { background: linear-gradient(to top, var(--success), #27ae60); }
-        .wfm-bar.productivity { background: linear-gradient(to top, var(--info), #8e44ad); }
-        .wfm-label { font-size: 0.75rem; color: var(--text-muted); }
 
+        /* FIXED: Back Button Style */
+        .btn-back-circle {
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        .btn-back-circle:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        /* Responsive Grid System */
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 25px; 
+            margin-bottom: 25px; 
+            align-items: stretch;
+        }
+        
         /* Tables in Glass Cards */
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); }
-        td { padding: 12px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); }
+        th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255,255,255,0.02); }
 
-        /* Pipeline / ATS */
-        .pipeline-container { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 15px; }
-        .pipeline-col { 
-            min-width: 260px; 
-            background: rgba(0,0,0,0.2); 
-            border-radius: 12px; 
-            padding: 15px; 
+        /* --- IMPROVED AVATAR GRID --- */
+        .avatar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 25px; 
+            margin-bottom: 40px; /* Increased margin to prevent overlap */
+        }
+        
+        .avatar-card { 
+            background: rgba(255,255,255,0.03); 
             border: 1px solid var(--glass-border); 
+            border-radius: 16px; 
+            padding: 30px 20px; 
+            text-align: center; 
+            cursor: pointer; 
+            position: relative; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%; 
         }
-        .pipeline-header { font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; color: var(--primary); }
-        .candidate-card { 
-            background: rgba(255,255,255,0.07); 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 12px; 
+        
+        .avatar-card:hover { 
+            background: rgba(255,255,255,0.08); 
+            transform: translateY(-5px);
+            border-color: rgba(255,255,255,0.3);
+        }
+        
+        .avatar-card.selected { 
+            border: 2px solid var(--primary); 
+            background: rgba(52, 152, 219, 0.15); 
+            box-shadow: 0 0 25px rgba(52, 152, 219, 0.3);
+        }
+        
+        /* 3D Image styling */
+        .avatar-card img { 
+            width: 140px; 
+            height: 140px; 
+            border-radius: 50%; 
+            object-fit: cover; 
+            object-position: top;
+            margin-bottom: 20px; 
+            border: 4px solid rgba(255,255,255,0.1); 
+            transition: 0.3s;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), transparent);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+        
+        .avatar-card.selected img { 
+            border-color: var(--primary); 
+            transform: scale(1.05);
+        }
+        
+        .selection-indicator {
+            position: absolute; top: 15px; right: 15px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--text-muted);
+            transition: 0.3s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .avatar-card.selected .selection-indicator { 
+            background: var(--primary); 
+            border-color: var(--primary); 
+            box-shadow: 0 0 10px var(--primary);
+        }
+        .avatar-card.selected .selection-indicator::after {
+            content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 14px;
+        }
+        
+        .avatar-role-badge {
+            background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; display: inline-block; letter-spacing: 0.5px;
+        }
+        
+        .avatar-name { font-weight: 700; color: #fff; font-size: 1.4rem; margin-bottom: 8px; }
+        .avatar-desc { font-size: 0.9rem; color: #aaa; line-height: 1.5; margin-top: 5px; flex-grow: 1; }
+
+        /* Configuration Controls */
+        .config-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 25px;
             border: 1px solid var(--glass-border);
-            cursor: pointer;
-            transition: 0.2s;
+            margin-top: 20px;
+            /* Added relative position to ensure it stacks correctly in flow */
+            position: relative; 
+            z-index: 10;
         }
-        .candidate-card:hover { background: rgba(255,255,255,0.12); }
-        .candidate-card h4 { font-size: 0.95rem; margin-bottom: 5px; color: #fff; }
-        .candidate-card p { font-size: 0.8rem; color: var(--text-muted); }
-        .tag { font-size: 0.7rem; padding: 3px 8px; background: rgba(52, 152, 219, 0.2); color: var(--primary); border-radius: 4px; display: inline-block; margin-top: 8px; border: 1px solid rgba(52, 152, 219, 0.3); }
+        .config-row { display: flex; align-items: center; margin-bottom: 25px; gap: 20px; }
+        .config-label { width: 140px; font-size: 1rem; font-weight: 600; color: var(--text-header); flex-shrink: 0; }
+        .slider-container { flex-grow: 1; }
+        
+        input[type=range] { 
+            width: 100%; height: 6px; 
+            background: rgba(255,255,255,0.1); 
+            border-radius: 5px; 
+            -webkit-appearance: none; 
+        }
+        input[type=range]::-webkit-slider-thumb { 
+            -webkit-appearance: none; 
+            width: 22px; height: 22px; 
+            background: var(--primary); 
+            border-radius: 50%; 
+            cursor: pointer; 
+            border: 2px solid #fff; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin-top: -8px; 
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 5px;
+        }
+        
+        .dialect-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+        .dialect-chip { 
+            padding: 10px 18px; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 25px; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            display: flex; align-items: center; gap: 8px; 
+            transition: 0.2s;
+            color: var(--text-main);
+        }
+        .dialect-chip:hover { background: rgba(255,255,255,0.1); }
+        .dialect-chip.active { 
+            background: linear-gradient(135deg, var(--primary), #2980b9); 
+            color: white; 
+            border-color: transparent; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
 
-        /* OKR Progress */
-        .okr-item { margin-bottom: 20px; }
-        .okr-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; font-weight: 500; color: #fff; }
-        .progress-track { background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--success); border-radius: 4px; box-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+        /* Toast Notification */
+        .toast {
+            position: fixed; bottom: 30px; right: 30px;
+            background: rgba(46, 204, 113, 0.9);
+            color: white; padding: 15px 25px; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex; align-items: center; gap: 10px;
+            transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        .toast.show { transform: translateY(0); }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .grid-3 { grid-template-columns: 1fr; }
-            .grid-span-2 { grid-column: span 1; }
+        /* Responsive Breakpoints */
+        @media (max-width: 1200px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .avatar-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
-            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 1000; background: rgba(13, 27, 42, 0.95); }
-            .sidebar.active { left: 0; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .avatar-grid { grid-template-columns: 1fr; }
+            
+            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); }
+            .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); }
             html[dir="rtl"] .sidebar { left: auto; right: -270px; }
             html[dir="rtl"] .sidebar.active { right: 0; }
+            
             .branding-logos { display: none; }
+            .config-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .slider-container { width: 100%; }
+            .page-title { font-size: 1.5rem; flex-direction: column; align-items: flex-start; gap: 15px; }
         }
     </style>
 </head>
@@ -350,6 +478,8 @@
 
         <main class="content-scroll" id="main-view">
             </main>
+        
+        <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span>Configuration Saved!</span></div>
     </div>
 
     <script>
@@ -358,7 +488,8 @@
         const state = {
             role: 'admin', 
             lang: 'en',
-            activeView: 'dashboard'
+            activeView: 'dashboard',
+            selectedAvatar: 'Ali' // Default selection updated to Ali
         };
 
         // Translations & Labels
@@ -368,14 +499,11 @@
                 roleAdmin: "HR Admin",
                 roleEmp: "Agent",
                 
-                // Sidebar Sections
                 sec_hr: "HR & Recruitment",
 
-                // Modules
                 dashboard: "Dashboard",
                 wfm: "Workforce WFM",
                 
-                // HR Legacy (ZenHR PDF Data)
                 zenats: "ATS Recruitment",
                 payroll: "Payroll",
                 employees: "Employees",
@@ -383,7 +511,6 @@
                 performance: "Performance",
                 reports: "Reports",
                 
-                // Labels
                 create: "Create New",
                 viewAll: "View All",
                 compliant: "Compliant"
@@ -432,7 +559,7 @@
                             { icon: 'fa-briefcase', label: t.zenats, key: 'ats' },
                             { icon: 'fa-star', label: t.performance, key: 'performance' },
                             { icon: 'fa-file-alt', label: t.reports, key: 'reports' },
-                            { icon: 'fa-timeline', label: t.wfm, key: 'wfm' } // Moved WFM here
+                            { icon: 'fa-timeline', label: t.wfm, key: 'wfm' } 
                         ]
                     }
                 ];
@@ -451,7 +578,7 @@
             sections.forEach(sec => {
                 if(sec.title) {
                     const header = document.createElement('div');
-                    header.className = 'nav-header';
+                    header.className = 'nav-header'; // New class for alignment
                     header.innerText = sec.title;
                     navContainer.appendChild(header);
                 }
@@ -466,6 +593,7 @@
                         state.activeView = item.key;
                         renderSidebar(); 
                         renderMainContent(); 
+                        if(window.innerWidth <= 768) toggleSidebar();
                     };
                     ul.appendChild(li);
                 });
@@ -503,6 +631,9 @@
                 case 'wfm':
                     content = generateWFMHTML();
                     break;
+                case 'receptionAgent':
+                    content = generateReceptionHTML(); 
+                    break;
                 default:
                     content = `
                     <div class="card" style="text-align:center; padding:50px;">
@@ -523,7 +654,22 @@
                 <div class="page-title">
                     <span>${t.welcome} <span id="dash-user">Sarah</span></span>
                 </div>
-                <div class="dashboard-grid grid-3">
+                
+                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom:30px;">
+                    <div class="card" onclick="state.activeView = 'receptionAgent'; renderSidebar(); renderMainContent();" style="cursor:pointer; border-left: 4px solid var(--info); background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), transparent);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="card-title" style="color:var(--info)"><i class="fa-solid fa-robot"></i> Manage AI Agents</div>
+                            <i class="fa-solid fa-arrow-right" style="color:var(--info)"></i>
+                        </div>
+                        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:10px;">Configure Avatars, Voice & Dialects</p>
+                    </div>
+                    <div class="card" style="border-left: 4px solid var(--warning); background: linear-gradient(135deg, rgba(241, 196, 15, 0.1), transparent);">
+                        <div class="card-title" style="color:var(--warning)"><i class="fa-solid fa-envelope-open-text"></i> Mail Agent</div>
+                        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:10px;">12 Unread Emails processed by AI</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
                     <div class="card">
                         <div class="card-header"><div class="card-title"><i class="fa-solid fa-clock"></i> My Attendance</div></div>
                         <div style="text-align:center; padding:10px;">
@@ -570,7 +716,7 @@
         function generatePayrollHTML() {
             return `
                 <div class="page-title">Payroll Management</div>
-                <div class="dashboard-grid grid-3">
+                <div class="dashboard-grid">
                     <div class="card">
                         <div class="card-title">WPS & GOSI Status</div>
                         <div style="margin-top:20px; color:var(--success); font-weight:bold; display:flex; align-items:center; gap:15px;">
@@ -600,12 +746,145 @@
             `;
         }
 
+        // --- UPDATED AVATAR CONFIGURATION UI ---
+        function generateReceptionHTML() {
+            return `
+                <div class="page-title">
+                    <div style="display:flex; align-items:center; gap:20px;">
+                        <div class="btn-back-circle" onclick="state.activeView='dashboard'; renderMainContent();">
+                             <i class="fa-solid fa-arrow-left"></i>
+                        </div>
+                        <div>AI Agents Configuration</div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-outline" onclick="state.activeView='dashboard'; renderMainContent();"><i class="fa-solid fa-xmark"></i> Close</button>
+                        <button class="btn-primary" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i> Save Config</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i class="fa-solid fa-users-gear"></i> Digital Workforce Identities</div>
+                    </div>
+                    
+                    <div style="margin-bottom:30px; display:flex; gap:15px; flex-wrap:wrap;">
+                        <input type="text" placeholder="Search by agent name..." style="flex:1; min-width:200px; padding:12px; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:8px; color:white;">
+                        <select class="btn-outline" style="min-width:150px; background:rgba(0,0,0,0.2); color:#fff; border-radius:8px;">
+                            <option>All Roles</option>
+                            <option>Management</option>
+                            <option>Operations</option>
+                            <option>HR</option>
+                        </select>
+                    </div>
+
+                    <div class="avatar-grid">
+                        <div class="avatar-card ${state.selectedAvatar === 'Ali' ? 'selected' : ''}" onclick="selectAvatar(this, 'Ali')">
+                            <div class="selection-indicator"></div>
+                            <div class="avatar-role-badge">HR Manager</div>
+                            <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419548.jpg?t=st=1767014570~exp=1767018170~hmac=7ed324bbb4dd31b2da164899cf5e19fe2c7f0bc25f35518f81b339acd3f81c64" alt="Ali">
+                            <div class="avatar-name">Ali</div>
+                            <div class="avatar-desc">Empathetic and clear. Specialized in policy explanation and employee wellbeing.</div>
+                        </div>
+                        
+                        <div class="avatar-card ${state.selectedAvatar === 'Omar' ? 'selected' : ''}" onclick="selectAvatar(this, 'Omar')">
+                            <div class="selection-indicator"></div>
+                            <div class="avatar-role-badge">Operations Manager</div>
+                            <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419536.jpg?t=st=1767013563~exp=1767017163~hmac=4ef5ac98c9de6d9c07f303f829f345ba055876f01826c0a56a68d08632bc585d" alt="Omar">
+                            <div class="avatar-name">Omar</div>
+                            <div class="avatar-desc">Efficient, direct, and data-driven. Best for daily standups and performance reports.</div>
+                        </div>
+                        
+                        <div class="avatar-card ${state.selectedAvatar === 'Sarah' ? 'selected' : ''}" onclick="selectAvatar(this, 'Sarah')">
+                            <div class="selection-indicator"></div>
+                            <div class="avatar-role-badge">Supervisor</div>
+                            <img src="https://img.freepik.com/free-photo/view-3d-woman-working-justice-law-field_23-2151228142.jpg?t=st=1767013476~exp=1767017076~hmac=4c9db740caafbf4ecf12fc92283bfa8fc94abd3be8fef6ad22afe7f19595229a" alt="Sarah">
+                            <div class="avatar-name">Sarah</div>
+                            <div class="avatar-desc">Supportive and localized. Uses regional dialects to connect better with the field team.</div>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <div style="font-size:1.1rem; font-weight:700; color:var(--text-header); margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:10px;">
+                            Voice & Personality Settings
+                        </div>
+                        
+                        <div class="config-row">
+                            <div class="config-label">Dialect</div>
+                            <div class="dialect-chips">
+                                <div class="dialect-chip active" onclick="toggleChip(this)">Jordanian</div>
+                                <div class="dialect-chip" onclick="toggleChip(this)">Saudi (Najdi)</div>
+                                <div class="dialect-chip" onclick="toggleChip(this)">Egyptian</div>
+                                <div class="dialect-chip" onclick="toggleChip(this)">UAE</div>
+                                <div class="dialect-chip" onclick="toggleChip(this)">Formal Arabic</div>
+                                <div class="dialect-chip" onclick="toggleChip(this)">English (US)</div>
+                            </div>
+                        </div>
+
+                        <div class="config-row">
+                            <div class="config-label">Talking Speed</div>
+                            <div class="slider-container">
+                                <input type="range" min="0.5" max="2" step="0.1" value="1">
+                                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
+                                    <span>Slow</span>
+                                    <span>Natural</span>
+                                    <span>Fast</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="config-row">
+                            <div class="config-label">Tone Stability</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="1" step="0.1" value="0.8">
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
+                                    Higher stability ensures consistent emotional tone.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="config-row">
+                            <div class="config-label">Voice Sample</div>
+                            <button class="btn-outline" style="display:flex; align-items:center; gap:10px;" onclick="playSample(this)">
+                                <i class="fa-solid fa-play"></i> Play Preview
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            `;
+        }
+
         function generateEmployeesHTML() {
             return `
                  <div class="page-title">
                     Employees
                     <button class="btn-primary"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
                 </div>
+                
+                <div class="card" style="margin-bottom:25px; border-left:4px solid var(--info); background: linear-gradient(90deg, rgba(155, 89, 182, 0.1), transparent);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                        <div>
+                            <div style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:5px;">
+                                <i class="fa-solid fa-robot"></i> Digital Workforce
+                            </div>
+                            <div style="color:var(--text-muted);">Manage your 3 active AI Agents (HR, Ops, Supervisor)</div>
+                        </div>
+                        
+                        <div style="display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.2); padding:10px 20px; border-radius:50px; border:1px solid var(--glass-border);">
+                             <div style="display:flex;">
+                                <img src="https://img.freepik.com/free-photo/3d-illustration-businessman-with-glasses-city-background_1057-4569.jpg?w=740" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover;">
+                                <img src="https://img.freepik.com/free-photo/view-3d-man-holding-laptop_23-2150709818.jpg?w=740" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover; margin-left:-10px;">
+                                <img src="https://img.freepik.com/free-photo/3d-illustration-smiling-man-with-glasses_1057-4566.jpg?w=740" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover; margin-left:-10px;">
+                             </div>
+                             <div style="font-size:0.8rem; color:var(--text-main);">Ali, Omar, Sarah</div>
+                        </div>
+
+                        <button class="btn-outline" onclick="state.activeView = 'receptionAgent'; renderSidebar(); renderMainContent();" style="background:var(--info); border:none; color:white;">
+                            Configure Agents
+                        </button>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid grid-3">
                     <div class="card">
                         <div class="card-title"><i class="fa-solid fa-laptop"></i> Asset Management</div>
@@ -786,11 +1065,11 @@
                         <h2 style="color:var(--success); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(46, 204, 113, 0.4);">94%</h2>
                         <div style="font-size:0.85rem; color:var(--text-muted);">Team is sticking to schedule</div>
                     </div>
-                     <div class="card">
+                      <div class="card">
                         <div class="card-title">Productivity Score</div>
                         <h2 style="color:var(--info); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(155, 89, 182, 0.4);">8.5/10</h2>
                     </div>
-                     <div class="card">
+                      <div class="card">
                         <div class="card-title">Forecast Accuracy</div>
                         <h2 style="color:var(--warning); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(241, 196, 15, 0.4);">+/- 5%</h2>
                     </div>
@@ -819,6 +1098,36 @@
         }
 
         // --- ACTIONS & HELPERS ---
+
+        function selectAvatar(element, name) {
+            document.querySelectorAll('.avatar-card').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            state.selectedAvatar = name;
+        }
+
+        function toggleChip(element) {
+            // Deselect all siblings
+            const parent = element.parentElement;
+            parent.querySelectorAll('.dialect-chip').forEach(el => el.classList.remove('active'));
+            // Select clicked
+            element.classList.add('active');
+        }
+
+        function playSample(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Playing...';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+
+        function saveConfig() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
 
         function changeRole() {
             const select = document.getElementById('role-select');
