@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DIGITIVIA - Operations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* GLOSSY DARK BLUE THEME VARIABLES */
+            --bg-body-gradient: linear-gradient(135deg, #1c3b57 0%, #0d1b2a 100%); /* Deep Dark Blue Gradient */
+            
+            /* Glassmorphism Variables */
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            --blur-amount: 15px;
+
+            /* Sidebar specific */
+            --sidebar-bg: rgba(13, 27, 42, 0.6); /* Very dark blue, semi-transparent */
+            --sidebar-active: rgba(41, 128, 185, 0.4); /* Highlight color */
+            
+            /* Text Colors */
+            --text-main: #e0e6ed;
+            --text-muted: #94a3b8;
+            --text-header: #ffffff;
+
+            /* Accents */
+            --primary: #3498db; /* Baby Blue / Bright Blue */
+            --primary-hover: #2980b9;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --danger: #e74c3c;
+            --info: #9b59b6;
+        }
+
+        /* RTL Support Variables */
+        html[dir="rtl"] {
+            --sidebar-width: 270px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        
+        body { 
+            background: var(--bg-body-gradient); 
+            color: var(--text-main); 
+            height: 100vh; 
+            display: flex; 
+            overflow: hidden; 
+            font-size: 14px;
+        }
+
+        /* --- GLOSSY SIDEBAR --- */
+        .sidebar {
+            width: 270px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            height: 100vh; 
+            z-index: 100;
+        }
+        html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
+
+        .logo-area {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-header);
+            letter-spacing: 1px;
+        }
+        
+        .logo-area img { 
+            height: 45px; 
+            margin-right: 12px; 
+            object-fit: contain; 
+            /* Optional: Add a glow or background to logo if it's transparent */
+            filter: drop-shadow(0 0 5px rgba(52, 152, 219, 0.5));
+        }
+        html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
+
+        /* Navigation */
+        #nav-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-top: 10px;
+        }
+
+        /* Scrollbar Styling */
+        #nav-container::-webkit-scrollbar { width: 5px; }
+        #nav-container::-webkit-scrollbar-track { background: transparent; }
+        #nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+        .nav-links { list-style: none; padding: 0 10px; margin-bottom: 15px; }
+        .nav-header { padding: 15px 20px 8px 20px; font-size: 0.7rem; text-transform: uppercase; color: var(--primary); font-weight: 700; letter-spacing: 1.2px; opacity: 0.8; }
+        
+        .nav-item { 
+            padding: 12px 15px; 
+            margin-bottom: 4px;
+            border-radius: 8px;
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: 0.25s ease; 
+            color: var(--text-muted); 
+            font-weight: 500;
+        }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-header); }
+        .nav-item.active { 
+            background: var(--sidebar-active); 
+            color: #fff; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
+        html[dir="rtl"] .nav-item i { margin-right: 0; margin-left: 10px; }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Glossy Top Header */
+        .top-header {
+            height: 80px;
+            background: rgba(13, 27, 42, 0.4); /* Slightly lighter than sidebar */
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            flex-shrink: 0;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+
+        .branding-logos {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid var(--glass-border);
+        }
+        html[dir="rtl"] .branding-logos {
+            margin-left: 0; padding-left: 0;
+            margin-right: 20px; padding-right: 20px;
+            border-left: none; border-right: 1px solid var(--glass-border);
+        }
+
+        /* Top Right Logo Styling */
+        .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
+
+        .user-controls { display: flex; align-items: center; gap: 15px; }
+        
+        .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
+        .icon-btn:hover { color: var(--primary); }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
+
+        .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
+        .dropdown img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+        
+        /* Dashboard Content Scroll Area */
+        .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
+        .page-title { 
+            margin-bottom: 25px; 
+            font-size: 1.8rem; 
+            font-weight: 700; 
+            color: var(--text-header); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        /* --- GLOSSY CARD COMPONENTS --- */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--glass-shadow);
+            border: 1px solid var(--glass-border);
+            height: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: var(--text-main);
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.45);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
+        .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; letter-spacing: 0.5px; }
+        
+        /* Buttons */
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); 
+            color: #fff; 
+            border: none; 
+            padding: 10px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            font-weight: 600;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
+            transition: 0.2s;
+        }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        
+        .btn-outline { 
+            background-color: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            color: var(--text-main); 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+            transition: 0.2s;
+        }
+        .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
+        
+        /* Dashboard Grid Layouts */
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 25px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        
+        /* WFM Charts */
+        .wfm-chart-container { display: flex; align-items: flex-end; justify-content: space-between; height: 200px; padding-top: 20px; }
+        .wfm-bar-group { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 10%; height: 100%; justify-content: flex-end; }
+        .wfm-bar { width: 100%; background: var(--primary); border-radius: 4px 4px 0 0; position: relative; transition: height 0.5s; opacity: 0.8; }
+        .wfm-bar.adherence { background: linear-gradient(to top, var(--success), #27ae60); }
+        .wfm-bar.productivity { background: linear-gradient(to top, var(--info), #8e44ad); }
+        .wfm-label { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* Tables in Glass Cards */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); }
+        td { padding: 12px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); }
+        tr:last-child td { border-bottom: none; }
+
+        /* Pipeline / ATS */
+        .pipeline-container { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 15px; }
+        .pipeline-col { 
+            min-width: 260px; 
+            background: rgba(0,0,0,0.2); 
+            border-radius: 12px; 
+            padding: 15px; 
+            border: 1px solid var(--glass-border); 
+        }
+        .pipeline-header { font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; color: var(--primary); }
+        .candidate-card { 
+            background: rgba(255,255,255,0.07); 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 12px; 
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .candidate-card:hover { background: rgba(255,255,255,0.12); }
+        .candidate-card h4 { font-size: 0.95rem; margin-bottom: 5px; color: #fff; }
+        .candidate-card p { font-size: 0.8rem; color: var(--text-muted); }
+        .tag { font-size: 0.7rem; padding: 3px 8px; background: rgba(52, 152, 219, 0.2); color: var(--primary); border-radius: 4px; display: inline-block; margin-top: 8px; border: 1px solid rgba(52, 152, 219, 0.3); }
+
+        /* OKR Progress */
+        .okr-item { margin-bottom: 20px; }
+        .okr-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 8px; font-weight: 500; color: #fff; }
+        .progress-track { background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--success); border-radius: 4px; box-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid-3 { grid-template-columns: 1fr; }
+            .grid-span-2 { grid-column: span 1; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 1000; background: rgba(13, 27, 42, 0.95); }
+            .sidebar.active { left: 0; }
+            html[dir="rtl"] .sidebar { left: auto; right: -270px; }
+            html[dir="rtl"] .sidebar.active { right: 0; }
+            .branding-logos { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <img src="cropped-solid-logo-.png" alt="DIGITIVIA Logo">
+            <span>DIGITIVIA</span>
+        </div>
+        <div id="nav-container">
+            </div>
+    </nav>
+
+    <div class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
+                <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-controls">
+                    <select id="role-select" class="btn-outline" onchange="changeRole()">
+                        <option value="admin" style="color:black">Admin</option>
+                        <option value="employee" style="color:black">Agent</option>
+                    </select>
+
+                    <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
+                    
+                    <i class="fa-regular fa-bell icon-btn"><span class="badge">2</span></i>
+                    
+                    <div class="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=Sarah+Connor&background=3498db&color=fff" alt="User" id="user-avatar">
+                        <span id="user-name">Sarah Connor</span>
+                    </div>
+                </div>
+
+                <div class="branding-logos">
+                    <img src="cropped-solid-logo-.png" alt="DIGITIVIA Logo" class="secondary-logo">
+                </div>
+            </div>
+        </header>
+
+        <main class="content-scroll" id="main-view">
+            </main>
+    </div>
+
+    <script>
+        // --- DATA & CONFIG ---
+        
+        const state = {
+            role: 'admin', 
+            lang: 'en',
+            activeView: 'dashboard'
+        };
+
+        // Translations & Labels
+        const i18n = {
+            en: {
+                welcome: "Welcome back,",
+                roleAdmin: "HR Admin",
+                roleEmp: "Agent",
+                
+                // Sidebar Sections
+                sec_hr: "HR & Recruitment",
+
+                // Modules
+                dashboard: "Dashboard",
+                wfm: "Workforce WFM",
+                
+                // HR Legacy (ZenHR PDF Data)
+                zenats: "ATS Recruitment",
+                payroll: "Payroll",
+                employees: "Employees",
+                attendance: "Time & Attendance",
+                performance: "Performance",
+                reports: "Reports",
+                
+                // Labels
+                create: "Create New",
+                viewAll: "View All",
+                compliant: "Compliant"
+            },
+            ar: {
+                welcome: "مرحباً بعودتك،",
+                roleAdmin: "مدير الموارد البشرية",
+                roleEmp: "موظف",
+                
+                sec_hr: "الموارد البشرية والتوظيف",
+
+                dashboard: "لوحة التحكم",
+                wfm: "إدارة القوى العاملة (WFM)",
+                
+                zenats: "نظام التوظيف (ATS)",
+                payroll: "مسير الرواتب",
+                employees: "الموظفين",
+                attendance: "الحضور والانصراف",
+                performance: "الأداء",
+                reports: "التقارير",
+                
+                create: "إنشاء جديد",
+                viewAll: "عرض الكل",
+                compliant: "متوافق"
+            }
+        };
+
+        // --- RENDER SIDEBAR ---
+
+        function renderSidebar() {
+            const t = i18n[state.lang];
+            const navContainer = document.getElementById('nav-container');
+            navContainer.innerHTML = '';
+
+            let sections = [];
+            
+            if (state.role === 'admin') {
+                sections = [
+                    {
+                        title: t.sec_hr, 
+                        items: [
+                            { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
+                            { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
+                            { icon: 'fa-users', label: t.employees, key: 'employees' },
+                            { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
+                            { icon: 'fa-briefcase', label: t.zenats, key: 'ats' },
+                            { icon: 'fa-star', label: t.performance, key: 'performance' },
+                            { icon: 'fa-file-alt', label: t.reports, key: 'reports' },
+                            { icon: 'fa-timeline', label: t.wfm, key: 'wfm' } // Moved WFM here
+                        ]
+                    }
+                ];
+            } else {
+                sections = [ 
+                    {
+                        title: "Employee Self Service",
+                        items: [
+                            { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
+                            { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
+                        ]
+                    }
+                ];
+            }
+
+            sections.forEach(sec => {
+                if(sec.title) {
+                    const header = document.createElement('div');
+                    header.className = 'nav-header';
+                    header.innerText = sec.title;
+                    navContainer.appendChild(header);
+                }
+                const ul = document.createElement('ul');
+                ul.className = 'nav-links';
+                
+                sec.items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
+                    li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
+                    li.onclick = () => {
+                        state.activeView = item.key;
+                        renderSidebar(); 
+                        renderMainContent(); 
+                    };
+                    ul.appendChild(li);
+                });
+                navContainer.appendChild(ul);
+            });
+        }
+
+        // --- RENDER MAIN CONTENT (ROUTER) ---
+
+        function renderMainContent() {
+            const main = document.getElementById('main-view');
+            const t = i18n[state.lang];
+            
+            let content = '';
+
+            switch(state.activeView) {
+                case 'dashboard':
+                    content = generateDashboardHTML();
+                    break;
+                case 'payroll':
+                    content = generatePayrollHTML();
+                    break;
+                case 'employees':
+                    content = generateEmployeesHTML();
+                    break;
+                case 'attendance':
+                    content = generateAttendanceHTML();
+                    break;
+                case 'ats':
+                    content = generateATSHTML();
+                    break;
+                case 'performance':
+                    content = generatePerformanceHTML();
+                    break;
+                case 'wfm':
+                    content = generateWFMHTML();
+                    break;
+                default:
+                    content = `
+                    <div class="card" style="text-align:center; padding:50px;">
+                        <h2 style="color:var(--text-header);">${t.reports}</h2>
+                        <p style="color:var(--text-muted); margin-top:10px;">Generating Analytics...</p>
+                        <i class="fa-solid fa-chart-simple" style="font-size:3rem; color:var(--primary); margin-top:20px; opacity:0.5;"></i>
+                    </div>`;
+            }
+
+            main.innerHTML = content;
+        }
+
+        // --- VIEW GENERATORS ---
+
+        function generateDashboardHTML() {
+            const t = i18n[state.lang];
+            return `
+                <div class="page-title">
+                    <span>${t.welcome} <span id="dash-user">Sarah</span></span>
+                </div>
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-header"><div class="card-title"><i class="fa-solid fa-clock"></i> My Attendance</div></div>
+                        <div style="text-align:center; padding:10px;">
+                            <h2 style="color:#2ecc71; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px rgba(46, 204, 113, 0.4);" id="clock-widget">00:00:00</h2>
+                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;"><i class="fa-solid fa-location-dot"></i> Amman HQ (IP: 192.168.1.1)</p>
+                            <button class="btn-primary" style="width:100%; justify-content:center;">Clock In</button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Who's Off</div>
+                            <a href="#" style="font-size:0.8rem; color:var(--primary)">${t.viewAll}</a>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid var(--glass-border);">
+                            <div style="width:40px; height:40px; background:rgba(52, 152, 219, 0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:bold;">LI</div>
+                            <div><div style="font-weight:600; font-size:0.95rem; color:#fff;">Lina Inverse</div><div style="font-size:0.8rem; color:var(--text-muted);">Annual Vacation</div></div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:40px; height:40px; background:rgba(241, 196, 15, 0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--warning); font-weight:bold;">MH</div>
+                            <div><div style="font-weight:600; font-size:0.95rem; color:#fff;">Mark Hamill</div><div style="font-size:0.8rem; color:var(--text-muted);">Sick Leave</div></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                         <div class="card-header"><div class="card-title">Pending Approvals <span class="badge" style="position:static">3</span></div></div>
+                         <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+                            <span style="color:var(--text-main);">Leave Request (John Doe)</span>
+                            <div>
+                                <i class="fa-solid fa-check" style="color:var(--success); margin-right:15px; cursor:pointer; font-size:1.1rem;"></i>
+                                <i class="fa-solid fa-xmark" style="color:var(--danger); cursor:pointer; font-size:1.1rem;"></i>
+                            </div>
+                         </div>
+                         <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-main);">Loan Request (Sarah Smith)</span>
+                            <div>
+                                <i class="fa-solid fa-check" style="color:var(--success); margin-right:15px; cursor:pointer; font-size:1.1rem;"></i>
+                                <i class="fa-solid fa-xmark" style="color:var(--danger); cursor:pointer; font-size:1.1rem;"></i>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generatePayrollHTML() {
+            return `
+                <div class="page-title">Payroll Management</div>
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-title">WPS & GOSI Status</div>
+                        <div style="margin-top:20px; color:var(--success); font-weight:bold; display:flex; align-items:center; gap:15px;">
+                            <div style="padding:15px; background:rgba(46, 204, 113, 0.1); border-radius:50%;">
+                                <i class="fa-solid fa-shield-halved" style="font-size:2rem;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:1.1rem;">Fully Compliant</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:5px;">Saudi Arabia & Jordan Localizations active</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Quick Actions</div>
+                        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+                            <button class="btn-outline"><i class="fa-solid fa-play"></i> Run Payroll (Oct 2023)</button>
+                            <button class="btn-outline"><i class="fa-solid fa-file-export"></i> Export Bank File (WPS)</button>
+                        </div>
+                    </div>
+                      <div class="card">
+                        <div class="card-title">Cost Center Distribution</div>
+                        <div style="height:120px; background:rgba(255,255,255,0.05); margin-top:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); border:1px dashed var(--glass-border);">
+                            <i class="fa-solid fa-chart-pie" style="margin-right:8px;"></i> Distribution Chart
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateEmployeesHTML() {
+            return `
+                 <div class="page-title">
+                    Employees
+                    <button class="btn-primary"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
+                </div>
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-title"><i class="fa-solid fa-laptop"></i> Asset Management</div>
+                        <p style="font-size:0.85rem; color:var(--text-muted); margin:15px 0;">Track laptops, phones, and company property.</p>
+                        <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+                            <span style="color:#fff; font-weight:600;">Assigned: 142</span>
+                            <span style="color:var(--warning); font-weight:600;">In Stock: 12</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fa-solid fa-file-contract"></i> Document Center</div>
+                        <p style="font-size:0.85rem; color:var(--text-muted); margin:15px 0;">Expiring Documents (30 days)</p>
+                        <div style="color:var(--danger); font-weight:bold; font-size:1.1rem;">3 Passports Expiring</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Employee Directory</div></div>
+                    <table style="width:100%;">
+                        <thead>
+                            <tr style="background:rgba(255,255,255,0.05);">
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><div style="display:flex; align-items:center; gap:10px;"><img src="https://ui-avatars.com/api/?name=Nour+Ahmad&background=random" style="width:30px; border-radius:50%;"> Nour Ahmad</div></td>
+                                <td>Product Owner</td>
+                                <td>Product</td>
+                                <td><span style="background:rgba(46, 204, 113, 0.2); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(46, 204, 113, 0.3);">Active</span></td>
+                            </tr>
+                            <tr>
+                                <td><div style="display:flex; align-items:center; gap:10px;"><img src="https://ui-avatars.com/api/?name=Masoud+Khaled&background=random" style="width:30px; border-radius:50%;"> Masoud Khaled</div></td>
+                                <td>Software Engineer</td>
+                                <td>IT</td>
+                                <td><span style="background:rgba(46, 204, 113, 0.2); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(46, 204, 113, 0.3);">Active</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function generateAttendanceHTML() {
+            return `
+                <div class="page-title">Time & Attendance</div>
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-title">Geolocation Tracking</div>
+                        <div style="margin-top:20px; font-size:0.95rem;">
+                            <div style="margin-bottom:10px;"><i class="fa-solid fa-check-circle" style="color:var(--success); margin-right:5px;"></i> Geo-fencing Active</div>
+                            <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;">Employees must be within 100m of office to clock in.</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Missing Punches</div>
+                        <div style="font-size:2.5rem; color:var(--warning); font-weight:bold; margin:15px 0;">5</div>
+                        <button class="btn-outline" style="width:100%">Review Requests</button>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Roster Planning</div>
+                        <div style="margin-top:15px;">
+                            <p style="font-size:0.9rem; color:var(--text-main); margin-bottom:5px;"><strong>Shift A:</strong> 09:00 AM - 05:00 PM</p>
+                            <p style="font-size:0.9rem; color:var(--text-main);"><strong>Shift B:</strong> 02:00 PM - 10:00 PM</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateATSHTML() {
+            return `
+                <div class="page-title">
+                    ATS (Recruitment)
+                    <button class="btn-primary">Create Vacancy</button>
+                </div>
+                
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-title">Active Vacancies</div>
+                        <h2 style="margin:15px 0; font-size:2.5rem; color:#fff;">4</h2>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">Product Manager, Sr. QA, Java Dev</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Sources</div>
+                        <div style="display:flex; gap:15px; margin-top:20px; align-items:center;">
+                            <i class="fa-brands fa-linkedin" style="color:#0077b5; font-size:2rem; background:white; border-radius:4px;"></i>
+                            <i class="fa-brands fa-facebook" style="color:#1877f2; font-size:2rem; background:white; border-radius:50%;"></i>
+                            <span style="font-size:0.9rem; color:var(--text-muted); margin-left:10px;">Integration Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom:15px; font-size:1.1rem; color:#fff; font-weight:600;">Pipeline: Senior QA Engineer</h3>
+                <div class="pipeline-container">
+                    <div class="pipeline-col">
+                        <div class="pipeline-header">Sourced (4)</div>
+                        <div class="candidate-card">
+                            <h4>Fahed Alotabi</h4>
+                            <p>Riyadh, KSA</p>
+                            <span class="tag">#QualityAssurance</span>
+                        </div>
+                         <div class="candidate-card">
+                            <h4>Abdullah Alsaud</h4>
+                            <p>Jeddah, KSA</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-header">Screening (2)</div>
+                         <div class="candidate-card">
+                            <h4>Aisha Mohammed</h4>
+                            <p>Amman, JO</p>
+                            <span class="tag">#ISTQB</span>
+                        </div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-header">Interview (1)</div>
+                         <div class="candidate-card">
+                            <h4>Raya Mohammad</h4>
+                            <p>Final Interview: 1:00 PM</p>
+                        </div>
+                    </div>
+                    <div class="pipeline-col">
+                        <div class="pipeline-header">Offer (0)</div>
+                        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem;">No candidates yet</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generatePerformanceHTML() {
+            return `
+                <div class="page-title">Performance & Evaluation</div>
+                <div class="card">
+                    <div class="card-title" style="margin-bottom:25px;">Objectives & Key Results (OKRs)</div>
+                    
+                    <div class="okr-item">
+                        <div class="okr-header">
+                            <span>Objective 1: Delight our company customers</span>
+                            <span>60%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width:60%"></div>
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">KR: Get 4+ quality rating</p>
+                    </div>
+
+                    <div class="okr-item">
+                        <div class="okr-header">
+                            <span>Objective 2: Improve Operating Excellence</span>
+                            <span>30%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width:30%; background:var(--info); box-shadow: 0 0 10px rgba(155, 89, 182, 0.5);"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-title">Competencies</div>
+                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Evaluate "How" it was done, not just "What".</p>
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Communication</span>
+                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Teamwork</span>
+                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Technical Skill</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateWFMHTML() {
+            return `
+                <div class="page-title">Workforce Management (WFM)</div>
+                <div class="dashboard-grid grid-3">
+                    <div class="card">
+                        <div class="card-title">Schedule Adherence</div>
+                        <h2 style="color:var(--success); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(46, 204, 113, 0.4);">94%</h2>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">Team is sticking to schedule</div>
+                    </div>
+                     <div class="card">
+                        <div class="card-title">Productivity Score</div>
+                        <h2 style="color:var(--info); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(155, 89, 182, 0.4);">8.5/10</h2>
+                    </div>
+                     <div class="card">
+                        <div class="card-title">Forecast Accuracy</div>
+                        <h2 style="color:var(--warning); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(241, 196, 15, 0.4);">+/- 5%</h2>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Intraday Adherence & Productivity</div>
+                        <div style="font-size:0.8rem;">
+                            <span style="color:var(--success); margin-right:10px;">■ Adherence</span> 
+                            <span style="color:var(--info)">■ Productivity</span>
+                        </div>
+                    </div>
+                    <div class="wfm-chart-container">
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:80%"></div><div class="wfm-bar productivity" style="height:70%"></div><span class="wfm-label">8am</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:90%"></div><div class="wfm-bar productivity" style="height:85%"></div><span class="wfm-label">9am</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:95%"></div><div class="wfm-bar productivity" style="height:90%"></div><span class="wfm-label">10am</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:85%"></div><div class="wfm-bar productivity" style="height:80%"></div><span class="wfm-label">11am</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:60%"></div><div class="wfm-bar productivity" style="height:40%"></div><span class="wfm-label">12pm</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:90%"></div><div class="wfm-bar productivity" style="height:75%"></div><span class="wfm-label">1pm</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:92%"></div><div class="wfm-bar productivity" style="height:88%"></div><span class="wfm-label">2pm</span></div>
+                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:88%"></div><div class="wfm-bar productivity" style="height:82%"></div><span class="wfm-label">3pm</span></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ACTIONS & HELPERS ---
+
+        function changeRole() {
+            const select = document.getElementById('role-select');
+            state.role = select.value;
+            renderSidebar();
+            renderMainContent();
+        }
+
+        function toggleLang() {
+            state.lang = state.lang === 'en' ? 'ar' : 'en';
+            const html = document.documentElement;
+            const langBtn = document.getElementById('lang-btn');
+            
+            if (state.lang === 'ar') {
+                html.setAttribute('dir', 'rtl');
+                html.setAttribute('lang', 'ar');
+                langBtn.innerText = "English";
+                document.body.style.fontFamily = "Tahoma, sans-serif"; 
+            } else {
+                html.setAttribute('dir', 'ltr');
+                html.setAttribute('lang', 'en');
+                langBtn.innerText = "عربي";
+                document.body.style.fontFamily = "'Inter', sans-serif";
+            }
+            
+            renderSidebar();
+            renderMainContent();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Clock Ticker
+        setInterval(() => {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('clock-widget');
+            if(clockEl) clockEl.innerText = timeString;
+        }, 1000);
+
+        // Init
+        document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        renderSidebar();
+        renderMainContent();
+
+    </script>
+</body>
+</html>
