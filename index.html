@@ -10,7 +10,7 @@
     
     <style>
         :root {
-            /* GLOSSY DARK BLUE THEME VARIABLES */
+            /* GLOSSY DARK BLUE THEME */
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
@@ -39,7 +39,7 @@
             font-size: 14px;
         }
 
-        /* --- AUTH LAYER (LOGIN/REGISTER) --- */
+        /* --- AUTH LAYER --- */
         #auth-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-body-gradient);
@@ -72,11 +72,14 @@
         }
         .input-field:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
 
+        /* Social Buttons - Consistent Outline Style */
+        .social-buttons-container { display: flex; flex-direction: column; gap: 10px; }
         .social-btn {
-            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--glass-border);
+            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);
             background: rgba(255,255,255,0.05); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; transition: 0.2s;
         }
-        .social-btn:hover { background: rgba(255,255,255,0.1); }
+        .social-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+        
         .divider { margin: 25px 0; color: var(--text-muted); position: relative; }
         .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--glass-border); }
         .divider::before { left: 0; } .divider::after { right: 0; }
@@ -84,41 +87,33 @@
         .switch-auth { margin-top: 20px; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; }
         .switch-auth span { color: var(--primary); font-weight: 600; }
 
-        /* --- APP LAYER (DASHBOARD) --- */
-        #app-layer { display: none; width: 100%; height: 100%; display: flex; } /* Flex applied via JS when shown */
+        /* --- APP LAYER --- */
+        #app-layer { display: none; width: 100%; height: 100%; display: flex; }
 
-        /* Existing Dashboard Styles */
         .sidebar { width: 270px; background: var(--sidebar-bg); backdrop-filter: blur(var(--blur-amount)); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; height: 100vh; z-index: 1000; }
         .logo-area { height: 80px; display: flex; align-items: center; padding: 0 25px; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); color: var(--text-header); }
-        .logo-area img { height: 45px; margin-right: 12px; object-fit: contain; }
         #nav-container { flex-grow: 1; overflow-y: auto; padding-top: 15px; }
         .nav-header { padding: 20px 30px 10px 30px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
-        .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
-        .nav-item { padding: 14px 15px; margin-bottom: 6px; border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.25s ease; color: var(--text-muted); font-weight: 500; border: 1px solid transparent; }
+        .nav-item { padding: 14px 15px; margin: 0 15px 6px 15px; border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.25s ease; color: var(--text-muted); font-weight: 500; border: 1px solid transparent; }
         .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-header); transform: translateX(5px); }
         .nav-item.active { background: var(--sidebar-active); color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
         .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
-        
+
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
         
         .card { background: var(--glass-bg); backdrop-filter: blur(var(--blur-amount)); border-radius: 16px; padding: 25px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; color: var(--text-main); display: flex; flex-direction: column; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); border-color: rgba(255,255,255,0.25); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
         .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; }
         
         .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4); transition: all 0.2s; }
         .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
-        
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
-        
-        /* Modal Style for Onboarding */
+
+        /* MODALS */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-content { width: 500px; background: #1a2634; padding: 30px; border-radius: 15px; border: 1px solid var(--glass-border); box-shadow: 0 0 50px rgba(52, 152, 219, 0.2); }
-        
-        /* Utility */
+        .modal-content { width: 500px; background: #1a2634; padding: 40px; border-radius: 15px; border: 1px solid var(--glass-border); box-shadow: 0 0 50px rgba(52, 152, 219, 0.2); text-align: center; }
         .hidden { display: none !important; }
         .page-title { margin-bottom: 30px; font-size: 2rem; font-weight: 700; color: var(--text-header); display: flex; justify-content: space-between; align-items: center; }
 
@@ -132,6 +127,7 @@
 <body>
 
     <div id="auth-layer">
+        
         <div class="auth-card" id="login-form">
             <div style="font-size:3rem; color:var(--primary); margin-bottom:10px;"><i class="fa-solid fa-cube"></i></div>
             <div class="auth-title">Digitivia Ops</div>
@@ -150,8 +146,17 @@
 
             <div class="divider">OR</div>
 
-            <button class="social-btn" onclick="handleSocial('google')"><i class="fa-brands fa-google"></i> Continue with Google</button>
-            <button class="social-btn" onclick="handleSocial('azure')"><i class="fa-brands fa-microsoft"></i> Continue with Microsoft</button>
+            <div class="social-buttons-container">
+                <button class="social-btn" onclick="handleSocial('google')">
+                    <i class="fa-brands fa-google" style="color:#EA4335"></i> Continue with Google
+                </button>
+                <button class="social-btn" onclick="handleSocial('azure')">
+                    <i class="fa-brands fa-microsoft" style="color:#00A4EF"></i> Continue with Microsoft
+                </button>
+                <button class="social-btn" onclick="handleSocial('linkedin')">
+                    <i class="fa-brands fa-linkedin" style="color:#0077b5"></i> Continue with LinkedIn
+                </button>
+            </div>
 
             <div class="switch-auth" onclick="toggleAuthMode('register')">New Organization? <span>Register as CEO</span></div>
         </div>
@@ -175,13 +180,36 @@
 
             <button class="btn-primary" style="width:100%; justify-content:center; padding:15px;" onclick="handleRegister()">Create Account</button>
             <div class="switch-auth" onclick="toggleAuthMode('login')">Already have an account? <span>Sign In</span></div>
+            
+            <div class="divider">OR REGISTER WITH</div>
+             <div class="social-buttons-container">
+                <button class="social-btn" onclick="handleSocial('google')"><i class="fa-brands fa-google" style="color:#EA4335"></i> Google</button>
+                <button class="social-btn" onclick="handleSocial('linkedin')"><i class="fa-brands fa-linkedin" style="color:#0077b5"></i> LinkedIn</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="org-setup-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div style="font-size:3rem; color:var(--info); margin-bottom:15px;"><i class="fa-solid fa-rocket"></i></div>
+            <h2 style="color:white; margin-bottom:10px;">Welcome to Digitivia!</h2>
+            <p style="color:var(--text-muted); margin-bottom:30px;">You are logging in for the first time. Please enter your Business Name to create your workspace.</p>
+            
+            <div class="input-group">
+                <label>Organization / Company Name</label>
+                <input type="text" id="wizard-org-name" class="input-field" placeholder="Ex: Tech Solutions Ltd.">
+            </div>
+
+            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px;" onclick="submitOrgWizard()">
+                Complete Setup <i class="fa-solid fa-arrow-right"></i>
+            </button>
         </div>
     </div>
 
     <div id="onboarding-modal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content" style="text-align:left;">
             <h2 style="color:white; margin-bottom:10px;">Complete Your Profile</h2>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Please provide your details to finish setting up your account.</p>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Please provide your details.</p>
             
             <div class="input-group">
                 <label>Full Name</label>
@@ -231,7 +259,7 @@
                         <div id="user-name-display" style="font-weight:700; color:white;">User</div>
                         <div id="user-role-display" style="font-size:0.75rem; color:var(--primary); text-transform:uppercase;">Role</div>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=User&background=3498db&color=fff" alt="User" id="user-avatar" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
+                    <img src="" alt="User" id="user-avatar" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
                 </div>
             </header>
 
@@ -244,39 +272,23 @@
         // ==========================================
         // 1. SUPABASE CONFIGURATION
         // ==========================================
-        
-        // YOUR KEYS
         const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
 
-        // FIX: RENAMED VARIABLE TO "supabaseClient" TO AVOID CONFLICT WITH GLOBAL LIBRARY "supabase"
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ==========================================
-        // 2. STATE MANAGEMENT
+        // 2. STATE & INIT
         // ==========================================
-        
         const state = {
             user: null,
             profile: null,
             org: null,
-            activeView: 'dashboard',
-            lang: 'en'
+            activeView: 'dashboard'
         };
 
-        const i18n = {
-            en: {
-                dashboard: "Dashboard", payroll: "Payroll", employees: "Employees", 
-                attendance: "Attendance", ats: "ATS Recruitment", performance: "Performance"
-            }
-        };
-
-        // ==========================================
-        // 3. AUTHENTICATION LOGIC
-        // ==========================================
-
+        // Initialize Authentication
         async function initAuth() {
-            // Check active session
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 state.user = session.user;
@@ -285,7 +297,7 @@
                 showAuthLayer();
             }
 
-            // Listen for auth changes
+            // Auth Listener
             supabaseClient.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_IN' && session) {
                     state.user = session.user;
@@ -298,102 +310,75 @@
             });
         }
 
+        // ==========================================
+        // 3. AUTH HANDLERS
+        // ==========================================
+
         async function handleLogin() {
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
-            
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) alert("Login Failed: " + error.message);
-            // onAuthStateChange handles the rest
         }
 
         async function handleSocial(provider) {
-            // If new user, Supabase creates auth user. Logic below handles profile creation.
-            const { data, error } = await supabaseClient.auth.signInWithOAuth({
+            // Logic: Users click this for Login OR Registration.
+            // Profile check happens after redirect.
+            const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: provider,
                 options: { redirectTo: window.location.href }
             });
+            if (error) alert(error.message);
         }
 
         async function handleRegister() {
+            // Manual Registration
             const orgName = document.getElementById('reg-org-name').value;
             const email = document.getElementById('reg-email').value;
             const password = document.getElementById('reg-password').value;
 
             if(!orgName || !email || !password) return alert("Please fill all fields");
 
-            // 1. Sign Up User
             const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
             if (authError) return alert(authError.message);
 
-            const userId = authData.user.id;
-
-            // 2. Create Organization
-            const { data: orgData, error: orgError } = await supabaseClient
-                .from('organizations')
-                .insert([{ name: orgName, subscription_plan: 'free' }])
-                .select()
-                .single();
-
-            if (orgError) return alert("Error creating Org: " + orgError.message);
-
-            // 3. Create CEO Profile
-            const { error: profError } = await supabaseClient
-                .from('profiles')
-                .insert([{
-                    id: userId,
-                    organization_id: orgData.id,
-                    full_name: "CEO", // Will be updated in onboarding
-                    role: 'ceo',
-                    email: email,
-                    status: 'active'
-                }]);
-
-            if (profError) return alert("Error creating Profile: " + profError.message);
-
-            alert("Registration Successful! Please check email to confirm, or login.");
+            // Create Org & Profile
+            await createOrganizationAndCEO(authData.user.id, email, orgName);
+            alert("Registration Successful! Please login.");
             toggleAuthMode('login');
         }
 
         async function handleLogout() {
             await supabaseClient.auth.signOut();
-            location.reload();
+            window.location.reload();
         }
 
         // ==========================================
-        // 4. DATA LOADING & ROUTING
+        // 4. DATA LOADING & WIZARD LOGIC
         // ==========================================
 
         async function loadProfileData() {
             if (!state.user) return;
 
-            // Fetch Profile
+            // 1. Try to fetch profile
             let { data: profile, error } = await supabaseClient
                 .from('profiles')
                 .select('*, organizations(name)')
                 .eq('id', state.user.id)
                 .single();
 
+            // 2. SMART REDIRECT: If no profile exists -> Show Setup Wizard
             if (!profile) {
-                // AUTH USER EXISTS BUT NO PROFILE (Likely Social Login first time as CEO)
-                // In a production app, we would ask if they want to join an existing org or create new.
-                // For this prototype, we assume Social Login = New CEO if not invited.
-                
-                if (confirm("No profile found. Are you registering a new Organization?")) {
-                    toggleAuthMode('register'); // Send to register flow to capture Org Name
-                    await supabaseClient.auth.signOut();
-                    return;
-                } else {
-                    alert("Please ask your Administrator to invite you first.");
-                    await supabaseClient.auth.signOut();
-                    return;
-                }
+                document.getElementById('auth-layer').style.display = 'none';
+                document.getElementById('org-setup-modal').style.display = 'flex';
+                return; 
             }
 
+            // 3. Profile Exists -> Load State
             state.profile = profile;
             state.org = profile.organizations;
 
-            // Check if Onboarding Needed (Missing Dept or Job Title)
+            // 4. Check for Missing Details (Employee Onboarding)
             if (!profile.department || !profile.job_title) {
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('onboarding-modal').style.display = 'flex';
@@ -401,6 +386,53 @@
             } else {
                 showAppLayer();
             }
+        }
+
+        // Triggered by the Wizard Modal
+        async function submitOrgWizard() {
+            const orgName = document.getElementById('wizard-org-name').value;
+            if(!orgName) return alert("Please enter a company name.");
+
+            // Create Org & CEO Profile linked to Social Auth ID
+            const success = await createOrganizationAndCEO(state.user.id, state.user.email, orgName);
+            
+            if(success) {
+                document.getElementById('org-setup-modal').style.display = 'none';
+                loadProfileData(); // Reload to enter app
+            }
+        }
+
+        // Shared Logic for creating DB Records
+        async function createOrganizationAndCEO(userId, email, orgName) {
+            // 1. Create Organization
+            const { data: orgData, error: orgError } = await supabaseClient
+                .from('organizations')
+                .insert([{ name: orgName, subscription_plan: 'free' }])
+                .select()
+                .single();
+
+            if (orgError) {
+                alert("Error creating Org: " + orgError.message);
+                return false;
+            }
+
+            // 2. Create CEO Profile
+            const { error: profError } = await supabaseClient
+                .from('profiles')
+                .insert([{
+                    id: userId,
+                    organization_id: orgData.id,
+                    full_name: state.user?.user_metadata?.full_name || "CEO",
+                    role: 'ceo',
+                    email: email,
+                    status: 'active'
+                }]);
+
+            if (profError) {
+                alert("Error creating Profile: " + profError.message);
+                return false;
+            }
+            return true;
         }
 
         async function submitOnboarding() {
@@ -419,14 +451,13 @@
             if (error) alert(error.message);
             else {
                 document.getElementById('onboarding-modal').style.display = 'none';
-                // Refresh local state
                 state.profile = { ...state.profile, ...updates };
                 showAppLayer();
             }
         }
 
         // ==========================================
-        // 5. UI RENDERING LOGIC
+        // 5. UI RENDERING
         // ==========================================
 
         function showAuthLayer() {
@@ -440,112 +471,71 @@
             document.getElementById('app-layer').classList.remove('hidden');
             document.getElementById('app-layer').style.display = 'flex';
 
-            // Update Header info
             document.getElementById('org-name-display').innerText = state.org.name;
             document.getElementById('user-name-display').innerText = state.profile.full_name;
             document.getElementById('user-role-display').innerText = state.profile.role.replace('_', ' ');
             document.getElementById('user-avatar').src = `https://ui-avatars.com/api/?name=${state.profile.full_name}&background=3498db&color=fff`;
 
-            // Setup View
-            if (state.profile.role === 'employee') {
-                state.activeView = 'attendance'; // Employees start at attendance
-            } else {
-                state.activeView = 'dashboard';
-            }
-
+            state.activeView = (state.profile.role === 'employee') ? 'attendance' : 'dashboard';
             renderSidebar();
             renderMainContent();
         }
 
         function toggleAuthMode(mode) {
-            if(mode === 'register') {
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('register-form').classList.remove('hidden');
-            } else {
-                document.getElementById('register-form').classList.add('hidden');
-                document.getElementById('login-form').classList.remove('hidden');
-            }
+            const login = document.getElementById('login-form');
+            const reg = document.getElementById('register-form');
+            if(mode === 'register') { login.classList.add('hidden'); reg.classList.remove('hidden'); } 
+            else { reg.classList.add('hidden'); login.classList.remove('hidden'); }
         }
 
         function renderSidebar() {
-            const navContainer = document.getElementById('nav-container');
-            navContainer.innerHTML = '';
+            const nav = document.getElementById('nav-container');
+            nav.innerHTML = '';
             
-            const role = state.profile.role;
             let menu = [];
-
-            // HIERARCHY LOGIC FOR MENU
-            if (['ceo', 'hr_admin'].includes(role)) {
+            if (['ceo', 'hr_admin'].includes(state.profile.role)) {
                 menu = [
                     { title: "Overview", items: [{ icon: 'fa-chart-pie', label: "Dashboard", key: 'dashboard' }] },
                     { title: "People", items: [{ icon: 'fa-users', label: "Employees", key: 'employees' }, { icon: 'fa-briefcase', label: "Recruitment", key: 'ats' }] },
-                    { title: "Operations", items: [{ icon: 'fa-money-bill-wave', label: "Payroll", key: 'payroll' }, { icon: 'fa-clock', label: "Attendance", key: 'attendance' }, { icon: 'fa-star', label: "Performance", key: 'performance' }] }
-                ];
-            } else if (role === 'manager') {
-                menu = [
-                    { title: "Team Management", items: [{ icon: 'fa-users', label: "My Team", key: 'employees' }, { icon: 'fa-clock', label: "Team Attendance", key: 'attendance' }, { icon: 'fa-star', label: "Performance", key: 'performance' }] }
+                    { title: "Operations", items: [{ icon: 'fa-money-bill-wave', label: "Payroll", key: 'payroll' }, { icon: 'fa-clock', label: "Attendance", key: 'attendance' }] }
                 ];
             } else {
-                // Employee
-                menu = [
-                    { title: "Self Service", items: [{ icon: 'fa-clock', label: "My Attendance", key: 'attendance' }, { icon: 'fa-file-invoice-dollar', label: "Payslips", key: 'payroll' }] }
-                ];
+                menu = [{ title: "Self Service", items: [{ icon: 'fa-clock', label: "My Attendance", key: 'attendance' }] }];
             }
 
             menu.forEach(sec => {
-                const header = document.createElement('div');
-                header.className = 'nav-header';
-                header.innerText = sec.title;
-                navContainer.appendChild(header);
-
+                const h = document.createElement('div'); h.className = 'nav-header'; h.innerText = sec.title; nav.appendChild(h);
                 sec.items.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
-                    div.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
-                    div.onclick = () => {
-                        state.activeView = item.key;
-                        renderSidebar();
-                        renderMainContent();
-                    };
-                    navContainer.appendChild(div);
+                    const d = document.createElement('div');
+                    d.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
+                    d.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
+                    d.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); };
+                    nav.appendChild(d);
                 });
             });
         }
 
         function renderMainContent() {
             const container = document.getElementById('main-view');
-            
-            // Dynamic Generation based on View Key
             if(state.activeView === 'dashboard') container.innerHTML = generateDashboardHTML();
             else if(state.activeView === 'employees') container.innerHTML = generateEmployeesHTML();
             else if(state.activeView === 'attendance') container.innerHTML = generateAttendanceHTML();
-            else if(state.activeView === 'payroll') container.innerHTML = generatePayrollHTML();
-            else if(state.activeView === 'ats') container.innerHTML = generateATSHTML();
-            else container.innerHTML = `<div class="card"><div class="card-title">View Under Construction</div></div>`;
+            else container.innerHTML = `<div class="card"><div class="card-title">Coming Soon</div></div>`;
         }
 
-        // ==========================================
-        // 6. VIEW GENERATORS (HTML Strings)
-        // ==========================================
-
+        // HTML Generators
         function generateDashboardHTML() {
             return `
                 <div class="page-title">Welcome back, ${state.profile.full_name.split(' ')[0]}</div>
                 <div class="dashboard-grid">
                      <div class="card" style="border-left:4px solid var(--primary)">
-                        <div class="card-title">Total Headcount</div>
-                        <h1 style="margin-top:10px;">142</h1>
-                        <p style="color:var(--text-muted); font-size:0.8rem;">+4 this month</p>
+                        <div class="card-title">Total Headcount</div><h1 style="margin-top:10px;">142</h1>
                     </div>
                     <div class="card" style="border-left:4px solid var(--success)">
-                        <div class="card-title">Attendance Today</div>
-                        <h1 style="margin-top:10px; color:var(--success);">96%</h1>
-                        <p style="color:var(--text-muted); font-size:0.8rem;">On time</p>
+                        <div class="card-title">Attendance</div><h1 style="margin-top:10px; color:var(--success);">96%</h1>
                     </div>
                     <div class="card" style="border-left:4px solid var(--warning)">
-                        <div class="card-title">Pending Requests</div>
-                        <h1 style="margin-top:10px; color:var(--warning);">8</h1>
-                        <p style="color:var(--text-muted); font-size:0.8rem;">Requires approval</p>
+                        <div class="card-title">Pending</div><h1 style="margin-top:10px; color:var(--warning);">8</h1>
                     </div>
                 </div>
             `;
@@ -553,13 +543,9 @@
 
         function generateEmployeesHTML() {
             return `
-                <div class="page-title">
-                    Employees
-                    ${state.profile.role === 'ceo' || state.profile.role === 'hr_admin' ? 
-                    `<button class="btn-primary" onclick="showOnboardForm()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>` 
-                    : ''}
+                <div class="page-title">Employees 
+                    ${['ceo','hr_admin'].includes(state.profile.role) ? `<button class="btn-primary" onclick="showOnboardForm()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>` : ''}
                 </div>
-                
                 <div id="new-hire-form" class="card hidden" style="margin-bottom:20px; border:1px solid var(--primary);">
                     <div class="card-title" style="margin-bottom:15px;">Create Login Credentials</div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
@@ -567,107 +553,48 @@
                         <input type="password" id="hire-pass" class="input-field" placeholder="Temporary Password">
                         <input type="text" id="hire-name" class="input-field" placeholder="Full Name">
                         <select id="hire-role" class="input-field" style="background:#2c3e50;">
-                            <option value="employee">Employee</option>
-                            <option value="manager">Manager</option>
-                            <option value="hr_admin">HR Admin</option>
+                            <option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_admin">HR Admin</option>
                         </select>
                     </div>
                     <div style="margin-top:15px; display:flex; gap:10px;">
                         <button class="btn-primary" onclick="createNewHire()">Create User</button>
                         <button class="btn-outline" onclick="document.getElementById('new-hire-form').classList.add('hidden')">Cancel</button>
                     </div>
-                    <p style="margin-top:10px; font-size:0.8rem; color:var(--warning);">* Note: In a real app, this sends an invite email. For this demo, it creates a database record.</p>
                 </div>
-
-                <div class="card">
-                    <div class="card-header"><div class="card-title">Directory</div></div>
-                    <table style="width:100%">
-                        <thead><tr style="text-align:left; color:var(--text-muted);"><th>Name</th><th>Role</th><th>Status</th></tr></thead>
-                        <tbody id="employee-table-body">
-                            <tr><td colspan="3">Loading...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div class="card"><div class="card-header"><div class="card-title">Directory</div></div>
+                <table style="width:100%"><tbody id="employee-table-body"><tr><td>Loading...</td></tr></tbody></table></div>
             `;
         }
 
-        // --- SPECIAL LOGIC FOR EMPLOYEE ONBOARDING ---
-        function showOnboardForm() {
-            document.getElementById('new-hire-form').classList.remove('hidden');
+        function generateAttendanceHTML() {
+            return `<div class="card"><div class="card-title">Attendance</div><div style="text-align:center; padding:50px;"><h1 style="font-size:3rem;">09:00 AM</h1><button class="btn-primary">Clock In</button></div></div>`;
         }
 
+        // Logic for Manual Employee Creation
+        function showOnboardForm() { document.getElementById('new-hire-form').classList.remove('hidden'); }
         async function createNewHire() {
             const email = document.getElementById('hire-email').value;
-            const pass = document.getElementById('hire-pass').value;
             const name = document.getElementById('hire-name').value;
             const role = document.getElementById('hire-role').value;
-
-            // SECURITY NOTE: The Client SDK cannot create a new Auth User while logged in as another.
-            // For this Prototype, we will insert the PROFILE into the database. 
-            // The Auth User creation normally requires a Backend Edge Function.
-            
-            // 1. Insert Profile (Simulating the record creation)
-            // Note: We generate a random ID since we can't get one from Auth in this context
             const fakeId = crypto.randomUUID(); 
-
-            const { error } = await supabaseClient.from('profiles').insert([{
-                id: fakeId, 
-                organization_id: state.org.id,
-                full_name: name,
-                email: email,
-                role: role,
-                status: 'active'
-            }]);
-
-            if(error) {
-                alert("Database Error: " + error.message);
-            } else {
-                alert(`Profile Created for ${email}.\n\nIMPORTANT: Since this is a frontend-only demo, we cannot create the Auth Password '${pass}'.\nIn production, the system sends an Invite Email.`);
-                document.getElementById('new-hire-form').classList.add('hidden');
-                loadEmployeesTable(); // Refresh list
-            }
+            const { error } = await supabaseClient.from('profiles').insert([{ id: fakeId, organization_id: state.org.id, full_name: name, email: email, role: role, status: 'active' }]);
+            if(error) alert("Error: " + error.message);
+            else { alert(`Profile Created for ${email}. Passwords must be set via Invite Email in Production.`); document.getElementById('new-hire-form').classList.add('hidden'); loadEmployeesTable(); }
         }
 
         async function loadEmployeesTable() {
-            const tableBody = document.getElementById('employee-table-body');
-            if(!tableBody) return;
-
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('organization_id', state.org.id);
-
-            if(data) {
-                tableBody.innerHTML = data.map(emp => `
-                    <tr style="border-bottom:1px solid var(--glass-border);">
-                        <td style="padding:15px;">${emp.full_name} <div style="font-size:0.8rem; color:var(--text-muted)">${emp.email}</div></td>
-                        <td style="padding:15px;"><span class="badge" style="position:static; background:var(--glass-bg); padding:5px 10px; border-radius:4px;">${emp.role}</span></td>
-                        <td style="padding:15px; color:var(--success);">Active</td>
-                    </tr>
-                `).join('');
-            }
+            const body = document.getElementById('employee-table-body');
+            if(!body) return;
+            const { data } = await supabaseClient.from('profiles').select('*').eq('organization_id', state.org.id);
+            if(data) body.innerHTML = data.map(e => `<tr><td style="padding:15px;">${e.full_name} <br><span style="font-size:0.8em; color:#999">${e.email}</span></td><td style="padding:15px;">${e.role}</td><td style="color:#2ecc71">Active</td></tr>`).join('');
         }
-        
-        // Hook to load table when view changes
-        const observer = new MutationObserver((mutations) => {
-            if(document.getElementById('employee-table-body')) loadEmployeesTable();
-        });
-        observer.observe(document.getElementById('main-view'), { childList: true });
 
-        // Placeholder Generators
-        function generateAttendanceHTML() {
-            return `<div class="card"><div class="card-title">Attendance</div><div style="text-align:center; padding:50px;"><h1 style="font-size:3rem; margin-bottom:10px;">09:00 AM</h1><button class="btn-primary">Clock In</button></div></div>`;
-        }
-        function generatePayrollHTML() { return `<div class="card"><div class="card-title">Payroll</div><p>WPS Status: Compliant</p></div>`; }
-        function generateATSHTML() { return `<div class="card"><div class="card-title">Recruitment Pipeline</div><p>4 Open Vacancies</p></div>`; }
+        // Watch for DOM changes to load table
+        new MutationObserver(() => { if(document.getElementById('employee-table-body')) loadEmployeesTable(); }).observe(document.getElementById('main-view'), { childList: true });
 
-        // Start App
+        // Run
         initAuth();
-
-        // Clock
-        setInterval(() => {
-            document.getElementById('current-date').innerText = new Date().toDateString();
-        }, 1000);
+        setInterval(() => { document.getElementById('current-date').innerText = new Date().toDateString(); }, 1000);
 
     </script>
 </body>
