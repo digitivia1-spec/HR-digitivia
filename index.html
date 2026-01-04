@@ -337,6 +337,7 @@
         }
 
         async function handleRegister() {
+            // Manual Registration
             const orgName = document.getElementById('reg-org-name').value;
             const email = document.getElementById('reg-email').value;
             const password = document.getElementById('reg-password').value;
@@ -346,7 +347,7 @@
             const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
             if (authError) return alert(authError.message);
 
-            // Create Org & Profile (Explicit User Pass)
+            // Create Org & Profile
             await createOrganizationAndCEO(authData.user, orgName);
             alert("Registration Successful! Please login.");
             toggleAuthMode('login');
@@ -364,22 +365,25 @@
         async function loadProfileData() {
             if (!state.user) return;
 
+            // 1. Try to fetch profile
             let { data: profile, error } = await supabaseClient
                 .from('profiles')
                 .select('*, organizations(name)')
                 .eq('id', state.user.id)
                 .single();
 
-            // SMART REDIRECT: If no profile -> Wizard
+            // 2. SMART REDIRECT: If no profile exists -> Show Setup Wizard
             if (!profile) {
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('org-setup-modal').style.display = 'flex';
                 return; 
             }
 
+            // 3. Profile Exists -> Load State
             state.profile = profile;
             state.org = profile.organizations;
 
+            // 4. Check for Missing Details (Employee Onboarding)
             if (!profile.department || !profile.job_title) {
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('onboarding-modal').style.display = 'flex';
