@@ -183,8 +183,15 @@
             
             <div class="divider">OR REGISTER WITH</div>
              <div class="social-buttons-container">
-                <button class="social-btn" onclick="handleSocial('google')"><i class="fa-brands fa-google" style="color:#EA4335"></i> Google</button>
-                <button class="social-btn" onclick="handleSocial('linkedin')"><i class="fa-brands fa-linkedin" style="color:#0077b5"></i> LinkedIn</button>
+                <button class="social-btn" onclick="handleSocial('google')">
+                    <i class="fa-brands fa-google" style="color:#EA4335"></i> Google
+                </button>
+                <button class="social-btn" onclick="handleSocial('azure')">
+                    <i class="fa-brands fa-microsoft" style="color:#00A4EF"></i> Microsoft
+                </button>
+                <button class="social-btn" onclick="handleSocial('linkedin')">
+                    <i class="fa-brands fa-linkedin" style="color:#0077b5"></i> LinkedIn
+                </button>
             </div>
         </div>
     </div>
@@ -367,7 +374,7 @@
                 .eq('id', state.user.id)
                 .single();
 
-            // 2. SMART REDIRECT: If no profile exists -> Show Setup Wizard
+            // 2. SMART REDIRECT: If no profile exists -> Show Setup Wizard (FIXED LOGIC)
             if (!profile) {
                 document.getElementById('auth-layer').style.display = 'none';
                 document.getElementById('org-setup-modal').style.display = 'flex';
