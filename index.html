@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DIGITIVIA - Operations</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -11,25 +12,16 @@
         :root {
             /* GLOSSY DARK BLUE THEME VARIABLES */
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
-            
-            /* Glassmorphism Variables */
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             --blur-amount: 20px;
-
-            /* Sidebar specific */
             --sidebar-bg: rgba(13, 27, 42, 0.85); 
             --sidebar-active: rgba(52, 152, 219, 0.4); 
-            
-            /* Text Colors */
             --text-main: #e0e6ed;
             --text-muted: #94a3b8;
             --text-header: #ffffff;
-
-            /* Accents */
             --primary: #3498db; 
-            --primary-hover: #2980b9;
             --success: #2ecc71;
             --warning: #f1c40f;
             --danger: #e74c3c;
@@ -37,1142 +29,645 @@
         }
 
         html[dir="rtl"] { --sidebar-width: 270px; }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
         body { 
             background: var(--bg-body-gradient); 
             color: var(--text-main); 
             height: 100vh; 
-            display: flex; 
             overflow: hidden; 
             font-size: 14px;
         }
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: 270px;
-            background: var(--sidebar-bg);
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-right: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s;
-            flex-shrink: 0;
-            height: 100vh; 
-            z-index: 1000;
-        }
-        html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
-
-        .logo-area {
-            height: 80px;
-            display: flex;
-            align-items: center;
-            padding: 0 25px;
-            font-size: 1.4rem;
-            font-weight: 700;
-            border-bottom: 1px solid var(--glass-border);
-            color: var(--text-header);
-            letter-spacing: 1px;
-        }
-        
-        .logo-area img { 
-            height: 45px; 
-            margin-right: 12px; 
-            object-fit: contain; 
-            filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6));
-        }
-        html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
-
-        #nav-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            padding-top: 15px;
-        }
-        #nav-container::-webkit-scrollbar { width: 5px; }
-        #nav-container::-webkit-scrollbar-track { background: transparent; }
-        #nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-
-        /* FIXED: Section Header Alignment */
-        .nav-header {
-            padding: 20px 30px 10px 30px; /* Aligns with nav-items padding + margin */
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: var(--text-muted);
-            font-weight: 700;
+        /* --- AUTH LAYER (LOGIN/REGISTER) --- */
+        #auth-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-body-gradient);
+            z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
         }
 
+        .auth-card {
+            width: 450px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid var(--glass-border);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .auth-logo { width: 60px; margin-bottom: 20px; }
+        .auth-title { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+        .auth-subtitle { color: var(--text-muted); margin-bottom: 30px; }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.9rem; }
+        .input-field {
+            width: 100%; padding: 12px; background: rgba(0,0,0,0.2);
+            border: 1px solid var(--glass-border); border-radius: 8px;
+            color: white; font-size: 1rem; outline: none; transition: 0.3s;
+        }
+        .input-field:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
+
+        .social-btn {
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.05); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; transition: 0.2s;
+        }
+        .social-btn:hover { background: rgba(255,255,255,0.1); }
+        .divider { margin: 25px 0; color: var(--text-muted); position: relative; }
+        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--glass-border); }
+        .divider::before { left: 0; } .divider::after { right: 0; }
+
+        .switch-auth { margin-top: 20px; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; }
+        .switch-auth span { color: var(--primary); font-weight: 600; }
+
+        /* --- APP LAYER (DASHBOARD) --- */
+        #app-layer { display: none; width: 100%; height: 100%; display: flex; } /* Flex applied via JS when shown */
+
+        /* Existing Dashboard Styles */
+        .sidebar { width: 270px; background: var(--sidebar-bg); backdrop-filter: blur(var(--blur-amount)); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; height: 100vh; z-index: 1000; }
+        .logo-area { height: 80px; display: flex; align-items: center; padding: 0 25px; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); color: var(--text-header); }
+        .logo-area img { height: 45px; margin-right: 12px; object-fit: contain; }
+        #nav-container { flex-grow: 1; overflow-y: auto; padding-top: 15px; }
+        .nav-header { padding: 20px 30px 10px 30px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
         .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
-        .nav-item { 
-            padding: 14px 15px; 
-            margin-bottom: 6px;
-            border-radius: 10px;
-            display: flex; 
-            align-items: center; 
-            cursor: pointer; 
-            transition: all 0.25s ease; 
-            color: var(--text-muted); 
-            font-weight: 500;
-            border: 1px solid transparent;
-        }
+        .nav-item { padding: 14px 15px; margin-bottom: 6px; border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.25s ease; color: var(--text-muted); font-weight: 500; border: 1px solid transparent; }
         .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-header); transform: translateX(5px); }
         .nav-item.active { background: var(--sidebar-active); color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
         .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
-        html[dir="rtl"] .nav-item i { margin-right: 0; margin-left: 10px; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .top-header {
-            height: 80px;
-            background: rgba(13, 27, 42, 0.4); 
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            flex-shrink: 0;
-        }
-
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .header-right { display: flex; align-items: center; gap: 20px; }
-
-        .branding-logos {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-left: 20px;
-            padding-left: 20px;
-            border-left: 1px solid var(--glass-border);
-        }
-        html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
-        .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
-
-        .user-controls { display: flex; align-items: center; gap: 15px; }
-        .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
-        .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
-        .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
-
-        .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
-        .dropdown img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
         
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
-        .page-title { 
-            margin-bottom: 30px; 
-            font-size: 2rem; 
-            font-weight: 700; 
-            color: var(--text-header); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
         
-        /* --- GLOSSY CARD COMPONENTS --- */
-        .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: var(--glass-shadow);
-            border: 1px solid var(--glass-border);
-            height: 100%;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255,255,255,0.25);
-        }
-
+        .card { background: var(--glass-bg); backdrop-filter: blur(var(--blur-amount)); border-radius: 16px; padding: 25px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; color: var(--text-main); display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); border-color: rgba(255,255,255,0.25); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
-        .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; letter-spacing: 0.5px; }
+        .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; }
         
-        /* Buttons */
-        .btn-primary { 
-            background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); 
-            color: #fff; 
-            border: none; 
-            padding: 10px 24px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 0.9rem; 
-            font-weight: 600;
-            display: inline-flex; 
-            align-items: center; 
-            gap: 8px; 
-            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
-            transition: all 0.2s;
-        }
-        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4); transition: all 0.2s; }
+        .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
         
-        .btn-outline { 
-            background-color: rgba(255,255,255,0.05); 
-            border: 1px solid var(--glass-border); 
-            color: var(--text-main); 
-            padding: 8px 16px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-            transition: 0.2s;
-        }
-        .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        
+        /* Modal Style for Onboarding */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .modal-content { width: 500px; background: #1a2634; padding: 30px; border-radius: 15px; border: 1px solid var(--glass-border); box-shadow: 0 0 50px rgba(52, 152, 219, 0.2); }
+        
+        /* Utility */
+        .hidden { display: none !important; }
+        .page-title { margin-bottom: 30px; font-size: 2rem; font-weight: 700; color: var(--text-header); display: flex; justify-content: space-between; align-items: center; }
 
-        /* FIXED: Back Button Style */
-        .btn-back-circle {
-            width: 45px; height: 45px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-        .btn-back-circle:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
-        }
-        
-        /* Responsive Grid System */
-        .dashboard-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 25px; 
-            margin-bottom: 25px; 
-            align-items: stretch;
-        }
-        
-        /* Tables in Glass Cards */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
-        td { padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); vertical-align: middle; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background: rgba(255,255,255,0.02); }
-
-        /* --- IMPROVED AVATAR GRID --- */
-        .avatar-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 25px; 
-            margin-bottom: 40px; /* Increased margin to prevent overlap */
-        }
-        
-        .avatar-card { 
-            background: rgba(255,255,255,0.03); 
-            border: 1px solid var(--glass-border); 
-            border-radius: 16px; 
-            padding: 30px 20px; 
-            text-align: center; 
-            cursor: pointer; 
-            position: relative; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100%; 
-        }
-        
-        .avatar-card:hover { 
-            background: rgba(255,255,255,0.08); 
-            transform: translateY(-5px);
-            border-color: rgba(255,255,255,0.3);
-        }
-        
-        .avatar-card.selected { 
-            border: 2px solid var(--primary); 
-            background: rgba(52, 152, 219, 0.15); 
-            box-shadow: 0 0 25px rgba(52, 152, 219, 0.3);
-        }
-        
-        /* 3D Image styling */
-        .avatar-card img { 
-            width: 140px; 
-            height: 140px; 
-            border-radius: 50%; 
-            object-fit: cover; 
-            object-position: top;
-            margin-bottom: 20px; 
-            border: 4px solid rgba(255,255,255,0.1); 
-            transition: 0.3s;
-            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), transparent);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-        }
-        
-        .avatar-card.selected img { 
-            border-color: var(--primary); 
-            transform: scale(1.05);
-        }
-        
-        .selection-indicator {
-            position: absolute; top: 15px; right: 15px; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--text-muted);
-            transition: 0.3s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .avatar-card.selected .selection-indicator { 
-            background: var(--primary); 
-            border-color: var(--primary); 
-            box-shadow: 0 0 10px var(--primary);
-        }
-        .avatar-card.selected .selection-indicator::after {
-            content: '\f00c'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: white; font-size: 14px;
-        }
-        
-        .avatar-role-badge {
-            background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 12px; display: inline-block; letter-spacing: 0.5px;
-        }
-        
-        .avatar-name { font-weight: 700; color: #fff; font-size: 1.4rem; margin-bottom: 8px; }
-        .avatar-desc { font-size: 0.9rem; color: #aaa; line-height: 1.5; margin-top: 5px; flex-grow: 1; }
-
-        /* Configuration Controls */
-        .config-section {
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            padding: 25px;
-            border: 1px solid var(--glass-border);
-            margin-top: 20px;
-            /* Added relative position to ensure it stacks correctly in flow */
-            position: relative; 
-            z-index: 10;
-        }
-        .config-row { display: flex; align-items: center; margin-bottom: 25px; gap: 20px; }
-        .config-label { width: 140px; font-size: 1rem; font-weight: 600; color: var(--text-header); flex-shrink: 0; }
-        .slider-container { flex-grow: 1; }
-        
-        input[type=range] { 
-            width: 100%; height: 6px; 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 5px; 
-            -webkit-appearance: none; 
-        }
-        input[type=range]::-webkit-slider-thumb { 
-            -webkit-appearance: none; 
-            width: 22px; height: 22px; 
-            background: var(--primary); 
-            border-radius: 50%; 
-            cursor: pointer; 
-            border: 2px solid #fff; 
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            margin-top: -8px; 
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; cursor: pointer; background: rgba(255,255,255,0.1); border-radius: 5px;
-        }
-        
-        .dialect-chips { display: flex; gap: 10px; flex-wrap: wrap; }
-        .dialect-chip { 
-            padding: 10px 18px; 
-            background: rgba(255,255,255,0.05); 
-            border: 1px solid var(--glass-border); 
-            border-radius: 25px; 
-            font-size: 0.9rem; 
-            cursor: pointer; 
-            display: flex; align-items: center; gap: 8px; 
-            transition: 0.2s;
-            color: var(--text-main);
-        }
-        .dialect-chip:hover { background: rgba(255,255,255,0.1); }
-        .dialect-chip.active { 
-            background: linear-gradient(135deg, var(--primary), #2980b9); 
-            color: white; 
-            border-color: transparent; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        /* Toast Notification */
-        .toast {
-            position: fixed; bottom: 30px; right: 30px;
-            background: rgba(46, 204, 113, 0.9);
-            color: white; padding: 15px 25px; border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            display: flex; align-items: center; gap: 10px;
-            transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-        }
-        .toast.show { transform: translateY(0); }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 1200px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .avatar-grid { grid-template-columns: repeat(2, 1fr); }
-        }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: 1fr; }
-            .avatar-grid { grid-template-columns: 1fr; }
-            
-            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); }
-            .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); }
-            html[dir="rtl"] .sidebar { left: auto; right: -270px; }
-            html[dir="rtl"] .sidebar.active { right: 0; }
-            
-            .branding-logos { display: none; }
-            .config-row { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .slider-container { width: 100%; }
-            .page-title { font-size: 1.5rem; flex-direction: column; align-items: flex-start; gap: 15px; }
+            .sidebar { position: absolute; left: -270px; }
+            .sidebar.active { left: 0; }
         }
     </style>
 </head>
 <body>
 
-    <nav class="sidebar" id="sidebar">
-        <div class="logo-area">
-            <img src="cropped-solid-logo-.png" alt="DIGITIVIA Logo">
-            <span>Digitivia Ops</span>
+    <div id="auth-layer">
+        <div class="auth-card" id="login-form">
+            <div style="font-size:3rem; color:var(--primary); margin-bottom:10px;"><i class="fa-solid fa-cube"></i></div>
+            <div class="auth-title">Digitivia Ops</div>
+            <div class="auth-subtitle">Operational Excellence Platform</div>
+
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="login-email" class="input-field" placeholder="name@company.com">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="login-password" class="input-field" placeholder="••••••••">
+            </div>
+
+            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px; margin-bottom:20px;" onclick="handleLogin()">Sign In</button>
+
+            <div class="divider">OR</div>
+
+            <button class="social-btn" onclick="handleSocial('google')"><i class="fa-brands fa-google"></i> Continue with Google</button>
+            <button class="social-btn" onclick="handleSocial('azure')"><i class="fa-brands fa-microsoft"></i> Continue with Microsoft</button>
+
+            <div class="switch-auth" onclick="toggleAuthMode('register')">New Organization? <span>Register as CEO</span></div>
         </div>
-        <div id="nav-container">
-            </div>
-    </nav>
 
-    <div class="main-content">
-        <header class="top-header">
-            <div class="header-left">
-                <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
-                <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
+        <div class="auth-card hidden" id="register-form">
+            <div class="auth-title">Create Organization</div>
+            <div class="auth-subtitle">Register your business</div>
+
+            <div class="input-group">
+                <label>Organization Name</label>
+                <input type="text" id="reg-org-name" class="input-field" placeholder="Acme Corp">
             </div>
+            <div class="input-group">
+                <label>Work Email (CEO)</label>
+                <input type="email" id="reg-email" class="input-field" placeholder="ceo@acme.com">
+            </div>
+            <div class="input-group">
+                <label>Create Password</label>
+                <input type="password" id="reg-password" class="input-field" placeholder="••••••••">
+            </div>
+
+            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px;" onclick="handleRegister()">Create Account</button>
+            <div class="switch-auth" onclick="toggleAuthMode('login')">Already have an account? <span>Sign In</span></div>
+        </div>
+    </div>
+
+    <div id="onboarding-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color:white; margin-bottom:10px;">Complete Your Profile</h2>
+            <p style="color:var(--text-muted); margin-bottom:20px;">Please provide your details to finish setting up your account.</p>
             
-            <div class="header-right">
-                <div class="user-controls">
-                    <select id="role-select" class="btn-outline" onchange="changeRole()">
-                        <option value="admin" style="color:black">Admin</option>
-                        <option value="employee" style="color:black">Agent</option>
-                    </select>
+            <div class="input-group">
+                <label>Full Name</label>
+                <input type="text" id="ob-fullname" class="input-field">
+            </div>
+            <div class="input-group">
+                <label>Department</label>
+                <select id="ob-dept" class="input-field" style="background:#2c3e50;">
+                    <option value="Executive">Executive</option>
+                    <option value="HR">Human Resources</option>
+                    <option value="IT">IT & Engineering</option>
+                    <option value="Sales">Sales</option>
+                    <option value="Operations">Operations</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Job Title</label>
+                <input type="text" id="ob-title" class="input-field" placeholder="e.g. Senior Manager">
+            </div>
+            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="submitOnboarding()">Save & Enter Dashboard</button>
+        </div>
+    </div>
 
-                    <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
-                    
-                    <i class="fa-regular fa-bell icon-btn"><span class="badge">2</span></i>
-                    
-                    <div class="dropdown">
-                        <img src="https://ui-avatars.com/api/?name=Sarah+Connor&background=3498db&color=fff" alt="User" id="user-avatar">
-                        <span id="user-name">Sarah Connor</span>
-                    </div>
-                </div>
-
-                <div class="branding-logos">
-                    <img src="cropped-solid-logo-.png" alt="DIGITIVIA Logo" class="secondary-logo">
+    <div id="app-layer" class="hidden">
+        <nav class="sidebar" id="sidebar">
+            <div class="logo-area">
+                <i class="fa-solid fa-cube" style="margin-right:10px; color:var(--primary);"></i>
+                <span id="org-name-display">Digitivia Ops</span>
+            </div>
+            <div id="nav-container"></div>
+            <div style="padding:20px; border-top:1px solid var(--glass-border);">
+                <div class="nav-item" onclick="handleLogout()" style="color:var(--danger);">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span>Sign Out</span>
                 </div>
             </div>
-        </header>
+        </nav>
 
-        <main class="content-scroll" id="main-view">
-            </main>
-        
-        <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span>Configuration Saved!</span></div>
+        <div class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
+                    <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
+                </div>
+                
+                <div class="header-right">
+                    <div style="margin-right:15px; text-align:right;">
+                        <div id="user-name-display" style="font-weight:700; color:white;">User</div>
+                        <div id="user-role-display" style="font-size:0.75rem; color:var(--primary); text-transform:uppercase;">Role</div>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=User&background=3498db&color=fff" alt="User" id="user-avatar" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
+                </div>
+            </header>
+
+            <main class="content-scroll" id="main-view">
+                </main>
+        </div>
     </div>
 
     <script>
-        // --- DATA & CONFIG ---
+        // ==========================================
+        // 1. SUPABASE CONFIGURATION
+        // ==========================================
+        
+        // --- YOUR SUPABASE CREDENTIALS ---
+        const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
+
+        // --- SINGLE INITIALIZATION ---
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // ==========================================
+        // 2. STATE MANAGEMENT
+        // ==========================================
         
         const state = {
-            role: 'admin', 
-            lang: 'en',
+            user: null,
+            profile: null,
+            org: null,
             activeView: 'dashboard',
-            selectedAvatar: 'Ali' // Default selection updated to Ali
+            lang: 'en'
         };
 
-        // Translations & Labels
         const i18n = {
             en: {
-                welcome: "Welcome back,",
-                roleAdmin: "HR Admin",
-                roleEmp: "Agent",
-                
-                sec_hr: "HR & Recruitment",
-
-                dashboard: "Dashboard",
-                wfm: "Workforce WFM",
-                
-                zenats: "ATS Recruitment",
-                payroll: "Payroll",
-                employees: "Employees",
-                attendance: "Time & Attendance",
-                performance: "Performance",
-                reports: "Reports",
-                
-                create: "Create New",
-                viewAll: "View All",
-                compliant: "Compliant"
-            },
-            ar: {
-                welcome: "مرحباً بعودتك،",
-                roleAdmin: "مدير الموارد البشرية",
-                roleEmp: "موظف",
-                
-                sec_hr: "الموارد البشرية والتوظيف",
-
-                dashboard: "لوحة التحكم",
-                wfm: "إدارة القوى العاملة (WFM)",
-                
-                zenats: "نظام التوظيف (ATS)",
-                payroll: "مسير الرواتب",
-                employees: "الموظفين",
-                attendance: "الحضور والانصراف",
-                performance: "الأداء",
-                reports: "التقارير",
-                
-                create: "إنشاء جديد",
-                viewAll: "عرض الكل",
-                compliant: "متوافق"
+                dashboard: "Dashboard", payroll: "Payroll", employees: "Employees", 
+                attendance: "Attendance", ats: "ATS Recruitment", performance: "Performance"
             }
         };
 
-        // --- RENDER SIDEBAR ---
+        // ==========================================
+        // 3. AUTHENTICATION LOGIC
+        // ==========================================
 
-        function renderSidebar() {
-            const t = i18n[state.lang];
-            const navContainer = document.getElementById('nav-container');
-            navContainer.innerHTML = '';
-
-            let sections = [];
-            
-            if (state.role === 'admin') {
-                sections = [
-                    {
-                        title: t.sec_hr, 
-                        items: [
-                            { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
-                            { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
-                            { icon: 'fa-users', label: t.employees, key: 'employees' },
-                            { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
-                            { icon: 'fa-briefcase', label: t.zenats, key: 'ats' },
-                            { icon: 'fa-star', label: t.performance, key: 'performance' },
-                            { icon: 'fa-file-alt', label: t.reports, key: 'reports' },
-                            { icon: 'fa-timeline', label: t.wfm, key: 'wfm' } 
-                        ]
-                    }
-                ];
+        async function initAuth() {
+            // Check active session
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                state.user = session.user;
+                await loadProfileData();
             } else {
-                sections = [ 
-                    {
-                        title: "Employee Self Service",
-                        items: [
-                            { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
-                            { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
-                        ]
-                    }
-                ];
+                showAuthLayer();
             }
 
-            sections.forEach(sec => {
-                if(sec.title) {
-                    const header = document.createElement('div');
-                    header.className = 'nav-header'; // New class for alignment
-                    header.innerText = sec.title;
-                    navContainer.appendChild(header);
+            // Listen for auth changes
+            supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    state.user = session.user;
+                    await loadProfileData();
+                } else if (event === 'SIGNED_OUT') {
+                    state.user = null;
+                    state.profile = null;
+                    showAuthLayer();
                 }
-                const ul = document.createElement('ul');
-                ul.className = 'nav-links';
-                
-                sec.items.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
-                    li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
-                    li.onclick = () => {
-                        state.activeView = item.key;
-                        renderSidebar(); 
-                        renderMainContent(); 
-                        if(window.innerWidth <= 768) toggleSidebar();
-                    };
-                    ul.appendChild(li);
-                });
-                navContainer.appendChild(ul);
             });
         }
 
-        // --- RENDER MAIN CONTENT (ROUTER) ---
-
-        function renderMainContent() {
-            const main = document.getElementById('main-view');
-            const t = i18n[state.lang];
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
             
-            let content = '';
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("Login Failed: " + error.message);
+            // onAuthStateChange handles the rest
+        }
 
-            switch(state.activeView) {
-                case 'dashboard':
-                    content = generateDashboardHTML();
-                    break;
-                case 'payroll':
-                    content = generatePayrollHTML();
-                    break;
-                case 'employees':
-                    content = generateEmployeesHTML();
-                    break;
-                case 'attendance':
-                    content = generateAttendanceHTML();
-                    break;
-                case 'ats':
-                    content = generateATSHTML();
-                    break;
-                case 'performance':
-                    content = generatePerformanceHTML();
-                    break;
-                case 'wfm':
-                    content = generateWFMHTML();
-                    break;
-                case 'receptionAgent':
-                    content = generateReceptionHTML(); 
-                    break;
-                default:
-                    content = `
-                    <div class="card" style="text-align:center; padding:50px;">
-                        <h2 style="color:var(--text-header);">${t.reports}</h2>
-                        <p style="color:var(--text-muted); margin-top:10px;">Generating Analytics...</p>
-                        <i class="fa-solid fa-chart-simple" style="font-size:3rem; color:var(--primary); margin-top:20px; opacity:0.5;"></i>
-                    </div>`;
+        async function handleSocial(provider) {
+            // If new user, Supabase creates auth user. Logic below handles profile creation.
+            const { data, error } = await supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: { redirectTo: window.location.href }
+            });
+        }
+
+        async function handleRegister() {
+            const orgName = document.getElementById('reg-org-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            if(!orgName || !email || !password) return alert("Please fill all fields");
+
+            // 1. Sign Up User
+            const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
+            if (authError) return alert(authError.message);
+
+            const userId = authData.user.id;
+
+            // 2. Create Organization
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .insert([{ name: orgName, subscription_plan: 'free' }])
+                .select()
+                .single();
+
+            if (orgError) return alert("Error creating Org: " + orgError.message);
+
+            // 3. Create CEO Profile
+            const { error: profError } = await supabase
+                .from('profiles')
+                .insert([{
+                    id: userId,
+                    organization_id: orgData.id,
+                    full_name: "CEO", // Will be updated in onboarding
+                    role: 'ceo',
+                    email: email,
+                    status: 'active'
+                }]);
+
+            if (profError) return alert("Error creating Profile: " + profError.message);
+
+            alert("Registration Successful! Please check email to confirm, or login.");
+            toggleAuthMode('login');
+        }
+
+        async function handleLogout() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        // ==========================================
+        // 4. DATA LOADING & ROUTING
+        // ==========================================
+
+        async function loadProfileData() {
+            if (!state.user) return;
+
+            // Fetch Profile
+            let { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*, organizations(name)')
+                .eq('id', state.user.id)
+                .single();
+
+            if (!profile) {
+                // AUTH USER EXISTS BUT NO PROFILE (Likely Social Login first time as CEO)
+                // In a production app, we would ask if they want to join an existing org or create new.
+                // For this prototype, we assume Social Login = New CEO if not invited.
+                
+                if (confirm("No profile found. Are you registering a new Organization?")) {
+                    toggleAuthMode('register'); // Send to register flow to capture Org Name
+                    await supabase.auth.signOut();
+                    return;
+                } else {
+                    alert("Please ask your Administrator to invite you first.");
+                    await supabase.auth.signOut();
+                    return;
+                }
             }
 
-            main.innerHTML = content;
+            state.profile = profile;
+            state.org = profile.organizations;
+
+            // Check if Onboarding Needed (Missing Dept or Job Title)
+            if (!profile.department || !profile.job_title) {
+                document.getElementById('auth-layer').style.display = 'none';
+                document.getElementById('onboarding-modal').style.display = 'flex';
+                document.getElementById('ob-fullname').value = state.user.user_metadata.full_name || '';
+            } else {
+                showAppLayer();
+            }
         }
 
-        // --- VIEW GENERATORS ---
+        async function submitOnboarding() {
+            const updates = {
+                full_name: document.getElementById('ob-fullname').value,
+                department: document.getElementById('ob-dept').value,
+                job_title: document.getElementById('ob-title').value,
+                updated_at: new Date()
+            };
+
+            const { error } = await supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', state.user.id);
+
+            if (error) alert(error.message);
+            else {
+                document.getElementById('onboarding-modal').style.display = 'none';
+                // Refresh local state
+                state.profile = { ...state.profile, ...updates };
+                showAppLayer();
+            }
+        }
+
+        // ==========================================
+        // 5. UI RENDERING LOGIC
+        // ==========================================
+
+        function showAuthLayer() {
+            document.getElementById('auth-layer').style.display = 'flex';
+            document.getElementById('app-layer').classList.add('hidden');
+            document.getElementById('app-layer').style.display = 'none';
+        }
+
+        function showAppLayer() {
+            document.getElementById('auth-layer').style.display = 'none';
+            document.getElementById('app-layer').classList.remove('hidden');
+            document.getElementById('app-layer').style.display = 'flex';
+
+            // Update Header info
+            document.getElementById('org-name-display').innerText = state.org.name;
+            document.getElementById('user-name-display').innerText = state.profile.full_name;
+            document.getElementById('user-role-display').innerText = state.profile.role.replace('_', ' ');
+            document.getElementById('user-avatar').src = `https://ui-avatars.com/api/?name=${state.profile.full_name}&background=3498db&color=fff`;
+
+            // Setup View
+            if (state.profile.role === 'employee') {
+                state.activeView = 'attendance'; // Employees start at attendance
+            } else {
+                state.activeView = 'dashboard';
+            }
+
+            renderSidebar();
+            renderMainContent();
+        }
+
+        function toggleAuthMode(mode) {
+            if(mode === 'register') {
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('register-form').classList.remove('hidden');
+            } else {
+                document.getElementById('register-form').classList.add('hidden');
+                document.getElementById('login-form').classList.remove('hidden');
+            }
+        }
+
+        function renderSidebar() {
+            const navContainer = document.getElementById('nav-container');
+            navContainer.innerHTML = '';
+            
+            const role = state.profile.role;
+            let menu = [];
+
+            // HIERARCHY LOGIC FOR MENU
+            if (['ceo', 'hr_admin'].includes(role)) {
+                menu = [
+                    { title: "Overview", items: [{ icon: 'fa-chart-pie', label: "Dashboard", key: 'dashboard' }] },
+                    { title: "People", items: [{ icon: 'fa-users', label: "Employees", key: 'employees' }, { icon: 'fa-briefcase', label: "Recruitment", key: 'ats' }] },
+                    { title: "Operations", items: [{ icon: 'fa-money-bill-wave', label: "Payroll", key: 'payroll' }, { icon: 'fa-clock', label: "Attendance", key: 'attendance' }, { icon: 'fa-star', label: "Performance", key: 'performance' }] }
+                ];
+            } else if (role === 'manager') {
+                menu = [
+                    { title: "Team Management", items: [{ icon: 'fa-users', label: "My Team", key: 'employees' }, { icon: 'fa-clock', label: "Team Attendance", key: 'attendance' }, { icon: 'fa-star', label: "Performance", key: 'performance' }] }
+                ];
+            } else {
+                // Employee
+                menu = [
+                    { title: "Self Service", items: [{ icon: 'fa-clock', label: "My Attendance", key: 'attendance' }, { icon: 'fa-file-invoice-dollar', label: "Payslips", key: 'payroll' }] }
+                ];
+            }
+
+            menu.forEach(sec => {
+                const header = document.createElement('div');
+                header.className = 'nav-header';
+                header.innerText = sec.title;
+                navContainer.appendChild(header);
+
+                sec.items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
+                    div.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
+                    div.onclick = () => {
+                        state.activeView = item.key;
+                        renderSidebar();
+                        renderMainContent();
+                    };
+                    navContainer.appendChild(div);
+                });
+            });
+        }
+
+        function renderMainContent() {
+            const container = document.getElementById('main-view');
+            
+            // Dynamic Generation based on View Key
+            if(state.activeView === 'dashboard') container.innerHTML = generateDashboardHTML();
+            else if(state.activeView === 'employees') container.innerHTML = generateEmployeesHTML();
+            else if(state.activeView === 'attendance') container.innerHTML = generateAttendanceHTML();
+            else if(state.activeView === 'payroll') container.innerHTML = generatePayrollHTML();
+            else if(state.activeView === 'ats') container.innerHTML = generateATSHTML();
+            else container.innerHTML = `<div class="card"><div class="card-title">View Under Construction</div></div>`;
+        }
+
+        // ==========================================
+        // 6. VIEW GENERATORS (HTML Strings)
+        // ==========================================
 
         function generateDashboardHTML() {
-            const t = i18n[state.lang];
             return `
-                <div class="page-title">
-                    <span>${t.welcome} <span id="dash-user">Sarah</span></span>
-                </div>
-                
-                <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom:30px;">
-                    <div class="card" onclick="state.activeView = 'receptionAgent'; renderSidebar(); renderMainContent();" style="cursor:pointer; border-left: 4px solid var(--info); background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), transparent);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="card-title" style="color:var(--info)"><i class="fa-solid fa-robot"></i> Manage AI Agents</div>
-                            <i class="fa-solid fa-arrow-right" style="color:var(--info)"></i>
-                        </div>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:10px;">Configure Avatars, Voice & Dialects</p>
-                    </div>
-                    <div class="card" style="border-left: 4px solid var(--warning); background: linear-gradient(135deg, rgba(241, 196, 15, 0.1), transparent);">
-                        <div class="card-title" style="color:var(--warning)"><i class="fa-solid fa-envelope-open-text"></i> Mail Agent</div>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:10px;">12 Unread Emails processed by AI</p>
-                    </div>
-                </div>
-
+                <div class="page-title">Welcome back, ${state.profile.full_name.split(' ')[0]}</div>
                 <div class="dashboard-grid">
-                    <div class="card">
-                        <div class="card-header"><div class="card-title"><i class="fa-solid fa-clock"></i> My Attendance</div></div>
-                        <div style="text-align:center; padding:10px;">
-                            <h2 style="color:#2ecc71; font-size:2.5rem; margin-bottom:10px; text-shadow:0 0 10px rgba(46, 204, 113, 0.4);" id="clock-widget">00:00:00</h2>
-                            <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:20px;"><i class="fa-solid fa-location-dot"></i> Amman HQ (IP: 192.168.1.1)</p>
-                            <button class="btn-primary" style="width:100%; justify-content:center;">Clock In</button>
-                        </div>
+                     <div class="card" style="border-left:4px solid var(--primary)">
+                        <div class="card-title">Total Headcount</div>
+                        <h1 style="margin-top:10px;">142</h1>
+                        <p style="color:var(--text-muted); font-size:0.8rem;">+4 this month</p>
                     </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Who's Off</div>
-                            <a href="#" style="font-size:0.8rem; color:var(--primary)">${t.viewAll}</a>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid var(--glass-border);">
-                            <div style="width:40px; height:40px; background:rgba(52, 152, 219, 0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--primary); font-weight:bold;">LI</div>
-                            <div><div style="font-weight:600; font-size:0.95rem; color:#fff;">Lina Inverse</div><div style="font-size:0.8rem; color:var(--text-muted);">Annual Vacation</div></div>
-                        </div>
-                        <div style="display:flex; align-items:center; gap:12px;">
-                            <div style="width:40px; height:40px; background:rgba(241, 196, 15, 0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--warning); font-weight:bold;">MH</div>
-                            <div><div style="font-weight:600; font-size:0.95rem; color:#fff;">Mark Hamill</div><div style="font-size:0.8rem; color:var(--text-muted);">Sick Leave</div></div>
-                        </div>
+                    <div class="card" style="border-left:4px solid var(--success)">
+                        <div class="card-title">Attendance Today</div>
+                        <h1 style="margin-top:10px; color:var(--success);">96%</h1>
+                        <p style="color:var(--text-muted); font-size:0.8rem;">On time</p>
                     </div>
-                    <div class="card">
-                         <div class="card-header"><div class="card-title">Pending Approvals <span class="badge" style="position:static">3</span></div></div>
-                         <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
-                            <span style="color:var(--text-main);">Leave Request (John Doe)</span>
-                            <div>
-                                <i class="fa-solid fa-check" style="color:var(--success); margin-right:15px; cursor:pointer; font-size:1.1rem;"></i>
-                                <i class="fa-solid fa-xmark" style="color:var(--danger); cursor:pointer; font-size:1.1rem;"></i>
-                            </div>
-                         </div>
-                         <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:var(--text-main);">Loan Request (Sarah Smith)</span>
-                            <div>
-                                <i class="fa-solid fa-check" style="color:var(--success); margin-right:15px; cursor:pointer; font-size:1.1rem;"></i>
-                                <i class="fa-solid fa-xmark" style="color:var(--danger); cursor:pointer; font-size:1.1rem;"></i>
-                            </div>
-                         </div>
+                    <div class="card" style="border-left:4px solid var(--warning)">
+                        <div class="card-title">Pending Requests</div>
+                        <h1 style="margin-top:10px; color:var(--warning);">8</h1>
+                        <p style="color:var(--text-muted); font-size:0.8rem;">Requires approval</p>
                     </div>
-                </div>
-            `;
-        }
-
-        function generatePayrollHTML() {
-            return `
-                <div class="page-title">Payroll Management</div>
-                <div class="dashboard-grid">
-                    <div class="card">
-                        <div class="card-title">WPS & GOSI Status</div>
-                        <div style="margin-top:20px; color:var(--success); font-weight:bold; display:flex; align-items:center; gap:15px;">
-                            <div style="padding:15px; background:rgba(46, 204, 113, 0.1); border-radius:50%;">
-                                <i class="fa-solid fa-shield-halved" style="font-size:2rem;"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:1.1rem;">Fully Compliant</div>
-                                <div style="font-size:0.8rem; color:var(--text-muted); font-weight:normal; margin-top:5px;">Saudi Arabia & Jordan Localizations active</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Quick Actions</div>
-                        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
-                            <button class="btn-outline"><i class="fa-solid fa-play"></i> Run Payroll (Oct 2023)</button>
-                            <button class="btn-outline"><i class="fa-solid fa-file-export"></i> Export Bank File (WPS)</button>
-                        </div>
-                    </div>
-                      <div class="card">
-                        <div class="card-title">Cost Center Distribution</div>
-                        <div style="height:120px; background:rgba(255,255,255,0.05); margin-top:15px; border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); border:1px dashed var(--glass-border);">
-                            <i class="fa-solid fa-chart-pie" style="margin-right:8px;"></i> Distribution Chart
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- UPDATED AVATAR CONFIGURATION UI ---
-        function generateReceptionHTML() {
-            return `
-                <div class="page-title">
-                    <div style="display:flex; align-items:center; gap:20px;">
-                        <div class="btn-back-circle" onclick="state.activeView='dashboard'; renderMainContent();">
-                             <i class="fa-solid fa-arrow-left"></i>
-                        </div>
-                        <div>AI Agents Configuration</div>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-outline" onclick="state.activeView='dashboard'; renderMainContent();"><i class="fa-solid fa-xmark"></i> Close</button>
-                        <button class="btn-primary" onclick="saveConfig()"><i class="fa-solid fa-floppy-disk"></i> Save Config</button>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title"><i class="fa-solid fa-users-gear"></i> Digital Workforce Identities</div>
-                    </div>
-                    
-                    <div style="margin-bottom:30px; display:flex; gap:15px; flex-wrap:wrap;">
-                        <input type="text" placeholder="Search by agent name..." style="flex:1; min-width:200px; padding:12px; background:rgba(0,0,0,0.2); border:1px solid var(--glass-border); border-radius:8px; color:white;">
-                        <select class="btn-outline" style="min-width:150px; background:rgba(0,0,0,0.2); color:#fff; border-radius:8px;">
-                            <option>All Roles</option>
-                            <option>Management</option>
-                            <option>Operations</option>
-                            <option>HR</option>
-                        </select>
-                    </div>
-
-                    <div class="avatar-grid">
-                        <div class="avatar-card ${state.selectedAvatar === 'Ali' ? 'selected' : ''}" onclick="selectAvatar(this, 'Ali')">
-                            <div class="selection-indicator"></div>
-                            <div class="avatar-role-badge">HR Manager</div>
-                            <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419548.jpg?t=st=1767014570~exp=1767018170~hmac=7ed324bbb4dd31b2da164899cf5e19fe2c7f0bc25f35518f81b339acd3f81c64" alt="Ali">
-                            <div class="avatar-name">Ali</div>
-                            <div class="avatar-desc">Empathetic and clear. Specialized in policy explanation and employee wellbeing.</div>
-                        </div>
-                        
-                        <div class="avatar-card ${state.selectedAvatar === 'Omar' ? 'selected' : ''}" onclick="selectAvatar(this, 'Omar')">
-                            <div class="selection-indicator"></div>
-                            <div class="avatar-role-badge">Operations Manager</div>
-                            <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419536.jpg?t=st=1767013563~exp=1767017163~hmac=4ef5ac98c9de6d9c07f303f829f345ba055876f01826c0a56a68d08632bc585d" alt="Omar">
-                            <div class="avatar-name">Omar</div>
-                            <div class="avatar-desc">Efficient, direct, and data-driven. Best for daily standups and performance reports.</div>
-                        </div>
-                        
-                        <div class="avatar-card ${state.selectedAvatar === 'Sarah' ? 'selected' : ''}" onclick="selectAvatar(this, 'Sarah')">
-                            <div class="selection-indicator"></div>
-                            <div class="avatar-role-badge">Supervisor</div>
-                            <img src="https://img.freepik.com/free-photo/view-3d-woman-working-justice-law-field_23-2151228142.jpg?t=st=1767013476~exp=1767017076~hmac=4c9db740caafbf4ecf12fc92283bfa8fc94abd3be8fef6ad22afe7f19595229a" alt="Sarah">
-                            <div class="avatar-name">Sarah</div>
-                            <div class="avatar-desc">Supportive and localized. Uses regional dialects to connect better with the field team.</div>
-                        </div>
-                    </div>
-
-                    <div class="config-section">
-                        <div style="font-size:1.1rem; font-weight:700; color:var(--text-header); margin-bottom:20px; border-bottom:1px solid var(--glass-border); padding-bottom:10px;">
-                            Voice & Personality Settings
-                        </div>
-                        
-                        <div class="config-row">
-                            <div class="config-label">Dialect</div>
-                            <div class="dialect-chips">
-                                <div class="dialect-chip active" onclick="toggleChip(this)">Jordanian</div>
-                                <div class="dialect-chip" onclick="toggleChip(this)">Saudi (Najdi)</div>
-                                <div class="dialect-chip" onclick="toggleChip(this)">Egyptian</div>
-                                <div class="dialect-chip" onclick="toggleChip(this)">UAE</div>
-                                <div class="dialect-chip" onclick="toggleChip(this)">Formal Arabic</div>
-                                <div class="dialect-chip" onclick="toggleChip(this)">English (US)</div>
-                            </div>
-                        </div>
-
-                        <div class="config-row">
-                            <div class="config-label">Talking Speed</div>
-                            <div class="slider-container">
-                                <input type="range" min="0.5" max="2" step="0.1" value="1">
-                                <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
-                                    <span>Slow</span>
-                                    <span>Natural</span>
-                                    <span>Fast</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="config-row">
-                            <div class="config-label">Tone Stability</div>
-                            <div class="slider-container">
-                                <input type="range" min="0" max="1" step="0.1" value="0.8">
-                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
-                                    Higher stability ensures consistent emotional tone.
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="config-row">
-                            <div class="config-label">Voice Sample</div>
-                            <button class="btn-outline" style="display:flex; align-items:center; gap:10px;" onclick="playSample(this)">
-                                <i class="fa-solid fa-play"></i> Play Preview
-                            </button>
-                        </div>
-                    </div>
-
                 </div>
             `;
         }
 
         function generateEmployeesHTML() {
             return `
-                 <div class="page-title">
+                <div class="page-title">
                     Employees
-                    <button class="btn-primary"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
+                    ${state.profile.role === 'ceo' || state.profile.role === 'hr_admin' ? 
+                    `<button class="btn-primary" onclick="showOnboardForm()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>` 
+                    : ''}
                 </div>
                 
-                <div class="card" style="margin-bottom:25px; border-left:4px solid var(--info); background: linear-gradient(90deg, rgba(155, 89, 182, 0.1), transparent);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
-                        <div>
-                            <div style="font-size:1.2rem; font-weight:700; color:#fff; margin-bottom:5px;">
-                                <i class="fa-solid fa-robot"></i> Digital Workforce
-                            </div>
-                            <div style="color:var(--text-muted);">Manage your 3 active AI Agents (HR, Ops, Supervisor)</div>
-                        </div>
-                        
-                        <div style="display:flex; align-items:center; gap:20px; background:rgba(0,0,0,0.2); padding:10px 20px; border-radius:50px; border:1px solid var(--glass-border);">
-                             <div style="display:flex;">
-                                <img src="https://img.freepik.com/free-photo/view-3d-woman-working-justice-law-field_23-2151228142.jpg?t=st=1767013476~exp=1767017076~hmac=4c9db740caafbf4ecf12fc92283bfa8fc94abd3be8fef6ad22afe7f19595229ahttps://img.freepik.com/free-photo/view-3d-woman-working-justice-law-field_23-2151228142.jpg?t=st=1767013476~exp=1767017076~hmac=4c9db740caafbf4ecf12fc92283bfa8fc94abd3be8fef6ad22afe7f19595229a" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover;">
-                                <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419536.jpg?t=st=1767013563~exp=1767017163~hmac=4ef5ac98c9de6d9c07f303f829f345ba055876f01826c0a56a68d08632bc585dhttps://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419536.jpg?t=st=1767013563~exp=1767017163~hmac=4ef5ac98c9de6d9c07f303f829f345ba055876f01826c0a56a68d08632bc585d" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover; margin-left:-10px;">
-                                <img src="https://img.freepik.com/free-photo/3d-cartoon-portrait-person-practicing-law-related-profession_23-2151419548.jpg?t=st=1767014570~exp=1767018170~hmac=7ed324bbb4dd31b2da164899cf5e19fe2c7f0bc25f35518f81b339acd3f81c64" style="width:35px; height:35px; border-radius:50%; border:2px solid var(--info); object-fit:cover; margin-left:-10px;">
-                             </div>
-                             <div style="font-size:0.8rem; color:var(--text-main);">Ali, Omar, Sarah</div>
-                        </div>
-
-                        <button class="btn-outline" onclick="state.activeView = 'receptionAgent'; renderSidebar(); renderMainContent();" style="background:var(--info); border:none; color:white;">
-                            Configure Agents
-                        </button>
+                <div id="new-hire-form" class="card hidden" style="margin-bottom:20px; border:1px solid var(--primary);">
+                    <div class="card-title" style="margin-bottom:15px;">Create Login Credentials</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        <input type="email" id="hire-email" class="input-field" placeholder="Employee Email">
+                        <input type="password" id="hire-pass" class="input-field" placeholder="Temporary Password">
+                        <input type="text" id="hire-name" class="input-field" placeholder="Full Name">
+                        <select id="hire-role" class="input-field" style="background:#2c3e50;">
+                            <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
+                            <option value="hr_admin">HR Admin</option>
+                        </select>
                     </div>
+                    <div style="margin-top:15px; display:flex; gap:10px;">
+                        <button class="btn-primary" onclick="createNewHire()">Create User</button>
+                        <button class="btn-outline" onclick="document.getElementById('new-hire-form').classList.add('hidden')">Cancel</button>
+                    </div>
+                    <p style="margin-top:10px; font-size:0.8rem; color:var(--warning);">* Note: In a real app, this sends an invite email. For this demo, it creates a database record.</p>
                 </div>
 
-                <div class="dashboard-grid grid-3">
-                    <div class="card">
-                        <div class="card-title"><i class="fa-solid fa-laptop"></i> Asset Management</div>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin:15px 0;">Track laptops, phones, and company property.</p>
-                        <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
-                            <span style="color:#fff; font-weight:600;">Assigned: 142</span>
-                            <span style="color:var(--warning); font-weight:600;">In Stock: 12</span>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title"><i class="fa-solid fa-file-contract"></i> Document Center</div>
-                        <p style="font-size:0.85rem; color:var(--text-muted); margin:15px 0;">Expiring Documents (30 days)</p>
-                        <div style="color:var(--danger); font-weight:bold; font-size:1.1rem;">3 Passports Expiring</div>
-                    </div>
-                </div>
                 <div class="card">
-                    <div class="card-header"><div class="card-title">Employee Directory</div></div>
-                    <table style="width:100%;">
-                        <thead>
-                            <tr style="background:rgba(255,255,255,0.05);">
-                                <th>Name</th>
-                                <th>Role</th>
-                                <th>Department</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><div style="display:flex; align-items:center; gap:10px;"><img src="https://ui-avatars.com/api/?name=Nour+Ahmad&background=random" style="width:30px; border-radius:50%;"> Nour Ahmad</div></td>
-                                <td>Product Owner</td>
-                                <td>Product</td>
-                                <td><span style="background:rgba(46, 204, 113, 0.2); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(46, 204, 113, 0.3);">Active</span></td>
-                            </tr>
-                            <tr>
-                                <td><div style="display:flex; align-items:center; gap:10px;"><img src="https://ui-avatars.com/api/?name=Masoud+Khaled&background=random" style="width:30px; border-radius:50%;"> Masoud Khaled</div></td>
-                                <td>Software Engineer</td>
-                                <td>IT</td>
-                                <td><span style="background:rgba(46, 204, 113, 0.2); color:var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; border:1px solid rgba(46, 204, 113, 0.3);">Active</span></td>
-                            </tr>
+                    <div class="card-header"><div class="card-title">Directory</div></div>
+                    <table style="width:100%">
+                        <thead><tr style="text-align:left; color:var(--text-muted);"><th>Name</th><th>Role</th><th>Status</th></tr></thead>
+                        <tbody id="employee-table-body">
+                            <tr><td colspan="3">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             `;
         }
 
-        function generateAttendanceHTML() {
-            return `
-                <div class="page-title">Time & Attendance</div>
-                <div class="dashboard-grid grid-3">
-                    <div class="card">
-                        <div class="card-title">Geolocation Tracking</div>
-                        <div style="margin-top:20px; font-size:0.95rem;">
-                            <div style="margin-bottom:10px;"><i class="fa-solid fa-check-circle" style="color:var(--success); margin-right:5px;"></i> Geo-fencing Active</div>
-                            <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;">Employees must be within 100m of office to clock in.</div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Missing Punches</div>
-                        <div style="font-size:2.5rem; color:var(--warning); font-weight:bold; margin:15px 0;">5</div>
-                        <button class="btn-outline" style="width:100%">Review Requests</button>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Roster Planning</div>
-                        <div style="margin-top:15px;">
-                            <p style="font-size:0.9rem; color:var(--text-main); margin-bottom:5px;"><strong>Shift A:</strong> 09:00 AM - 05:00 PM</p>
-                            <p style="font-size:0.9rem; color:var(--text-main);"><strong>Shift B:</strong> 02:00 PM - 10:00 PM</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+        // --- SPECIAL LOGIC FOR EMPLOYEE ONBOARDING ---
+        function showOnboardForm() {
+            document.getElementById('new-hire-form').classList.remove('hidden');
         }
 
-        function generateATSHTML() {
-            return `
-                <div class="page-title">
-                    ATS (Recruitment)
-                    <button class="btn-primary">Create Vacancy</button>
-                </div>
-                
-                <div class="dashboard-grid grid-3">
-                    <div class="card">
-                        <div class="card-title">Active Vacancies</div>
-                        <h2 style="margin:15px 0; font-size:2.5rem; color:#fff;">4</h2>
-                        <div style="font-size:0.85rem; color:var(--text-muted);">Product Manager, Sr. QA, Java Dev</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Sources</div>
-                        <div style="display:flex; gap:15px; margin-top:20px; align-items:center;">
-                            <i class="fa-brands fa-linkedin" style="color:#0077b5; font-size:2rem; background:white; border-radius:4px;"></i>
-                            <i class="fa-brands fa-facebook" style="color:#1877f2; font-size:2rem; background:white; border-radius:50%;"></i>
-                            <span style="font-size:0.9rem; color:var(--text-muted); margin-left:10px;">Integration Active</span>
-                        </div>
-                    </div>
-                </div>
+        async function createNewHire() {
+            const email = document.getElementById('hire-email').value;
+            const pass = document.getElementById('hire-pass').value;
+            const name = document.getElementById('hire-name').value;
+            const role = document.getElementById('hire-role').value;
 
-                <h3 style="margin-bottom:15px; font-size:1.1rem; color:#fff; font-weight:600;">Pipeline: Senior QA Engineer</h3>
-                <div class="pipeline-container">
-                    <div class="pipeline-col">
-                        <div class="pipeline-header">Sourced (4)</div>
-                        <div class="candidate-card">
-                            <h4>Fahed Alotabi</h4>
-                            <p>Riyadh, KSA</p>
-                            <span class="tag">#QualityAssurance</span>
-                        </div>
-                         <div class="candidate-card">
-                            <h4>Abdullah Alsaud</h4>
-                            <p>Jeddah, KSA</p>
-                        </div>
-                    </div>
-                    <div class="pipeline-col">
-                        <div class="pipeline-header">Screening (2)</div>
-                         <div class="candidate-card">
-                            <h4>Aisha Mohammed</h4>
-                            <p>Amman, JO</p>
-                            <span class="tag">#ISTQB</span>
-                        </div>
-                    </div>
-                    <div class="pipeline-col">
-                        <div class="pipeline-header">Interview (1)</div>
-                         <div class="candidate-card">
-                            <h4>Raya Mohammad</h4>
-                            <p>Final Interview: 1:00 PM</p>
-                        </div>
-                    </div>
-                    <div class="pipeline-col">
-                        <div class="pipeline-header">Offer (0)</div>
-                        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.8rem;">No candidates yet</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generatePerformanceHTML() {
-            return `
-                <div class="page-title">Performance & Evaluation</div>
-                <div class="card">
-                    <div class="card-title" style="margin-bottom:25px;">Objectives & Key Results (OKRs)</div>
-                    
-                    <div class="okr-item">
-                        <div class="okr-header">
-                            <span>Objective 1: Delight our company customers</span>
-                            <span>60%</span>
-                        </div>
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width:60%"></div>
-                        </div>
-                        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">KR: Get 4+ quality rating</p>
-                    </div>
-
-                    <div class="okr-item">
-                        <div class="okr-header">
-                            <span>Objective 2: Improve Operating Excellence</span>
-                            <span>30%</span>
-                        </div>
-                        <div class="progress-track">
-                            <div class="progress-fill" style="width:30%; background:var(--info); box-shadow: 0 0 10px rgba(155, 89, 182, 0.5);"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card" style="margin-top:20px;">
-                    <div class="card-title">Competencies</div>
-                    <p style="font-size:0.9rem; color:var(--text-muted); margin-top:10px;">Evaluate "How" it was done, not just "What".</p>
-                    <div style="display:flex; gap:10px; margin-top:15px;">
-                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Communication</span>
-                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Teamwork</span>
-                         <span class="tag" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid var(--glass-border);">Technical Skill</span>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generateWFMHTML() {
-            return `
-                <div class="page-title">Workforce Management (WFM)</div>
-                <div class="dashboard-grid grid-3">
-                    <div class="card">
-                        <div class="card-title">Schedule Adherence</div>
-                        <h2 style="color:var(--success); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(46, 204, 113, 0.4);">94%</h2>
-                        <div style="font-size:0.85rem; color:var(--text-muted);">Team is sticking to schedule</div>
-                    </div>
-                      <div class="card">
-                        <div class="card-title">Productivity Score</div>
-                        <h2 style="color:var(--info); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(155, 89, 182, 0.4);">8.5/10</h2>
-                    </div>
-                      <div class="card">
-                        <div class="card-title">Forecast Accuracy</div>
-                        <h2 style="color:var(--warning); margin-top:10px; font-size:2.2rem; text-shadow:0 0 10px rgba(241, 196, 15, 0.4);">+/- 5%</h2>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Intraday Adherence & Productivity</div>
-                        <div style="font-size:0.8rem;">
-                            <span style="color:var(--success); margin-right:10px;">■ Adherence</span> 
-                            <span style="color:var(--info)">■ Productivity</span>
-                        </div>
-                    </div>
-                    <div class="wfm-chart-container">
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:80%"></div><div class="wfm-bar productivity" style="height:70%"></div><span class="wfm-label">8am</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:90%"></div><div class="wfm-bar productivity" style="height:85%"></div><span class="wfm-label">9am</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:95%"></div><div class="wfm-bar productivity" style="height:90%"></div><span class="wfm-label">10am</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:85%"></div><div class="wfm-bar productivity" style="height:80%"></div><span class="wfm-label">11am</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:60%"></div><div class="wfm-bar productivity" style="height:40%"></div><span class="wfm-label">12pm</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:90%"></div><div class="wfm-bar productivity" style="height:75%"></div><span class="wfm-label">1pm</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:92%"></div><div class="wfm-bar productivity" style="height:88%"></div><span class="wfm-label">2pm</span></div>
-                        <div class="wfm-bar-group"><div class="wfm-bar adherence" style="height:88%"></div><div class="wfm-bar productivity" style="height:82%"></div><span class="wfm-label">3pm</span></div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- ACTIONS & HELPERS ---
-
-        function selectAvatar(element, name) {
-            document.querySelectorAll('.avatar-card').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-            state.selectedAvatar = name;
-        }
-
-        function toggleChip(element) {
-            // Deselect all siblings
-            const parent = element.parentElement;
-            parent.querySelectorAll('.dialect-chip').forEach(el => el.classList.remove('active'));
-            // Select clicked
-            element.classList.add('active');
-        }
-
-        function playSample(btn) {
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Playing...';
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-            }, 2000);
-        }
-
-        function saveConfig() {
-            const toast = document.getElementById('toast');
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function changeRole() {
-            const select = document.getElementById('role-select');
-            state.role = select.value;
-            renderSidebar();
-            renderMainContent();
-        }
-
-        function toggleLang() {
-            state.lang = state.lang === 'en' ? 'ar' : 'en';
-            const html = document.documentElement;
-            const langBtn = document.getElementById('lang-btn');
+            // SECURITY NOTE: The Client SDK cannot create a new Auth User while logged in as another.
+            // For this Prototype, we will insert the PROFILE into the database. 
+            // The Auth User creation normally requires a Backend Edge Function.
             
-            if (state.lang === 'ar') {
-                html.setAttribute('dir', 'rtl');
-                html.setAttribute('lang', 'ar');
-                langBtn.innerText = "English";
-                document.body.style.fontFamily = "Tahoma, sans-serif"; 
+            // 1. Insert Profile (Simulating the record creation)
+            // Note: We generate a random ID since we can't get one from Auth in this context
+            const fakeId = crypto.randomUUID(); 
+
+            const { error } = await supabase.from('profiles').insert([{
+                id: fakeId, 
+                organization_id: state.org.id,
+                full_name: name,
+                email: email,
+                role: role,
+                status: 'active'
+            }]);
+
+            if(error) {
+                alert("Database Error: " + error.message);
             } else {
-                html.setAttribute('dir', 'ltr');
-                html.setAttribute('lang', 'en');
-                langBtn.innerText = "عربي";
-                document.body.style.fontFamily = "'Inter', sans-serif";
+                alert(`Profile Created for ${email}.\n\nIMPORTANT: Since this is a frontend-only demo, we cannot create the Auth Password '${pass}'.\nIn production, the system sends an Invite Email.`);
+                document.getElementById('new-hire-form').classList.add('hidden');
+                loadEmployeesTable(); // Refresh list
             }
-            
-            renderSidebar();
-            renderMainContent();
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
+        async function loadEmployeesTable() {
+            const tableBody = document.getElementById('employee-table-body');
+            if(!tableBody) return;
 
-        // Clock Ticker
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('organization_id', state.org.id);
+
+            if(data) {
+                tableBody.innerHTML = data.map(emp => `
+                    <tr style="border-bottom:1px solid var(--glass-border);">
+                        <td style="padding:15px;">${emp.full_name} <div style="font-size:0.8rem; color:var(--text-muted)">${emp.email}</div></td>
+                        <td style="padding:15px;"><span class="badge" style="position:static; background:var(--glass-bg); padding:5px 10px; border-radius:4px;">${emp.role}</span></td>
+                        <td style="padding:15px; color:var(--success);">Active</td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        // Hook to load table when view changes
+        const observer = new MutationObserver((mutations) => {
+            if(document.getElementById('employee-table-body')) loadEmployeesTable();
+        });
+        observer.observe(document.getElementById('main-view'), { childList: true });
+
+        // Placeholder Generators
+        function generateAttendanceHTML() {
+            return `<div class="card"><div class="card-title">Attendance</div><div style="text-align:center; padding:50px;"><h1 style="font-size:3rem; margin-bottom:10px;">09:00 AM</h1><button class="btn-primary">Clock In</button></div></div>`;
+        }
+        function generatePayrollHTML() { return `<div class="card"><div class="card-title">Payroll</div><p>WPS Status: Compliant</p></div>`; }
+        function generateATSHTML() { return `<div class="card"><div class="card-title">Recruitment Pipeline</div><p>4 Open Vacancies</p></div>`; }
+
+        // Start App
+        initAuth();
+
+        // Clock
         setInterval(() => {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const clockEl = document.getElementById('clock-widget');
-            if(clockEl) clockEl.innerText = timeString;
+            document.getElementById('current-date').innerText = new Date().toDateString();
         }, 1000);
-
-        // Init
-        document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        renderSidebar();
-        renderMainContent();
 
     </script>
 </body>
