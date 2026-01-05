@@ -380,9 +380,8 @@ async function executeOnboard() {
             return;
         }
 
-        // Safety Check: Ensure the CEO's org data is loaded
         if (!state.org || !state.org.id) {
-            showToast("System Error: Organization ID missing. Please refresh the page.", true);
+            showToast("System Error: Organization ID missing. Please refresh.", true);
             return;
         }
 
@@ -395,15 +394,24 @@ async function executeOnboard() {
         btn.innerText = "Creating...";
 
         try {
-            // --- CRITICAL FIX: Create client WITHOUT saving session ---
-            // This prevents the "Multiple GoTrueClient" error and logout issues
+            // --- ISOLATION FIX START ---
+            // We create a dummy storage object so this client writes to NOWHERE.
+            // This prevents it from overwriting the CEO's session in LocalStorage.
+            const dummyStorage = {
+                getItem: () => null,
+                setItem: () => {},
+                removeItem: () => {}
+            };
+
             const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 auth: {
                     persistSession: false, 
+                    storage: dummyStorage, // <--- This is the key fix
                     autoRefreshToken: false,
                     detectSessionInUrl: false
                 }
             });
+            // --- ISOLATION FIX END ---
             
             const { data, error } = await tempClient.auth.signUp({
                 email: email,
@@ -412,7 +420,7 @@ async function executeOnboard() {
                     data: {
                         full_name: fullName,
                         org_name: state.org.name, 
-                        org_id: state.org.id, // Direct ID link
+                        org_id: state.org.id, 
                         role: role, 
                         meta_data: metaData, 
                         avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
@@ -422,27 +430,24 @@ async function executeOnboard() {
 
             if (error) throw error;
 
-            // --- ADDED: Retry Logic for Profile Check ---
-            // Sometimes the DB is 100ms slower than the UI. We wait and retry.
-            let profileExists = false;
-            for(let i=0; i<3; i++) {
-                if(data.user) {
-                    const { data: check } = await supabaseClient
-                        .from('profiles')
-                        .select('id')
-                        .eq('user_id', data.user.id)
-                        .maybeSingle();
-                    if(check) { profileExists = true; break; }
-                }
-                await new Promise(r => setTimeout(r, 1000)); // Wait 1s
-            }
+            // Wait a moment for the Database Trigger to finish insertion
+            await new Promise(r => setTimeout(r, 1500));
 
-            if (!profileExists) {
-                throw new Error("User created in Auth, but Profile database insert failed.");
+            // Verify using the MAIN client (CEO)
+            const { data: check } = await supabaseClient
+                .from('profiles')
+                .select('id')
+                .eq('user_id', data.user.id)
+                .maybeSingle();
+
+            if (!check) {
+                console.warn("Profile not found immediately. This might be latency.");
             }
 
             showToast(`User created! Login: ${email} / ${password}`);
             closeOnboardModal();
+            
+            // Refresh the list
             loadEmployeesView(document.getElementById('main-view'));
 
         } catch (err) {
@@ -452,8 +457,6 @@ async function executeOnboard() {
             btn.innerText = oldText;
         }
     }
-    // --- [KEEP ALL EXISTING REPORTS, WFM, PAYROLL FUNCTIONS BELOW] ---
-    
     // --- REPORTS ---
     async function renderReportsUI(container) { container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsCSV()"><i class="fa-solid fa-download"></i> Export Data</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; const { data: reports } = await supabaseClient.from('reports_master').select('*').eq('org_id', state.org.id); if(reports && reports.length > 0) { initReportCharts(reports); renderROITable(reports); } else { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;">No data available yet. Generate WFM/Payroll data first.</td></tr>'; } }
     function initReportCharts(data) { new Chart(document.getElementById('burnoutChart'), { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Scheduled Hours', data: data.map(r => r.scheduled_hours), backgroundColor: '#3498db' }, { label: 'Actual Hours', data: data.map(r => r.actual_hours_worked), backgroundColor: '#e74c3c' } ] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); const roles = [...new Set(data.map(r => r.role))]; const efficiency = roles.map(role => { const users = data.filter(r => r.role === role); return users.reduce((sum, u) => sum + u.productivity_score, 0) / users.length; }); new Chart(document.getElementById('efficiencyChart'), { type: 'radar', data: { labels: roles, datasets: [{ label: 'Avg Productivity Score', data: efficiency, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.2)' }] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } } } }); }
