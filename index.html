@@ -9,26 +9,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
+        /* ... [KEEP ALL YOUR EXISTING CSS] ... */
         :root {
             /* GLOSSY DARK BLUE THEME VARIABLES */
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
-            
-            /* Glassmorphism Variables */
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             --blur-amount: 20px;
-
-            /* Sidebar specific */
             --sidebar-bg: rgba(13, 27, 42, 0.85); 
             --sidebar-active: rgba(52, 152, 219, 0.4); 
-            
-            /* Text Colors */
             --text-main: #e0e6ed;
             --text-muted: #94a3b8;
             --text-header: #ffffff;
-
-            /* Accents */
             --primary: #3498db; 
             --primary-hover: #2980b9;
             --success: #2ecc71;
@@ -38,333 +31,99 @@
         }
 
         html[dir="rtl"] { --sidebar-width: 270px; }
-
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        
-        body { 
-            background: var(--bg-body-gradient); 
-            color: var(--text-main); 
-            height: 100vh; 
-            display: flex; 
-            overflow: hidden; 
-            font-size: 14px;
-        }
+        body { background: var(--bg-body-gradient); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
 
-        /* --- AUTH SCREEN STYLES --- */
-        #auth-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-body-gradient);
-            z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .auth-card {
-            background: rgba(13, 27, 42, 0.6);
-            backdrop-filter: blur(30px);
-            border: 1px solid var(--glass-border);
-            padding: 40px;
-            border-radius: 20px;
-            width: 100%; max-width: 450px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            text-align: center;
-            animation: fadeIn 0.5s ease-out;
-        }
-
+        /* AUTH & APP STYLES (Keep exactly as before) */
+        #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body-gradient); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .auth-card { background: rgba(13, 27, 42, 0.6); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
         .auth-logo { height: 60px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(52,152,219,0.5)); }
-        
         .auth-title { font-size: 1.8rem; font-weight: 700; color: white; margin-bottom: 10px; }
         .auth-subtitle { color: var(--text-muted); margin-bottom: 30px; }
-
         .form-group { margin-bottom: 20px; text-align: left; }
         .form-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.9rem; }
-        .form-input { 
-            width: 100%; padding: 12px 15px; 
-            background: rgba(255,255,255,0.05); 
-            border: 1px solid var(--glass-border); 
-            border-radius: 8px; color: white; outline: none; transition: 0.3s;
-        }
+        .form-input { width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: white; outline: none; transition: 0.3s; }
         .form-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
-
         .social-divider { display: flex; align-items: center; margin: 25px 0; color: var(--text-muted); font-size: 0.8rem; }
         .social-divider::before, .social-divider::after { content: ""; flex: 1; height: 1px; background: var(--glass-border); margin: 0 10px; }
-
         .social-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-        .social-btn {
-            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-            padding: 10px; border-radius: 8px; color: white; cursor: pointer; transition: 0.3s; font-size: 1.2rem;
-            display: flex; align-items: center; justify-content: center;
-        }
+        .social-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); padding: 10px; border-radius: 8px; color: white; cursor: pointer; transition: 0.3s; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
         .social-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
-
         .toggle-link { color: var(--primary); cursor: pointer; margin-top: 20px; display: inline-block; font-size: 0.9rem; }
         .toggle-link:hover { text-decoration: underline; }
-
         .hidden { display: none !important; }
-
-        /* --- APP STYLES (Existing) --- */
+        
         #app-container { display: flex; width: 100%; height: 100%; opacity: 0; transition: opacity 1s; }
         #app-container.loaded { opacity: 1; }
-
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: 270px;
-            background: var(--sidebar-bg);
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-right: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s;
-            flex-shrink: 0;
-            height: 100vh; 
-            z-index: 1000;
-        }
+        .sidebar { width: 270px; background: var(--sidebar-bg); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; height: 100vh; z-index: 1000; }
         html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
-
-        .logo-area {
-            height: 80px;
-            display: flex;
-            align-items: center;
-            padding: 0 25px;
-            font-size: 1.4rem;
-            font-weight: 700;
-            border-bottom: 1px solid var(--glass-border);
-            color: var(--text-header);
-            letter-spacing: 1px;
-        }
-        
-        .logo-area img { 
-            height: 45px; 
-            margin-right: 12px; 
-            object-fit: contain; 
-            filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6));
-        }
+        .logo-area { height: 80px; display: flex; align-items: center; padding: 0 25px; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); color: var(--text-header); letter-spacing: 1px; }
+        .logo-area img { height: 45px; margin-right: 12px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6)); }
         html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
-
-        #nav-container {
-            flex-grow: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            padding-top: 15px;
-        }
-        #nav-container::-webkit-scrollbar { width: 5px; }
-        #nav-container::-webkit-scrollbar-track { background: transparent; }
-        #nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-
-        .nav-header {
-            padding: 20px 30px 10px 30px; 
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: var(--text-muted);
-            font-weight: 700;
-        }
-
+        #nav-container { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; padding-top: 15px; }
+        .nav-header { padding: 20px 30px 10px 30px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
         .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
-        .nav-item { 
-            padding: 14px 15px; 
-            margin-bottom: 6px;
-            border-radius: 10px;
-            display: flex; 
-            align-items: center; 
-            cursor: pointer; 
-            transition: all 0.25s ease; 
-            color: var(--text-muted); 
-            font-weight: 500;
-            border: 1px solid transparent;
-        }
+        .nav-item { padding: 14px 15px; margin-bottom: 6px; border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.25s ease; color: var(--text-muted); font-weight: 500; border: 1px solid transparent; }
         .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-header); transform: translateX(5px); }
         .nav-item.active { background: var(--sidebar-active); color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
         .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
         html[dir="rtl"] .nav-item i { margin-right: 0; margin-left: 10px; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .top-header {
-            height: 80px;
-            background: rgba(13, 27, 42, 0.4); 
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-bottom: 1px solid var(--glass-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 30px;
-            flex-shrink: 0;
-        }
-
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 15px; }
         .header-right { display: flex; align-items: center; gap: 20px; }
-
-        .branding-logos {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-left: 20px;
-            padding-left: 20px;
-            border-left: 1px solid var(--glass-border);
-        }
+        .branding-logos { display: flex; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--glass-border); }
         html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
         .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
-
         .user-controls { display: flex; align-items: center; gap: 15px; }
         .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
         .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
         .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
-
         .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
         .dropdown img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
-        
         .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
-        .page-title { 
-            margin-bottom: 30px; 
-            font-size: 2rem; 
-            font-weight: 700; 
-            color: var(--text-header); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
-        
-        /* --- GLOSSY CARD COMPONENTS --- */
-        .card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(var(--blur-amount));
-            -webkit-backdrop-filter: blur(var(--blur-amount));
-            border-radius: 16px;
-            padding: 25px;
-            box-shadow: var(--glass-shadow);
-            border: 1px solid var(--glass-border);
-            height: 100%;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255,255,255,0.25);
-        }
-
+        .page-title { margin-bottom: 30px; font-size: 2rem; font-weight: 700; color: var(--text-header); display: flex; justify-content: space-between; align-items: center; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+        .card { background: var(--glass-bg); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-radius: 16px; padding: 25px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; color: var(--text-main); display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); border-color: rgba(255,255,255,0.25); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
         .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; letter-spacing: 0.5px; }
-        
-        /* Buttons */
-        .btn-primary { 
-            background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); 
-            color: #fff; 
-            border: none; 
-            padding: 10px 24px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 0.9rem; 
-            font-weight: 600;
-            display: inline-flex; 
-            align-items: center; 
-            gap: 8px; 
-            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
-            transition: all 0.2s;
-        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4); transition: all 0.2s; }
         .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
-        
-        .btn-outline { 
-            background-color: rgba(255,255,255,0.05); 
-            border: 1px solid var(--glass-border); 
-            color: var(--text-main); 
-            padding: 8px 16px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-            transition: 0.2s;
-        }
+        .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
-
-        .btn-back-circle {
-            width: 45px; height: 45px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-        }
-        .btn-back-circle:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
-        }
-        
-        /* Grid */
-        .dashboard-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 25px; 
-            margin-bottom: 25px; 
-            align-items: stretch;
-        }
-        
-        /* Tables */
+        .btn-back-circle { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 1.1rem; }
+        .btn-back-circle:hover { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; align-items: stretch; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
         td { padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
         tr:hover { background: rgba(255,255,255,0.02); }
-
-        /* Editable Table Inputs */
-        .table-input {
-            background: transparent;
-            border: 1px solid transparent;
-            color: white;
-            padding: 5px;
-            border-radius: 4px;
-            width: 100%;
-            transition: 0.2s;
-        }
+        .table-input { background: transparent; border: 1px solid transparent; color: white; padding: 5px; border-radius: 4px; width: 100%; transition: 0.2s; }
         .table-input:hover { border-color: var(--glass-border); background: rgba(0,0,0,0.2); }
         .table-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); outline: none; }
-
-        /* Toast */
-        .toast {
-            position: fixed; bottom: 30px; right: 30px;
-            background: rgba(46, 204, 113, 0.9);
-            color: white; padding: 15px 25px; border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            display: flex; align-items: center; gap: 10px;
-            transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 9999;
-            backdrop-filter: blur(5px);
-        }
+        .toast { position: fixed; bottom: 30px; right: 30px; background: rgba(46, 204, 113, 0.9); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; backdrop-filter: blur(5px); }
         .toast.show { transform: translateY(0); }
+        
+        @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); } .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); } html[dir="rtl"] .sidebar { left: auto; right: -270px; } html[dir="rtl"] .sidebar.active { right: 0; } .branding-logos { display: none; } }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        /* --- PAYROLL LAYOUT CSS --- */
+        .payroll-layout { display: flex; height: calc(100vh - 140px); gap: 20px; }
+        .payroll-sidebar { width: 300px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; overflow-y: auto; padding-right: 5px; }
+        .payroll-main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .history-item { 
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); 
+            border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s;
         }
-        @media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); }
-            .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); }
-            html[dir="rtl"] .sidebar { left: auto; right: -270px; }
-            html[dir="rtl"] .sidebar.active { right: 0; }
-            .branding-logos { display: none; }
-        }
+        .history-item:hover { background: rgba(255,255,255,0.1); }
+        .history-item.active { background: var(--sidebar-active); border-color: var(--primary); }
+        
+        .history-date { font-weight: 700; color: #fff; margin-bottom: 5px; }
+        .history-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
+        .history-badge { font-size: 0.7rem; background: var(--success); color: #fff; padding: 2px 6px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -374,52 +133,26 @@
             <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
             <div class="auth-title">Welcome Back</div>
             <div class="auth-subtitle">Login to Digitivia Operations</div>
-
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" id="login-email" class="form-input" placeholder="name@company.com">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="login-pass" class="form-input" placeholder="••••••••">
-            </div>
-
+            <div class="form-group"><label>Email Address</label><input type="email" id="login-email" class="form-input" placeholder="name@company.com"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="login-pass" class="form-input" placeholder="••••••••"></div>
             <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Login</button>
-
             <div class="social-divider">Or continue with</div>
             <div class="social-buttons">
                 <div class="social-btn" onclick="socialLogin('google')" style="color:#DB4437"><i class="fa-brands fa-google"></i></div>
                 <div class="social-btn" onclick="socialLogin('linkedin')" style="color:#0077b5"><i class="fa-brands fa-linkedin-in"></i></div>
                 <div class="social-btn" onclick="socialLogin('azure')" style="color:#00a4ef"><i class="fa-brands fa-microsoft"></i></div>
             </div>
-
             <div class="toggle-link" onclick="toggleAuthMode('register')">Register New Organization</div>
         </div>
-
         <div class="auth-card hidden" id="register-card">
             <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
             <div class="auth-title">Start Your Business</div>
             <div class="auth-subtitle">Create Organization & CEO Account</div>
-
-            <div class="form-group">
-                <label>Organization Name</label>
-                <input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp">
-            </div>
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="reg-name" class="form-input" placeholder="John Doe">
-            </div>
-            <div class="form-group">
-                <label>Work Email</label>
-                <input type="email" id="reg-email" class="form-input" placeholder="ceo@company.com">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" id="reg-pass" class="form-input" placeholder="••••••••">
-            </div>
-
+            <div class="form-group"><label>Organization Name</label><input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp"></div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="John Doe"></div>
+            <div class="form-group"><label>Work Email</label><input type="email" id="reg-email" class="form-input" placeholder="ceo@company.com"></div>
+            <div class="form-group"><label>Password</label><input type="password" id="reg-pass" class="form-input" placeholder="••••••••"></div>
             <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleRegister()">Create Organization</button>
-
             <div class="toggle-link" onclick="toggleAuthMode('login')">Already have an account? Login</div>
         </div>
     </div>
@@ -430,43 +163,31 @@
                 <img src="https://img.icons8.com/fluency/96/diamond.png" alt="DIGITIVIA Logo">
                 <span id="org-name-display">Digitivia Ops</span>
             </div>
-            <div id="nav-container">
-                </div>
+            <div id="nav-container"></div>
         </nav>
-
         <div class="main-content">
             <header class="top-header">
                 <div class="header-left">
                     <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
                     <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
                 </div>
-                
                 <div class="header-right">
                     <div class="user-controls">
-                        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">
-                            Loading...
-                        </div>
-
+                        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
                         <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
-                        
                         <i class="fa-regular fa-bell icon-btn"><span class="badge">2</span></i>
-                        
                         <div class="dropdown" onclick="handleLogout()">
                             <img src="" alt="User" id="user-avatar">
                             <span id="user-name">Loading...</span>
                             <i class="fa-solid fa-right-from-bracket" style="font-size:0.8rem; margin-left:5px; color:var(--danger)"></i>
                         </div>
                     </div>
-
                     <div class="branding-logos">
                         <span style="font-weight:700; color:white; opacity:0.5;">POWERED BY DIGITIVIA</span>
                     </div>
                 </div>
             </header>
-
-            <main class="content-scroll" id="main-view">
-                </main>
-            
+            <main class="content-scroll" id="main-view"></main>
             <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Success!</span></div>
         </div>
     </div>
@@ -475,7 +196,7 @@
     // --- CONFIG ---
     const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
-    const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; // <--- PASTE YOUR N8N URL HERE
+    const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
     
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -493,7 +214,7 @@
         en: {
             welcome: "Welcome back,",
             dashboard: "Dashboard",
-            payroll: "Payroll",
+            payroll: "Payroll Automation",
             employees: "Employees",
             attendance: "Time & Attendance",
             ats: "ATS Recruitment",
@@ -524,7 +245,6 @@
         if (dateEl) {
             dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
-        
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             loadAppData(session.user);
@@ -547,7 +267,6 @@
     async function handleLogin() {
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-pass').value;
-
         try {
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             if (error) throw error;
@@ -562,34 +281,17 @@
         const password = document.getElementById('reg-pass').value;
         const fullName = document.getElementById('reg-name').value;
         const orgName = document.getElementById('reg-org-name').value;
-
-        if(!email || !password || !fullName || !orgName) {
-            showToast("Please fill all fields", true);
-            return;
-        }
-
+        if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; }
         try {
             const { data, error } = await supabaseClient.auth.signUp({
-                email, 
-                password,
-                options: {
-                    data: {
-                        full_name: fullName,
-                        org_name: orgName,
-                        avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
-                    }
-                }
+                email, password,
+                options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } }
             });
-            
             if (error) throw error;
             showToast("Registration successful! Logging in...");
-            if(data.session) {
-                loadAppData(data.user);
-            } else {
-                showToast("Please check your email to confirm account", false);
-            }
+            if(data.session) loadAppData(data.user);
+            else showToast("Please check your email to confirm account", false);
         } catch (err) {
-            console.error("Signup Error:", err);
             showToast(err.message || "Server Error", true);
         }
     }
@@ -597,9 +299,7 @@
     async function socialLogin(provider) {
         await supabaseClient.auth.signInWithOAuth({
             provider: provider,
-            options: {
-                redirectTo: window.location.href 
-            }
+            options: { redirectTo: window.location.href }
         });
     }
 
@@ -609,16 +309,13 @@
     }
 
     function showAuthScreen() {
-        const authContainer = document.getElementById('auth-container');
-        const appContainer = document.getElementById('app-container');
-        if(authContainer) authContainer.classList.remove('hidden');
-        if(appContainer) appContainer.classList.add('hidden');
+        document.getElementById('auth-container').classList.remove('hidden');
+        document.getElementById('app-container').classList.add('hidden');
     }
 
     // --- DATA LOADING ---
     async function loadAppData(user) {
         state.user = user;
-        
         const { data: profileData, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*, organizations(*)')
@@ -626,7 +323,6 @@
             .single();
 
         if (profileError || !profileData) {
-            console.error("Profile Load Error:", profileError);
             showToast("Profile not found. Please contact support.", true);
             return;
         }
@@ -634,22 +330,14 @@
         state.profile = profileData;
         state.org = profileData.organizations;
 
-        const authContainer = document.getElementById('auth-container');
-        const appContainer = document.getElementById('app-container');
-        
-        if(authContainer) authContainer.classList.add('hidden');
-        if(appContainer) {
-            appContainer.classList.remove('hidden');
-            setTimeout(() => appContainer.classList.add('loaded'), 100);
-        }
+        document.getElementById('auth-container').classList.add('hidden');
+        document.getElementById('app-container').classList.remove('hidden');
+        setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
 
         document.getElementById('user-name').innerText = state.profile.full_name;
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        const roleEl = document.getElementById('role-display');
-        if(roleEl) roleEl.innerText = state.profile.role.toUpperCase().replace('_', ' ');
-        
-        const orgEl = document.getElementById('org-name-display');
-        if(orgEl) orgEl.innerText = state.org.name;
+        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' ');
+        document.getElementById('org-name-display').innerText = state.org.name;
 
         renderSidebar();
         renderMainContent();
@@ -664,19 +352,17 @@
         container.innerHTML = '';
 
         let sections = [];
-
         if (role === 'ceo' || role === 'admin') {
             sections.push({
                 title: "Executive Overview",
                 items: [
                     { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
-                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, // UPDATED KEY
+                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
                     { icon: 'fa-timeline', label: t.wfm, key: 'wfm' },
                     { icon: 'fa-file-alt', label: t.reports, key: 'reports' }
                 ]
             });
         }
-
         if (role === 'ceo' || role === 'hr_manager') {
             sections.push({
                 title: "HR Management",
@@ -687,22 +373,15 @@
                 ]
             });
         }
-
         sections.push({
             title: "My Workspace",
-            items: [
-                { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
-            ]
+            items: [ { icon: 'fa-clock', label: t.attendance, key: 'attendance' } ]
         });
 
         sections.forEach(sec => {
             const header = document.createElement('div');
-            header.className = 'nav-header';
-            header.innerText = sec.title;
-            container.appendChild(header);
-
-            const ul = document.createElement('ul');
-            ul.className = 'nav-links';
+            header.className = 'nav-header'; header.innerText = sec.title; container.appendChild(header);
+            const ul = document.createElement('ul'); ul.className = 'nav-links';
             sec.items.forEach(item => {
                 const li = document.createElement('li');
                 li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
@@ -724,8 +403,7 @@
         const view = state.activeView;
         const main = document.getElementById('main-view');
         if(!main) return;
-        
-        main.innerHTML = ''; // Clear
+        main.innerHTML = ''; 
 
         if(view === 'dashboard') main.innerHTML = getDashboardHTML();
         else if(view === 'employees') {
@@ -733,7 +411,6 @@
             else main.innerHTML = `<div class="card">Access Denied</div>`;
         }
         else if(view === 'payroll') {
-             // PAYROLL LOGIC
              if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main);
              else main.innerHTML = `<div class="card">Access Denied</div>`;
         }
@@ -758,8 +435,8 @@
         `;
     }
 
-    // --- PAYROLL FEATURE (UPLOAD + AI + EDIT) ---
-    function renderPayrollUI(container) {
+    // --- PAYROLL FEATURE (UPDATED) ---
+    async function renderPayrollUI(container) {
         container.innerHTML = `
             <div class="page-title">
                 Payroll Intelligence
@@ -769,47 +446,104 @@
                 <input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)">
             </div>
             
-            <div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i>
-                <h3 style="margin-top:20px;">AI is analyzing your file...</h3>
-                <p style="color:var(--text-muted)">Extracting keys, calculating totals, and normalizing data via N8N.</p>
-            </div>
+            <div class="payroll-layout">
+                <div class="payroll-sidebar" id="payroll-history-list">
+                    <div class="card" style="text-align:center; padding:20px;">Loading History...</div>
+                </div>
 
-            <div id="payroll-content">
-                <div class="card" style="text-align:center; padding:50px; color:var(--text-muted);">
-                    <i class="fa-solid fa-file-invoice-dollar" style="font-size:4rem; margin-bottom:20px; opacity:0.3"></i>
-                    <p>No payroll batch active. Upload an Excel/CSV file to start.</p>
+                <div class="payroll-main">
+                    <div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;">
+                        <i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i>
+                        <h3 style="margin-top:20px;">AI Processing...</h3>
+                    </div>
+                    
+                    <div id="payroll-content" class="card" style="padding:0; overflow:hidden;">
+                        <div style="padding:50px; text-align:center; color:var(--text-muted)">
+                            Select a batch from history or upload a new file.
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
-        // Load latest batch if exists (Optional enhancement)
+
+        // LOAD HISTORY
+        const { data: history, error } = await supabaseClient
+            .from('payroll_batch_summary')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .order('created_at', { ascending: false });
+
+        const historyList = document.getElementById('payroll-history-list');
+        historyList.innerHTML = '';
+
+        if(error || !history || history.length === 0) {
+            historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`;
+            return;
+        }
+
+        history.forEach((batch, index) => {
+            const date = new Date(batch.created_at).toLocaleDateString();
+            const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div>
+                <div class="history-meta" style="margin-bottom:5px;">
+                    <span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span>
+                    <span class="history-badge">AI Verified</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);">
+                    <span>Employees: ${batch.employee_count}</span>
+                    <span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span>
+                </div>
+            `;
+            div.onclick = () => loadBatchData(batch.id, div);
+            historyList.appendChild(div);
+
+            // Auto-load first item
+            if(index === 0) loadBatchData(batch.id, div);
+        });
     }
 
-  async function handlePayrollUpload(input) {
+    async function loadBatchData(batchId, element) {
+        // Highlight active
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
+        if(element) element.classList.add('active');
+
+        // Show Loading
+        const content = document.getElementById('payroll-content');
+        content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`;
+
+        // Fetch Items
+        const { data, error } = await supabaseClient
+            .from('payroll_items')
+            .select('*')
+            .eq('batch_id', batchId)
+            .order('employee_name', { ascending: true });
+
+        if(error) {
+            content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`;
+            return;
+        }
+
+        renderPayrollTable(data, false);
+    }
+
+    async function handlePayrollUpload(input) {
         const file = input.files[0];
         if(!file) return;
 
-        // UI Loading State
         document.getElementById('payroll-content').classList.add('hidden');
         document.getElementById('payroll-loading').classList.remove('hidden');
 
         try {
-            // 1. Upload to Supabase Storage
             const fileName = `${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await supabaseClient
-                .storage
-                .from('payroll_files')
-                .upload(fileName, file);
-
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
             if(uploadError) throw uploadError;
 
-            // 2. Get Public URL
-            const { data: { publicUrl } } = supabaseClient
-                .storage
-                .from('payroll_files')
-                .getPublicUrl(fileName);
+            const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // 3. Track Batch in DB
             const { data: batchData, error: batchError } = await supabaseClient
                 .from('payroll_batches')
                 .insert({
@@ -823,38 +557,18 @@
 
             if(batchError) throw batchError;
 
-            // 4. Call N8N Webhook (Live/Active Mode)
             const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    file_url: publicUrl,
-                    org_id: state.org.id,
-                    batch_id: batchData.id
-                })
+                body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id })
             });
 
-            if(!n8nResponse.ok) throw new Error("AI Analysis Failed (N8N Error)");
+            if(!n8nResponse.ok) throw new Error("AI Analysis Failed");
             
-            // --- CRITICAL FIX START ---
             let aiData = await n8nResponse.json(); 
-            
-            // 1. If AI returns a string (sometimes happens), parse it
-            if (typeof aiData === 'string') {
-                try { aiData = JSON.parse(aiData); } catch(e) {}
-            }
+            if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} }
+            if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; }
 
-            // 2. If AI returns a single object (not an array), wrap it in an array
-            if (!Array.isArray(aiData)) {
-                if(aiData && typeof aiData === 'object') {
-                    aiData = [aiData]; // Turn {name:...} into [{name:...}]
-                } else {
-                    aiData = []; // Fallback for empty/error
-                }
-            }
-            // --- CRITICAL FIX END ---
-
-            // 5. Save Items to DB
             const itemsToInsert = aiData.map(item => ({
                 batch_id: batchData.id,
                 employee_name: item.employee_name || 'Unknown',
@@ -865,49 +579,46 @@
             }));
 
             if(itemsToInsert.length > 0) {
-                const { data: savedItems, error: itemsError } = await supabaseClient
-                    .from('payroll_items')
-                    .insert(itemsToInsert)
-                    .select();
-                
+                const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select();
                 if(itemsError) throw itemsError;
-                renderPayrollTable(savedItems);
+                
+                // Refresh UI to show new history item
+                renderPayrollUI(document.getElementById('main-view'));
             } else {
                 showToast("AI found no valid data", true);
-                document.getElementById('payroll-loading').classList.add('hidden');
-                document.getElementById('payroll-content').classList.remove('hidden');
+                renderPayrollUI(document.getElementById('main-view')); // Reset
             }
 
         } catch(err) {
             console.error(err);
             showToast(err.message, true);
-            document.getElementById('payroll-loading').classList.add('hidden');
-            document.getElementById('payroll-content').classList.remove('hidden');
+            renderPayrollUI(document.getElementById('main-view')); // Reset
         }
     }
-    
-    function renderPayrollTable(items) {
+
+    function renderPayrollTable(items, isNew = true) {
         document.getElementById('payroll-loading').classList.add('hidden');
         const container = document.getElementById('payroll-content');
         container.classList.remove('hidden');
 
         let html = `
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Processed Batch Results</div>
-                    <span class="badge" style="position:static; background:var(--success)">AI Verified</span>
+            <div style="height:100%; overflow:hidden; display:flex; flex-direction:column;">
+                <div class="card-header" style="padding:20px; flex-shrink:0;">
+                    <div class="card-title">Payroll Data</div>
+                    <button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Employee</th>
-                            <th>Salary</th>
-                            <th>Bonus</th>
-                            <th>Deductions</th>
-                            <th>Net Pay</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Salary</th>
+                                <th>Bonus</th>
+                                <th>Deductions</th>
+                                <th>Net Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
         `;
 
         items.forEach(item => {
@@ -922,54 +633,30 @@
             `;
         });
 
-        html += `</tbody></table></div>`;
+        html += `</tbody></table></div></div>`;
         container.innerHTML = html;
     }
 
     async function updatePayrollItem(id, field, newValue, oldValue) {
-        if(newValue === oldValue) return; // No change
-
+        if(newValue === oldValue) return;
         try {
-            // 1. Update Record
-            const { error: updateError } = await supabaseClient
-                .from('payroll_items')
-                .update({ [field]: newValue })
-                .eq('id', id);
-
-            if(updateError) throw updateError;
-
-            // 2. Log History
-            const { error: historyError } = await supabaseClient
-                .from('payroll_history')
-                .insert({
-                    item_id: id,
-                    changed_by: state.user.id,
-                    field_changed: field,
-                    old_value: oldValue,
-                    new_value: newValue
-                });
-
-            if(historyError) console.error("History Log Error", historyError);
-            
-            showToast("Updated & Saved to History");
-
+            await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id);
+            await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue });
+            showToast("Updated");
         } catch(err) {
-            showToast("Update Failed: " + err.message, true);
+            showToast("Update Failed", true);
         }
     }
 
-    // --- OTHER HELPERS ---
+    // --- HELPERS ---
     async function loadEmployeesView(container) {
         container.innerHTML = `<div class="card">Loading...</div>`;
         const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
         let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody>`;
-        data.forEach(emp => {
-            html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`;
-        });
+        data.forEach(emp => { html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`; });
         html += `</tbody></table></div>`;
         container.innerHTML = html;
     }
-
     async function onboardNewHire() {
         const email = prompt("Email:"); if(!email) return;
         const name = prompt("Name:");
@@ -977,11 +664,9 @@
         await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id });
         showToast("Done");
     }
-
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) {
-        const t = document.getElementById('toast');
-        if(!t) return;
+        const t = document.getElementById('toast'); if(!t) return;
         document.getElementById('toast-msg').innerText = msg;
         t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)';
         t.classList.add('show');
@@ -992,7 +677,6 @@
         document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr');
         renderSidebar(); renderMainContent();
     }
-
 </script>
 </body>
 </html>
