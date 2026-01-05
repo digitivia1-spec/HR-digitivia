@@ -431,8 +431,7 @@ async function executeOnboard() {
             if (error) throw error;
 
             // Wait a moment for the Database Trigger to finish insertion
-            await new Promise(r => setTimeout(r, 1500));
-
+await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds
             // Verify using the MAIN client (CEO)
             const { data: check } = await supabaseClient
                 .from('profiles')
