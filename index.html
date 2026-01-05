@@ -785,7 +785,7 @@
         // Load latest batch if exists (Optional enhancement)
     }
 
-    async function handlePayrollUpload(input) {
+  async function handlePayrollUpload(input) {
         const file = input.files[0];
         if(!file) return;
 
@@ -836,8 +836,23 @@
 
             if(!n8nResponse.ok) throw new Error("AI Analysis Failed (N8N Error)");
             
-            const aiData = await n8nResponse.json(); 
-            // Expecting Array: [{employee_name, salary, bonus...}, ...]
+            // --- CRITICAL FIX START ---
+            let aiData = await n8nResponse.json(); 
+            
+            // 1. If AI returns a string (sometimes happens), parse it
+            if (typeof aiData === 'string') {
+                try { aiData = JSON.parse(aiData); } catch(e) {}
+            }
+
+            // 2. If AI returns a single object (not an array), wrap it in an array
+            if (!Array.isArray(aiData)) {
+                if(aiData && typeof aiData === 'object') {
+                    aiData = [aiData]; // Turn {name:...} into [{name:...}]
+                } else {
+                    aiData = []; // Fallback for empty/error
+                }
+            }
+            // --- CRITICAL FIX END ---
 
             // 5. Save Items to DB
             const itemsToInsert = aiData.map(item => ({
@@ -849,15 +864,19 @@
                 net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0)
             }));
 
-            const { data: savedItems, error: itemsError } = await supabaseClient
-                .from('payroll_items')
-                .insert(itemsToInsert)
-                .select();
-            
-            if(itemsError) throw itemsError;
-
-            // 6. Render the Table
-            renderPayrollTable(savedItems);
+            if(itemsToInsert.length > 0) {
+                const { data: savedItems, error: itemsError } = await supabaseClient
+                    .from('payroll_items')
+                    .insert(itemsToInsert)
+                    .select();
+                
+                if(itemsError) throw itemsError;
+                renderPayrollTable(savedItems);
+            } else {
+                showToast("AI found no valid data", true);
+                document.getElementById('payroll-loading').classList.add('hidden');
+                document.getElementById('payroll-content').classList.remove('hidden');
+            }
 
         } catch(err) {
             console.error(err);
@@ -866,7 +885,7 @@
             document.getElementById('payroll-content').classList.remove('hidden');
         }
     }
-
+    
     function renderPayrollTable(items) {
         document.getElementById('payroll-loading').classList.add('hidden');
         const container = document.getElementById('payroll-content');
