@@ -200,42 +200,12 @@
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // --- STATE ---
-    const state = {
-        user: null,
-        profile: null,
-        org: null,
-        lang: 'en',
-        activeView: 'dashboard'
-    };
+    const state = { user: null, profile: null, org: null, lang: 'en', activeView: 'dashboard' };
 
     // Translations
     const i18n = {
-        en: {
-            welcome: "Welcome back,",
-            dashboard: "Dashboard",
-            payroll: "Payroll Automation",
-            employees: "Employees",
-            attendance: "Time & Attendance",
-            ats: "ATS Recruitment",
-            performance: "Performance",
-            reports: "Reports",
-            wfm: "Workforce WFM",
-            viewAll: "View All",
-            create: "Create New"
-        },
-        ar: {
-            welcome: "مرحباً بعودتك،",
-            dashboard: "لوحة التحكم",
-            payroll: "أتمتة الرواتب",
-            employees: "الموظفين",
-            attendance: "الحضور والانصراف",
-            ats: "نظام التوظيف",
-            performance: "الأداء",
-            reports: "التقارير",
-            wfm: "إدارة القوى العاملة",
-            viewAll: "عرض الكل",
-            create: "إنشاء جديد"
-        }
+        en: { welcome: "Welcome back,", dashboard: "Dashboard", payroll: "Payroll Automation", employees: "Employees", attendance: "Time & Attendance", ats: "ATS Recruitment", performance: "Performance", reports: "Reports", wfm: "Workforce WFM", viewAll: "View All", create: "Create New" },
+        ar: { welcome: "مرحباً بعودتك،", dashboard: "لوحة التحكم", payroll: "أتمتة الرواتب", employees: "الموظفين", attendance: "الحضور والانصراف", ats: "نظام التوظيف", performance: "الأداء", reports: "التقارير", wfm: "إدارة القوى العاملة", viewAll: "عرض الكل", create: "إنشاء جديد" }
     };
 
     // --- INIT & AUTH ---
@@ -247,22 +217,9 @@
         else showAuthScreen();
     });
 
-    function toggleAuthMode(mode) {
-        if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } 
-        else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); }
-    }
-    async function handleLogin() {
-        const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value;
-        try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); }
-    }
-    async function handleRegister() {
-        const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value;
-        if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; }
-        try {
-            const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } });
-            if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false);
-        } catch (err) { showToast(err.message || "Server Error", true); }
-    }
+    function toggleAuthMode(mode) { if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); } }
+    async function handleLogin() { const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value; try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); } }
+    async function handleRegister() { const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value; if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } }); if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false); } catch (err) { showToast(err.message || "Server Error", true); } }
     async function socialLogin(provider) { await supabaseClient.auth.signInWithOAuth({ provider: provider, options: { redirectTo: window.location.href } }); }
     async function handleLogout() { await supabaseClient.auth.signOut(); window.location.reload(); }
     function showAuthScreen() { document.getElementById('auth-container').classList.remove('hidden'); document.getElementById('app-container').classList.add('hidden'); }
@@ -283,21 +240,13 @@
     function renderSidebar() {
         const t = i18n[state.lang]; const role = state.profile.role; const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
         let sections = [];
-        if (role === 'ceo' || role === 'admin') {
-            sections.push({ title: "Executive Overview", items: [ { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' }, { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, { icon: 'fa-timeline', label: t.wfm, key: 'wfm' }, { icon: 'fa-file-alt', label: t.reports, key: 'reports' } ] });
-        }
-        if (role === 'ceo' || role === 'hr_manager') {
-            sections.push({ title: "HR Management", items: [ { icon: 'fa-users', label: t.employees, key: 'employees' }, { icon: 'fa-briefcase', label: t.ats, key: 'ats' }, { icon: 'fa-star', label: t.performance, key: 'performance' } ] });
-        }
+        if (role === 'ceo' || role === 'admin') { sections.push({ title: "Executive Overview", items: [ { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' }, { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, { icon: 'fa-timeline', label: t.wfm, key: 'wfm' }, { icon: 'fa-file-alt', label: t.reports, key: 'reports' } ] }); }
+        if (role === 'ceo' || role === 'hr_manager') { sections.push({ title: "HR Management", items: [ { icon: 'fa-users', label: t.employees, key: 'employees' }, { icon: 'fa-briefcase', label: t.ats, key: 'ats' }, { icon: 'fa-star', label: t.performance, key: 'performance' } ] }); }
         sections.push({ title: "My Workspace", items: [ { icon: 'fa-clock', label: t.attendance, key: 'attendance' } ] });
         sections.forEach(sec => {
             const header = document.createElement('div'); header.className = 'nav-header'; header.innerText = sec.title; container.appendChild(header);
             const ul = document.createElement('ul'); ul.className = 'nav-links';
-            sec.items.forEach(item => {
-                const li = document.createElement('li'); li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`; li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
-                li.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); if(window.innerWidth <= 768) toggleSidebar(); };
-                ul.appendChild(li);
-            }); container.appendChild(ul);
+            sec.items.forEach(item => { const li = document.createElement('li'); li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`; li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`; li.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); if(window.innerWidth <= 768) toggleSidebar(); }; ul.appendChild(li); }); container.appendChild(ul);
         });
     }
 
@@ -305,201 +254,180 @@
     function renderMainContent() {
         const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
         if(view === 'dashboard') main.innerHTML = getDashboardHTML();
-        else if(view === 'employees') {
-            if(['ceo','hr_manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`;
-        }
-        else if(view === 'payroll') {
-             if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`;
-        }
-        else if(view === 'wfm') {
-             if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); 
-             else renderEmployeeWFM(main);
-        }
+        else if(view === 'employees') { if(['ceo','hr_manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
+        else if(view === 'reports') { if(['ceo','admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
     function getDashboardHTML() {
-        return `
-            <div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div>
-            <div class="dashboard-grid">
-                <div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div>
-                <div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div>
-            </div>`;
+        return `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div><div class="dashboard-grid"><div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div><div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div></div>`;
     }
 
     // ==========================================
-    // --- WORKFORCE MANAGEMENT (WFM) FEATURE ---
+    // --- REPORTS FEATURE (NEW) ---
     // ==========================================
 
-    async function renderWFMUI(container) {
-        // 1. Fetch Real KPI Data
-        const { adherence, productivity, forecast } = await calculateWFMStats();
-
+    async function renderReportsUI(container) {
         container.innerHTML = `
             <div class="page-title">
-                Workforce Management
-                <button class="btn-outline" onclick="seedWFMData()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Daily Data</button>
+                Strategic Reports
+                <button class="btn-outline" onclick="exportReportsCSV()"><i class="fa-solid fa-download"></i> Export Data</button>
             </div>
 
-            <div class="dashboard-grid grid-3">
-                <div class="card" style="border-left: 4px solid var(--success);">
-                    <div class="card-title">Schedule Adherence</div>
-                    <h2 style="color:var(--success); margin-top:10px; font-size:2.5rem;">${adherence}%</h2>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Real-time compliance</div>
-                </div>
-                <div class="card" style="border-left: 4px solid var(--info);">
-                    <div class="card-title">Productivity Score</div>
-                    <h2 style="color:var(--info); margin-top:10px; font-size:2.5rem;">${productivity}</h2>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Average Team Score</div>
-                </div>
-                <div class="card" style="border-left: 4px solid var(--warning);">
-                    <div class="card-title">Forecast Accuracy</div>
-                    <h2 style="color:var(--warning); margin-top:10px; font-size:2.5rem;">${forecast}%</h2>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Predicted vs Actual</div>
-                </div>
-            </div>
-
-            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
                 <div class="card">
-                    <div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Live)</div>
-                    <div style="position: relative; height: 200px; width: 100%;">
-                        <canvas id="wfmChart"></canvas>
-                    </div>
+                    <div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div>
+                    <canvas id="burnoutChart" height="200"></canvas>
                 </div>
-                <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
-                    <div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">
-                        Live Roster
-                    </div>
-                    <div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;">
-                        <div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-                    </div>
+                <div class="card">
+                    <div class="card-title">Department Efficiency</div>
+                    <canvas id="efficiencyChart" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Labor ROI Analysis</div>
+                    <span class="badge" style="position:static; background:var(--info)">Live Data</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table id="roi-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Role</th>
+                                <th>Monthly Cost</th>
+                                <th>Productivity</th>
+                                <th>ROI Factor</th>
+                                <th>Risk Status</th>
+                            </tr>
+                        </thead>
+                        <tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody>
+                    </table>
                 </div>
             </div>
         `;
 
-        // Load Chart
-        initWFMChart();
-        // Load Roster
-        loadWFMRoster();
-    }
-
-    async function calculateWFMStats() {
-        const { count: totalScheduled } = await supabaseClient
-            .from('wfm_shifts')
-            .select('*', { count: 'exact' })
-            .eq('org_id', state.org.id)
-            .eq('shift_date', new Date().toISOString().split('T')[0]);
-
-        if(!totalScheduled) return { adherence: 0, productivity: 0, forecast: 0 };
-
-        const { count: activeAgents } = await supabaseClient
-            .from('wfm_activity')
-            .select('*', { count: 'exact' })
-            .eq('org_id', state.org.id)
-            .eq('current_status', 'On Queue');
-
-        const adherence = totalScheduled > 0 ? Math.round((activeAgents / totalScheduled) * 100) : 0;
+        // Load Data from the View
+        const { data: reports } = await supabaseClient.from('reports_master').select('*').eq('org_id', state.org.id);
         
-        return {
-            adherence: adherence, 
-            productivity: 82, 
-            forecast: 95 
-        };
+        if(reports && reports.length > 0) {
+            initReportCharts(reports);
+            renderROITable(reports);
+        } else {
+            document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;">No data available yet. Generate WFM/Payroll data first.</td></tr>';
+        }
     }
 
-    async function initWFMChart() {
-        const ctx = document.getElementById('wfmChart');
-        if(!ctx) return;
-
-        const { data: shifts } = await supabaseClient
-            .from('wfm_shifts')
-            .select('*')
-            .eq('org_id', state.org.id)
-            .eq('shift_date', new Date().toISOString().split('T')[0]);
-
-        const hours = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17'];
-        const scheduledCounts = new Array(hours.length).fill(0);
-
-        if(shifts) {
-            shifts.forEach(shift => {
-                const startH = parseInt(shift.start_time.split(':')[0]);
-                const endH = parseInt(shift.end_time.split(':')[0]);
-                hours.forEach((h, index) => {
-                    const currentH = parseInt(h);
-                    if (currentH >= startH && currentH < endH) {
-                        scheduledCounts[index]++;
-                    }
-                });
-            });
-        }
-
-        const actualCounts = scheduledCounts.map(val => Math.max(0, val - Math.floor(Math.random() * 2)));
-
-        new Chart(ctx, {
-            type: 'line',
+    function initReportCharts(data) {
+        // 1. Burnout Chart
+        new Chart(document.getElementById('burnoutChart'), {
+            type: 'bar',
             data: {
-                labels: hours.map(h => `${h}:00`),
+                labels: data.map(r => r.full_name),
                 datasets: [
-                    { label: 'Scheduled', data: scheduledCounts, borderColor: '#3498db', tension: 0.4 },
-                    { label: 'Actual', data: actualCounts, borderColor: '#2ecc71', tension: 0.4 }
+                    { label: 'Scheduled Hours', data: data.map(r => r.scheduled_hours), backgroundColor: '#3498db' },
+                    { label: 'Actual Hours', data: data.map(r => r.actual_hours_worked), backgroundColor: '#e74c3c' }
                 ]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: 'white' } } },
-                scales: {
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
-                }
-            }
+            options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
+        });
+
+        // 2. Efficiency Chart (By Role)
+        const roles = [...new Set(data.map(r => r.role))];
+        const efficiency = roles.map(role => {
+            const users = data.filter(r => r.role === role);
+            return users.reduce((sum, u) => sum + u.productivity_score, 0) / users.length;
+        });
+
+        new Chart(document.getElementById('efficiencyChart'), {
+            type: 'radar',
+            data: {
+                labels: roles,
+                datasets: [{ label: 'Avg Productivity Score', data: efficiency, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.2)' }]
+            },
+            options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } } }
         });
     }
 
-    async function loadWFMRoster() {
-        const list = document.getElementById('wfm-roster-list');
-        if(!list) return;
-
-        const { data: employees } = await supabaseClient
-            .from('profiles')
-            .select(`*, wfm_activity ( current_status )`)
-            .eq('org_id', state.org.id);
-        
+    function renderROITable(data) {
+        const tbody = document.querySelector('#roi-table tbody');
         let html = '';
-        const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' };
-
-        employees.forEach(emp => {
-            const status = (emp.wfm_activity && emp.wfm_activity.length > 0) ? emp.wfm_activity[0].current_status : 'Offline';
-            const color = colors[status] || 'var(--text-muted)';
+        
+        data.forEach(r => {
+            const cost = r.total_cost || 0;
+            const prod = r.productivity_score || 0;
             
+            // ROI Factor: How much productivity per $1000 spent
+            const roi = cost > 0 ? ((prod / cost) * 1000).toFixed(1) : 'N/A';
+            
+            // Risk Logic
+            let status = '<span class="badge" style="background:var(--success); position:static">Healthy</span>';
+            if (prod < 50 && cost > 5000) status = '<span class="badge" style="background:var(--danger); position:static">Overpaid / Low Output</span>';
+            if (prod > 90 && cost < 3000) status = '<span class="badge" style="background:var(--warning); position:static">Flight Risk (Underpaid)</span>';
+
             html += `
-                <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);">
-                    <img src="${emp.avatar_url || 'default.png'}" style="width:35px; height:35px; border-radius:50%;">
-                    <div style="flex-grow:1;">
-                        <div style="font-weight:600; color:#fff;">${emp.full_name}</div>
-                        <div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div>
-                    </div>
-                    <span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span>
-                </div>`;
+                <tr>
+                    <td>${r.full_name}</td>
+                    <td>${r.role}</td>
+                    <td>$${cost}</td>
+                    <td>${prod}</td>
+                    <td>${roi}</td>
+                    <td>${status}</td>
+                </tr>
+            `;
         });
-        list.innerHTML = html;
+        tbody.innerHTML = html;
     }
 
-    async function seedWFMData() {
-        const btn = document.querySelector('.page-title .btn-outline');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+    function exportReportsCSV() {
+        // Simple CSV Export logic can go here
+        showToast("Exporting data...");
+    }
 
+    // --- [KEEP ALL EXISTING WFM, PAYROLL, AND HELPER FUNCTIONS BELOW] ---
+    // (Assume renderWFMUI, seedWFMData, renderPayrollUI, etc. are here unchanged)
+    
+    // --- WFM FUNCTIONS ---
+    async function renderWFMUI(container) {
+        const { adherence, productivity, forecast } = await calculateWFMStats();
+        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="seedWFMData()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Daily Data</button></div><div class="dashboard-grid grid-3"><div class="card" style="border-left: 4px solid var(--success);"><div class="card-title">Schedule Adherence</div><h2 style="color:var(--success); margin-top:10px; font-size:2.5rem;">${adherence}%</h2><div style="font-size:0.85rem; color:var(--text-muted);">Real-time compliance</div></div><div class="card" style="border-left: 4px solid var(--info);"><div class="card-title">Productivity Score</div><h2 style="color:var(--info); margin-top:10px; font-size:2.5rem;">${productivity}</h2><div style="font-size:0.85rem; color:var(--text-muted);">Average Team Score</div></div><div class="card" style="border-left: 4px solid var(--warning);"><div class="card-title">Forecast Accuracy</div><h2 style="color:var(--warning); margin-top:10px; font-size:2.5rem;">${forecast}%</h2><div style="font-size:0.85rem; color:var(--text-muted);">Predicted vs Actual</div></div></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Live)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`;
+        initWFMChart(); loadWFMRoster();
+    }
+    async function calculateWFMStats() {
+        const { count: totalScheduled } = await supabaseClient.from('wfm_shifts').select('*', { count: 'exact' }).eq('org_id', state.org.id).eq('shift_date', new Date().toISOString().split('T')[0]);
+        if(!totalScheduled) return { adherence: 0, productivity: 0, forecast: 0 };
+        const { count: activeAgents } = await supabaseClient.from('wfm_activity').select('*', { count: 'exact' }).eq('org_id', state.org.id).eq('current_status', 'On Queue');
+        const adherence = totalScheduled > 0 ? Math.round((activeAgents / totalScheduled) * 100) : 0;
+        return { adherence: adherence, productivity: 82, forecast: 95 };
+    }
+    async function initWFMChart() {
+        const ctx = document.getElementById('wfmChart'); if(!ctx) return;
+        const { data: shifts } = await supabaseClient.from('wfm_shifts').select('*').eq('org_id', state.org.id).eq('shift_date', new Date().toISOString().split('T')[0]);
+        const hours = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17'];
+        const scheduledCounts = new Array(hours.length).fill(0);
+        if(shifts) { shifts.forEach(shift => { const startH = parseInt(shift.start_time.split(':')[0]); const endH = parseInt(shift.end_time.split(':')[0]); hours.forEach((h, index) => { const currentH = parseInt(h); if (currentH >= startH && currentH < endH) { scheduledCounts[index]++; } }); }); }
+        const actualCounts = scheduledCounts.map(val => Math.max(0, val - Math.floor(Math.random() * 2)));
+        new Chart(ctx, { type: 'line', data: { labels: hours.map(h => `${h}:00`), datasets: [ { label: 'Scheduled', data: scheduledCounts, borderColor: '#3498db', tension: 0.4 }, { label: 'Actual', data: actualCounts, borderColor: '#2ecc71', tension: 0.4 } ] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } } } } });
+    }
+    async function loadWFMRoster() {
+        const list = document.getElementById('wfm-roster-list'); if(!list) return;
+        const { data: employees } = await supabaseClient.from('profiles').select(`*, wfm_activity ( current_status )`).eq('org_id', state.org.id);
+        let html = ''; const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' };
+        employees.forEach(emp => {
+            const status = (emp.wfm_activity && emp.wfm_activity.length > 0) ? emp.wfm_activity[0].current_status : 'Offline'; const color = colors[status] || 'var(--text-muted)';
+            html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);"><img src="${emp.avatar_url || 'default.png'}" style="width:35px; height:35px; border-radius:50%;"><div style="flex-grow:1;"><div style="font-weight:600; color:#fff;">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div></div><span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span></div>`;
+        }); list.innerHTML = html;
+    }
+    async function seedWFMData() {
+        const btn = document.querySelector('.page-title .btn-outline'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
         try {
             const { data: employees } = await supabaseClient.from('profiles').select('user_id').eq('org_id', state.org.id);
             const today = new Date().toISOString().split('T')[0];
-
-            const shifts = employees.map(emp => {
-                const startH = 8 + Math.floor(Math.random() * 3);
-                return { user_id: emp.user_id, org_id: state.org.id, shift_date: today, start_time: `${startH}:00:00`, end_time: `${startH + 8}:00:00`, status: 'scheduled' };
-            });
-
+            const shifts = employees.map(emp => { const startH = 8 + Math.floor(Math.random() * 3); return { user_id: emp.user_id, org_id: state.org.id, shift_date: today, start_time: `${startH}:00:00`, end_time: `${startH + 8}:00:00`, status: 'scheduled' }; });
             await supabaseClient.from('wfm_shifts').insert(shifts);
-
             const statuses = ['On Queue', 'Break', 'Meeting', 'On Queue', 'On Queue'];
             for (const emp of employees) {
                 const status = statuses[Math.floor(Math.random() * statuses.length)];
@@ -507,100 +435,20 @@
                 if(existing) await supabaseClient.from('wfm_activity').update({ current_status: status }).eq('id', existing.id);
                 else await supabaseClient.from('wfm_activity').insert({ user_id: emp.user_id, org_id: state.org.id, current_status: status });
             }
-
-            showToast("Data Generated Successfully");
-            renderWFMUI(document.getElementById('main-view'));
-
+            showToast("Data Generated Successfully"); renderWFMUI(document.getElementById('main-view'));
         } catch(e) { console.error(e); showToast("Generation Failed", true); } finally { btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Daily Data'; }
     }
+    async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Clocked In Successfully')">Clock In</button></div>`; }
 
-    async function renderEmployeeWFM(container) {
-        container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Clocked In Successfully')">Clock In</button></div>`;
-    }
-
-    // --- [KEEP EXISTING PAYROLL & HELPER FUNCTIONS EXACTLY AS BEFORE] ---
-    // (Note: To save space in this response, assume the Payroll, Auth, and Helper functions are here exactly as they were in the previous working version.
-    //  Do not delete them from your file!)
-    // ... [PASTE REST OF JAVASCRIPT HERE] ...
-    
-    // --- PAYROLL FUNCTIONS COPY (Just for completeness if you copy-paste all) ---
-    async function renderPayrollUI(container) {
-        container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`;
-        const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false });
-        const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = '';
-        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; }
-        history.forEach((batch, index) => {
-            const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const div = document.createElement('div'); div.className = 'history-item';
-            div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`;
-            div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div);
-        });
-    }
-    async function loadBatchData(batchId, element) {
-        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active');
-        const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`;
-        const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true });
-        if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; }
-        renderPayrollTable(data, false);
-    }
-    async function handlePayrollUpload(input) {
-        const file = input.files[0]; if(!file) return;
-        document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden');
-        try {
-            const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError;
-            const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
-            const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError;
-            const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) });
-            if(!n8nResponse.ok) throw new Error("AI Analysis Failed");
-            let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; }
-            const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) }));
-            if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); }
-        } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); }
-    }
-    function renderPayrollTable(items, isNew = true) {
-        document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden');
-        let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`;
-        items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; });
-        html += `</tbody></table></div></div>`; container.innerHTML = html;
-    }
+    // --- PAYROLL FUNCTIONS ---
+    async function renderPayrollUI(container) { container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = ''; if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } history.forEach((batch, index) => { const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); const div = document.createElement('div'); div.className = 'history-item'; div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`; div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div); }); }
+    async function loadBatchData(batchId, element) { document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active'); const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`; const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true }); if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; } renderPayrollTable(data, false); }
+    async function handlePayrollUpload(input) { const file = input.files[0]; if(!file) return; document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden'); try { const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError; const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); } } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); } }
+    function renderPayrollTable(items, isNew = true) { document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden'); let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`; items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; }); html += `</tbody></table></div></div>`; container.innerHTML = html; }
     async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
 
-    // --- OTHER HELPERS (Updated with Dynamic JSONB Display) ---
-    async function loadEmployeesView(container) { 
-        container.innerHTML = `<div class="card">Loading...</div>`; 
-        const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
-        
-        let html = `
-            <div class="card">
-                <table>
-                    <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead>
-                    <tbody>`;
-        
-        data.forEach(emp => { 
-            // Extract extra data
-            const meta = emp.meta_data || {};
-            const metaKeys = Object.keys(meta);
-            const metaDisplay = metaKeys.length > 0 
-                ? `<div class="details-json">${JSON.stringify(meta, null, 2)}</div>` 
-                : '';
-                
-            html += `
-                <tr>
-                    <td>${emp.full_name}</td>
-                    <td>${emp.role}</td>
-                    <td>${emp.email}</td>
-                    <td>
-                        <span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">
-                            View Extra
-                        </span>
-                        ${metaDisplay}
-                    </td>
-                </tr>`; 
-        }); 
-        html += `</tbody></table></div>`; 
-        container.innerHTML = html; 
-    }
-    
+    // --- OTHER HELPERS ---
+    async function loadEmployeesView(container) { container.innerHTML = `<div class="card">Loading...</div>`; const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead><tbody>`; data.forEach(emp => { const meta = emp.meta_data || {}; const metaKeys = Object.keys(meta); const metaDisplay = metaKeys.length > 0 ? `<div class="details-json">${JSON.stringify(meta, null, 2)}</div>` : ''; html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span>${metaDisplay}</td></tr>`; }); html += `</tbody></table></div>`; container.innerHTML = html; }
     async function onboardNewHire() { const email = prompt("Email:"); if(!email) return; const name = prompt("Name:"); const role = prompt("Role:", "employee"); await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id }); showToast("Done"); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) { const t = document.getElementById('toast'); if(!t) return; document.getElementById('toast-msg').innerText = msg; t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
