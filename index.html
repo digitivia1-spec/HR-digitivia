@@ -367,7 +367,7 @@
         document.getElementById('onboard-modal').classList.add('hidden');
     }
 
-    async function executeOnboard() {
+  async function executeOnboard() {
         const fullName = document.getElementById('new-name').value;
         const email = document.getElementById('new-email').value;
         const password = document.getElementById('new-pass').value;
@@ -390,8 +390,7 @@
         btn.innerText = "Creating...";
 
         try {
-            // 1. Create a SECONDARY client (The Trick)
-            // This allows us to create a user without logging the CEO out
+            // 1. Create a SECONDARY client
             const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             
             const { data, error } = await tempClient.auth.signUp({
@@ -400,9 +399,10 @@
                 options: {
                     data: {
                         full_name: fullName,
-                        org_name: state.org.name, // Link to CEO's org
-                        role: role, // Explicitly pass role to Trigger
-                        meta_data: metaData, // Pass custom fields
+                        org_name: state.org.name, 
+                        org_id: state.org.id, // <--- CRITICAL FIX: Send ID directly
+                        role: role, 
+                        meta_data: metaData, 
                         avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
                     }
                 }
@@ -410,15 +410,12 @@
 
             if (error) throw error;
 
-            // 2. Force link to org (Safety net, though triggers usually handle this)
-            // Ideally, your DB trigger handles the insert into 'profiles' and 'user_org_link'
-            
             showToast(`User created! Login: ${email} / ${password}`);
             closeOnboardModal();
-            loadEmployeesView(document.getElementById('main-view')); // Refresh list
+            loadEmployeesView(document.getElementById('main-view'));
 
         } catch (err) {
-            console.error(err);
+            console.error("Onboarding Error:", err); // Check console for details
             showToast(err.message, true);
         } finally {
             btn.innerText = oldText;
