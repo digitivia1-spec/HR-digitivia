@@ -3,25 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIGITIVIA - Operations</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <title>DIGITIVIA - Operations Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root {
-            /* GLOSSY DARK BLUE THEME */
+            /* GLOSSY DARK BLUE THEME VARIABLES */
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
+            
+            /* Glassmorphism Variables */
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             --blur-amount: 20px;
+
+            /* Sidebar specific */
             --sidebar-bg: rgba(13, 27, 42, 0.85); 
             --sidebar-active: rgba(52, 152, 219, 0.4); 
+            
+            /* Text Colors */
             --text-main: #e0e6ed;
             --text-muted: #94a3b8;
             --text-header: #ffffff;
+
+            /* Accents */
             --primary: #3498db; 
+            --primary-hover: #2980b9;
             --success: #2ecc71;
             --warning: #f1c40f;
             --danger: #e74c3c;
@@ -29,229 +38,387 @@
         }
 
         html[dir="rtl"] { --sidebar-width: 270px; }
+
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         
         body { 
             background: var(--bg-body-gradient); 
             color: var(--text-main); 
             height: 100vh; 
+            display: flex; 
             overflow: hidden; 
             font-size: 14px;
         }
 
-        /* --- AUTH LAYER --- */
-        #auth-layer {
+        /* --- AUTH SCREEN STYLES --- */
+        #auth-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-body-gradient);
             z-index: 9999;
             display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(10px);
         }
 
         .auth-card {
-            width: 450px;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(13, 27, 42, 0.6);
             backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
             padding: 40px;
             border-radius: 20px;
+            width: 100%; max-width: 450px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             text-align: center;
+            animation: fadeIn 0.5s ease-out;
         }
 
-        .auth-logo { width: 60px; margin-bottom: 20px; }
-        .auth-title { font-size: 1.8rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .auth-logo { height: 60px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(52,152,219,0.5)); }
+        
+        .auth-title { font-size: 1.8rem; font-weight: 700; color: white; margin-bottom: 10px; }
         .auth-subtitle { color: var(--text-muted); margin-bottom: 30px; }
 
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.9rem; }
-        .input-field {
-            width: 100%; padding: 12px; background: rgba(0,0,0,0.2);
-            border: 1px solid var(--glass-border); border-radius: 8px;
-            color: white; font-size: 1rem; outline: none; transition: 0.3s;
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 0.9rem; }
+        .form-input { 
+            width: 100%; padding: 12px 15px; 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 8px; color: white; outline: none; transition: 0.3s;
         }
-        .input-field:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); }
+        .form-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.1); }
 
-        /* Social Buttons - Consistent Outline Style */
-        .social-buttons-container { display: flex; flex-direction: column; gap: 10px; }
+        .social-divider { display: flex; align-items: center; margin: 25px 0; color: var(--text-muted); font-size: 0.8rem; }
+        .social-divider::before, .social-divider::after { content: ""; flex: 1; height: 1px; background: var(--glass-border); margin: 0 10px; }
+
+        .social-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
         .social-btn {
-            width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--glass-border);
-            background: rgba(255,255,255,0.05); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500; transition: 0.2s;
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            padding: 10px; border-radius: 8px; color: white; cursor: pointer; transition: 0.3s; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center;
         }
-        .social-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+        .social-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); }
+
+        .toggle-link { color: var(--primary); cursor: pointer; margin-top: 20px; display: inline-block; font-size: 0.9rem; }
+        .toggle-link:hover { text-decoration: underline; }
+
+        .hidden { display: none !important; }
+
+        /* --- APP STYLES (Existing) --- */
+        #app-container { display: flex; width: 100%; height: 100%; opacity: 0; transition: opacity 1s; }
+        #app-container.loaded { opacity: 1; }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 270px;
+            background: var(--sidebar-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            height: 100vh; 
+            z-index: 1000;
+        }
+        html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
+
+        .logo-area {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-header);
+            letter-spacing: 1px;
+        }
         
-        .divider { margin: 25px 0; color: var(--text-muted); position: relative; }
-        .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--glass-border); }
-        .divider::before { left: 0; } .divider::after { right: 0; }
+        .logo-area img { 
+            height: 45px; 
+            margin-right: 12px; 
+            object-fit: contain; 
+            filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6));
+        }
+        html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
 
-        .switch-auth { margin-top: 20px; color: var(--text-muted); font-size: 0.9rem; cursor: pointer; }
-        .switch-auth span { color: var(--primary); font-weight: 600; }
+        #nav-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            padding-top: 15px;
+        }
+        #nav-container::-webkit-scrollbar { width: 5px; }
+        #nav-container::-webkit-scrollbar-track { background: transparent; }
+        #nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 
-        /* --- APP LAYER --- */
-        #app-layer { display: none; width: 100%; height: 100%; display: flex; }
+        .nav-header {
+            padding: 20px 30px 10px 30px; 
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
 
-        .sidebar { width: 270px; background: var(--sidebar-bg); backdrop-filter: blur(var(--blur-amount)); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; height: 100vh; z-index: 1000; }
-        .logo-area { height: 80px; display: flex; align-items: center; padding: 0 25px; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); color: var(--text-header); }
-        #nav-container { flex-grow: 1; overflow-y: auto; padding-top: 15px; }
-        .nav-header { padding: 20px 30px 10px 30px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
-        .nav-item { padding: 14px 15px; margin: 0 15px 6px 15px; border-radius: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.25s ease; color: var(--text-muted); font-weight: 500; border: 1px solid transparent; }
+        .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
+        .nav-item { 
+            padding: 14px 15px; 
+            margin-bottom: 6px;
+            border-radius: 10px;
+            display: flex; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: all 0.25s ease; 
+            color: var(--text-muted); 
+            font-weight: 500;
+            border: 1px solid transparent;
+        }
         .nav-item:hover { background: rgba(255,255,255,0.08); color: var(--text-header); transform: translateX(5px); }
         .nav-item.active { background: var(--sidebar-active); color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
         .nav-item i { width: 25px; margin-right: 10px; text-align: center; font-size: 1.1em; }
+        html[dir="rtl"] .nav-item i { margin-right: 0; margin-left: 10px; }
 
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .top-header {
+            height: 80px;
+            background: rgba(13, 27, 42, 0.4); 
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            flex-shrink: 0;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+
+        .branding-logos {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: 20px;
+            padding-left: 20px;
+            border-left: 1px solid var(--glass-border);
+        }
+        html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
+        .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
+
+        .user-controls { display: flex; align-items: center; gap: 15px; }
+        .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
+        .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
+        .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
+
+        .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
+        .dropdown img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
+        
         .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
+        .page-title { 
+            margin-bottom: 30px; 
+            font-size: 2rem; 
+            font-weight: 700; 
+            color: var(--text-header); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
         
-        .card { background: var(--glass-bg); backdrop-filter: blur(var(--blur-amount)); border-radius: 16px; padding: 25px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; color: var(--text-main); display: flex; flex-direction: column; }
+        /* --- GLOSSY CARD COMPONENTS --- */
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--glass-shadow);
+            border: 1px solid var(--glass-border);
+            height: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255,255,255,0.25);
+        }
+
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
-        .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; }
+        .card-title { font-weight: 700; color: var(--text-header); font-size: 1.1rem; letter-spacing: 0.5px; }
         
-        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); color: #fff; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4); transition: all 0.2s; }
-        .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; }
+        /* Buttons */
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--primary) 0%, #2980b9 100%); 
+            color: #fff; 
+            border: none; 
+            padding: 10px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            font-weight: 600;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.4);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
+        
+        .btn-outline { 
+            background-color: rgba(255,255,255,0.05); 
+            border: 1px solid var(--glass-border); 
+            color: var(--text-main); 
+            padding: 8px 16px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+            transition: 0.2s;
+        }
+        .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
 
-        /* MODALS */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-content { width: 500px; background: #1a2634; padding: 40px; border-radius: 15px; border: 1px solid var(--glass-border); box-shadow: 0 0 50px rgba(52, 152, 219, 0.2); text-align: center; }
-        .hidden { display: none !important; }
-        .page-title { margin-bottom: 30px; font-size: 2rem; font-weight: 700; color: var(--text-header); display: flex; justify-content: space-between; align-items: center; }
+        .btn-back-circle {
+            width: 45px; height: 45px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+        }
+        .btn-back-circle:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        /* Grid */
+        .dashboard-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 25px; 
+            margin-bottom: 25px; 
+            align-items: stretch;
+        }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+        td { padding: 15px; border-bottom: 1px solid var(--glass-border); color: var(--text-header); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255,255,255,0.02); }
 
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 30px; right: 30px;
+            background: rgba(46, 204, 113, 0.9);
+            color: white; padding: 15px 25px; border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex; align-items: center; gap: 10px;
+            transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        .toast.show { transform: translateY(0); }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: 1fr; }
-            .sidebar { position: absolute; left: -270px; }
-            .sidebar.active { left: 0; }
+            .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); }
+            .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); }
+            html[dir="rtl"] .sidebar { left: auto; right: -270px; }
+            html[dir="rtl"] .sidebar.active { right: 0; }
+            .branding-logos { display: none; }
         }
     </style>
 </head>
 <body>
 
-    <div id="auth-layer">
-        
-        <div class="auth-card" id="login-form">
-            <div style="font-size:3rem; color:var(--primary); margin-bottom:10px;"><i class="fa-solid fa-cube"></i></div>
-            <div class="auth-title">Digitivia Ops</div>
-            <div class="auth-subtitle">Operational Excellence Platform</div>
+    <div id="auth-container">
+        <div class="auth-card" id="login-card">
+            <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
+            <div class="auth-title">Welcome Back</div>
+            <div class="auth-subtitle">Login to Digitivia Operations</div>
 
-            <div class="input-group">
+            <div class="form-group">
                 <label>Email Address</label>
-                <input type="email" id="login-email" class="input-field" placeholder="name@company.com">
+                <input type="email" id="login-email" class="form-input" placeholder="name@company.com">
             </div>
-            <div class="input-group">
+            <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="login-password" class="input-field" placeholder="••••••••">
+                <input type="password" id="login-pass" class="form-input" placeholder="••••••••">
             </div>
 
-            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px; margin-bottom:20px;" onclick="handleLogin()">Sign In</button>
+            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Login</button>
 
-            <div class="divider">OR</div>
-
-            <div class="social-buttons-container">
-                <button class="social-btn" onclick="handleSocial('google')">
-                    <i class="fa-brands fa-google" style="color:#EA4335"></i> Continue with Google
-                </button>
-                <button class="social-btn" onclick="handleSocial('azure')">
-                    <i class="fa-brands fa-microsoft" style="color:#00A4EF"></i> Continue with Microsoft
-                </button>
-                <button class="social-btn" onclick="handleSocial('linkedin')">
-                    <i class="fa-brands fa-linkedin" style="color:#0077b5"></i> Continue with LinkedIn
-                </button>
+            <div class="social-divider">Or continue with</div>
+            <div class="social-buttons">
+                <div class="social-btn" onclick="socialLogin('google')" style="color:#DB4437"><i class="fa-brands fa-google"></i></div>
+                <div class="social-btn" onclick="socialLogin('linkedin')" style="color:#0077b5"><i class="fa-brands fa-linkedin-in"></i></div>
+                <div class="social-btn" onclick="socialLogin('azure')" style="color:#00a4ef"><i class="fa-brands fa-microsoft"></i></div>
             </div>
 
-            <div class="switch-auth" onclick="toggleAuthMode('register')">New Organization? <span>Register as CEO</span></div>
+            <div class="toggle-link" onclick="toggleAuthMode('register')">Register New Organization</div>
         </div>
 
-        <div class="auth-card hidden" id="register-form">
-            <div class="auth-title">Create Organization</div>
-            <div class="auth-subtitle">Register your business</div>
+        <div class="auth-card hidden" id="register-card">
+            <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
+            <div class="auth-title">Start Your Business</div>
+            <div class="auth-subtitle">Create Organization & CEO Account</div>
 
-            <div class="input-group">
+            <div class="form-group">
                 <label>Organization Name</label>
-                <input type="text" id="reg-org-name" class="input-field" placeholder="Acme Corp">
+                <input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp">
             </div>
-            <div class="input-group">
-                <label>Work Email (CEO)</label>
-                <input type="email" id="reg-email" class="input-field" placeholder="ceo@acme.com">
-            </div>
-            <div class="input-group">
-                <label>Create Password</label>
-                <input type="password" id="reg-password" class="input-field" placeholder="••••••••">
-            </div>
-
-            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px;" onclick="handleRegister()">Create Account</button>
-            <div class="switch-auth" onclick="toggleAuthMode('login')">Already have an account? <span>Sign In</span></div>
-            
-            <div class="divider">OR REGISTER WITH</div>
-             <div class="social-buttons-container">
-                <button class="social-btn" onclick="handleSocial('google')">
-                    <i class="fa-brands fa-google" style="color:#EA4335"></i> Google
-                </button>
-                <button class="social-btn" onclick="handleSocial('azure')">
-                    <i class="fa-brands fa-microsoft" style="color:#00A4EF"></i> Microsoft
-                </button>
-                <button class="social-btn" onclick="handleSocial('linkedin')">
-                    <i class="fa-brands fa-linkedin" style="color:#0077b5"></i> LinkedIn
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="org-setup-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div style="font-size:3rem; color:var(--info); margin-bottom:15px;"><i class="fa-solid fa-rocket"></i></div>
-            <h2 style="color:white; margin-bottom:10px;">Welcome to Digitivia!</h2>
-            <p style="color:var(--text-muted); margin-bottom:30px;">You are logging in for the first time. Please enter your Business Name to create your workspace.</p>
-            
-            <div class="input-group">
-                <label>Organization / Company Name</label>
-                <input type="text" id="wizard-org-name" class="input-field" placeholder="Ex: Tech Solutions Ltd.">
-            </div>
-
-            <button class="btn-primary" style="width:100%; justify-content:center; padding:15px;" onclick="submitOrgWizard()">
-                Complete Setup <i class="fa-solid fa-arrow-right"></i>
-            </button>
-        </div>
-    </div>
-
-    <div id="onboarding-modal" class="modal-overlay">
-        <div class="modal-content" style="text-align:left;">
-            <h2 style="color:white; margin-bottom:10px;">Complete Your Profile</h2>
-            <p style="color:var(--text-muted); margin-bottom:20px;">Please provide your details.</p>
-            
-            <div class="input-group">
+            <div class="form-group">
                 <label>Full Name</label>
-                <input type="text" id="ob-fullname" class="input-field">
+                <input type="text" id="reg-name" class="form-input" placeholder="John Doe">
             </div>
-            <div class="input-group">
-                <label>Department</label>
-                <select id="ob-dept" class="input-field" style="background:#2c3e50;">
-                    <option value="Executive">Executive</option>
-                    <option value="HR">Human Resources</option>
-                    <option value="IT">IT & Engineering</option>
-                    <option value="Sales">Sales</option>
-                    <option value="Operations">Operations</option>
-                </select>
+            <div class="form-group">
+                <label>Work Email</label>
+                <input type="email" id="reg-email" class="form-input" placeholder="ceo@company.com">
             </div>
-            <div class="input-group">
-                <label>Job Title</label>
-                <input type="text" id="ob-title" class="input-field" placeholder="e.g. Senior Manager">
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="reg-pass" class="form-input" placeholder="••••••••">
             </div>
-            <button class="btn-primary" style="width:100%; justify-content:center;" onclick="submitOnboarding()">Save & Enter Dashboard</button>
+
+            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleRegister()">Create Organization</button>
+
+            <div class="toggle-link" onclick="toggleAuthMode('login')">Already have an account? Login</div>
         </div>
     </div>
 
-    <div id="app-layer" class="hidden">
+    <div id="app-container" class="hidden">
         <nav class="sidebar" id="sidebar">
             <div class="logo-area">
-                <i class="fa-solid fa-cube" style="margin-right:10px; color:var(--primary);"></i>
+                <img src="https://img.icons8.com/fluency/96/diamond.png" alt="DIGITIVIA Logo">
                 <span id="org-name-display">Digitivia Ops</span>
             </div>
-            <div id="nav-container"></div>
-            <div style="padding:20px; border-top:1px solid var(--glass-border);">
-                <div class="nav-item" onclick="handleLogout()" style="color:var(--danger);">
-                    <i class="fa-solid fa-right-from-bracket"></i> <span>Sign Out</span>
+            <div id="nav-container">
                 </div>
-            </div>
         </nav>
 
         <div class="main-content">
@@ -262,355 +429,436 @@
                 </div>
                 
                 <div class="header-right">
-                    <div style="margin-right:15px; text-align:right;">
-                        <div id="user-name-display" style="font-weight:700; color:white;">User</div>
-                        <div id="user-role-display" style="font-size:0.75rem; color:var(--primary); text-transform:uppercase;">Role</div>
+                    <div class="user-controls">
+                        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">
+                            Loading...
+                        </div>
+
+                        <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
+                        
+                        <i class="fa-regular fa-bell icon-btn"><span class="badge">2</span></i>
+                        
+                        <div class="dropdown" onclick="handleLogout()">
+                            <img src="" alt="User" id="user-avatar">
+                            <span id="user-name">Loading...</span>
+                            <i class="fa-solid fa-right-from-bracket" style="font-size:0.8rem; margin-left:5px; color:var(--danger)"></i>
+                        </div>
                     </div>
-                    <img src="" alt="User" id="user-avatar" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--primary);">
+
+                    <div class="branding-logos">
+                        <span style="font-weight:700; color:white; opacity:0.5;">POWERED BY DIGITIVIA</span>
+                    </div>
                 </div>
             </header>
 
             <main class="content-scroll" id="main-view">
                 </main>
+            
+            <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Success!</span></div>
         </div>
     </div>
 
-    <script>
-        // ==========================================
-        // 1. SUPABASE CONFIGURATION
-        // ==========================================
-        const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
+<script>
+    // --- SUPABASE CONFIGURATION ---
+    // !!! REPLACE THESE WITH YOUR KEYS !!!
+    const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
+    
+    // FIX: We use a specific name 'supabaseClient' to avoid conflicts
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // --- STATE MANAGEMENT ---
+    const state = {
+        user: null,
+        profile: null,
+        org: null,
+        lang: 'en',
+        activeView: 'dashboard'
+    };
 
-        // ==========================================
-        // 2. STATE & INIT
-        // ==========================================
-        const state = {
-            user: null,
-            profile: null,
-            org: null,
-            activeView: 'dashboard'
-        };
+    // Translations
+    const i18n = {
+        en: {
+            welcome: "Welcome back,",
+            dashboard: "Dashboard",
+            payroll: "Payroll",
+            employees: "Employees",
+            attendance: "Time & Attendance",
+            ats: "ATS Recruitment",
+            performance: "Performance",
+            reports: "Reports",
+            wfm: "Workforce WFM",
+            viewAll: "View All",
+            create: "Create New"
+        },
+        ar: {
+            welcome: "مرحباً بعودتك،",
+            dashboard: "لوحة التحكم",
+            payroll: "مسير الرواتب",
+            employees: "الموظفين",
+            attendance: "الحضور والانصراف",
+            ats: "نظام التوظيف",
+            performance: "الأداء",
+            reports: "التقارير",
+            wfm: "إدارة القوى العاملة",
+            viewAll: "عرض الكل",
+            create: "إنشاء جديد"
+        }
+    };
 
-        // Initialize Authentication
-        async function initAuth() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                state.user = session.user;
-                await loadProfileData();
-            } else {
-                showAuthLayer();
-            }
+    // --- INIT ---
+    window.addEventListener('DOMContentLoaded', async () => {
+        // Fix for date element potentially missing
+        const dateEl = document.getElementById('current-date');
+        if (dateEl) {
+            dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        // Check Session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            loadAppData(session.user);
+        } else {
+            showAuthScreen();
+        }
+    });
 
-            // Auth Listener
-            supabaseClient.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    state.user = session.user;
-                    await loadProfileData();
-                } else if (event === 'SIGNED_OUT') {
-                    state.user = null;
-                    state.profile = null;
-                    showAuthLayer();
+    // --- AUTH LOGIC ---
+
+    // This function was missing because the script crashed before reaching it
+    function toggleAuthMode(mode) {
+        if(mode === 'register') {
+            document.getElementById('login-card').classList.add('hidden');
+            document.getElementById('register-card').classList.remove('hidden');
+        } else {
+            document.getElementById('register-card').classList.add('hidden');
+            document.getElementById('login-card').classList.remove('hidden');
+        }
+    }
+
+    async function handleLogin() {
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-pass').value;
+
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            loadAppData(data.user);
+        } catch (err) {
+            showToast(err.message, true);
+        }
+    }
+
+    async function handleRegister() {
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-pass').value;
+        const fullName = document.getElementById('reg-name').value;
+        const orgName = document.getElementById('reg-org-name').value;
+
+        if(!email || !password || !fullName || !orgName) {
+            showToast("Please fill all fields", true);
+            return;
+        }
+
+        try {
+            // We pass metadata so the DB Trigger can create the Org and CEO profile
+            const { data, error } = await supabaseClient.auth.signUp({
+                email, 
+                password,
+                options: {
+                    data: {
+                        full_name: fullName,
+                        org_name: orgName,
+                        avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
+                    }
                 }
             });
+            
+            if (error) throw error;
+
+            showToast("Registration successful! Logging in...");
+            
+            // Auto login if session exists (Email confirmation might block this)
+            if(data.session) {
+                loadAppData(data.user);
+            } else {
+                showToast("Please check your email to confirm account", false);
+            }
+        } catch (err) {
+            console.error("Signup Error:", err);
+            showToast(err.message || "Server Error", true);
+        }
+    }
+
+    async function socialLogin(provider) {
+        await supabaseClient.auth.signInWithOAuth({
+            provider: provider,
+            options: {
+                redirectTo: window.location.href 
+            }
+        });
+    }
+
+    async function handleLogout() {
+        await supabaseClient.auth.signOut();
+        window.location.reload();
+    }
+
+    function showAuthScreen() {
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        if(authContainer) authContainer.classList.remove('hidden');
+        if(appContainer) appContainer.classList.add('hidden');
+    }
+
+    // --- DATA LOADING ---
+
+    async function loadAppData(user) {
+        state.user = user;
+        
+        // Fetch Profile & Org logic
+        const { data: profileData, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('*, organizations(*)')
+            .eq('user_id', user.id)
+            .single();
+
+        if (profileError || !profileData) {
+            console.error("Profile Load Error:", profileError);
+            showToast("Profile not found. Please contact support.", true);
+            return;
         }
 
-        // ==========================================
-        // 3. AUTH HANDLERS
-        // ==========================================
+        state.profile = profileData;
+        state.org = profileData.organizations;
 
-        async function handleLogin() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) alert("Login Failed: " + error.message);
+        // Update UI with User Data
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        
+        if(authContainer) authContainer.classList.add('hidden');
+        if(appContainer) {
+            appContainer.classList.remove('hidden');
+            setTimeout(() => appContainer.classList.add('loaded'), 100);
         }
 
-        async function handleSocial(provider) {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: provider,
-                options: { redirectTo: window.location.href }
+        document.getElementById('user-name').innerText = state.profile.full_name;
+        document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
+        const roleEl = document.getElementById('role-display');
+        if(roleEl) roleEl.innerText = state.profile.role.toUpperCase().replace('_', ' ');
+        
+        const orgEl = document.getElementById('org-name-display');
+        if(orgEl) orgEl.innerText = state.org.name;
+
+        renderSidebar();
+        renderMainContent();
+    }
+
+    // --- ONBOARDING NEW HIRE (CEO ONLY) ---
+
+    async function onboardNewHire() {
+        const email = prompt("Enter new employee Email:");
+        if(!email) return;
+        const name = prompt("Enter employee Full Name:");
+        const role = prompt("Enter Role (manager, hr_manager, employee):", "employee");
+        
+        if(!email || !name || !role) return;
+
+        try {
+            const { error } = await supabaseClient.from('profiles').insert({
+                email: email,
+                full_name: name,
+                role: role,
+                org_id: state.org.id,
+                avatar_url: `https://ui-avatars.com/api/?name=${name}&background=random`
             });
-            if (error) alert(error.message);
+
+            if(error) throw error;
+            showToast(`Employee pre-registered! Tell them to Sign Up with ${email}`);
+        } catch(err) {
+            showToast(err.message, true);
         }
+    }
 
-        async function handleRegister() {
-            // Manual Registration
-            const orgName = document.getElementById('reg-org-name').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
+    // --- RENDER SIDEBAR (Role Based) ---
 
-            if(!orgName || !email || !password) return alert("Please fill all fields");
+    function renderSidebar() {
+        const t = i18n[state.lang];
+        const role = state.profile.role;
+        const container = document.getElementById('nav-container');
+        if(!container) return;
+        container.innerHTML = '';
 
-            const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
-            if (authError) return alert(authError.message);
+        let sections = [];
 
-            // Create Org & Profile
-            await createOrganizationAndCEO(authData.user, orgName);
-            alert("Registration Successful! Please login.");
-            toggleAuthMode('login');
-        }
-
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            window.location.reload();
-        }
-
-        // ==========================================
-        // 4. DATA LOADING & WIZARD LOGIC
-        // ==========================================
-
-        async function loadProfileData() {
-            if (!state.user) return;
-
-            // 1. Try to fetch profile
-            let { data: profile, error } = await supabaseClient
-                .from('profiles')
-                .select('*, organizations(name)')
-                .eq('id', state.user.id)
-                .single();
-
-            // 2. SMART REDIRECT: If no profile exists -> Show Setup Wizard
-            if (!profile) {
-                document.getElementById('auth-layer').style.display = 'none';
-                document.getElementById('org-setup-modal').style.display = 'flex';
-                return; 
-            }
-
-            // 3. Profile Exists -> Load State
-            state.profile = profile;
-            state.org = profile.organizations;
-
-            // 4. Check for Missing Details (Employee Onboarding)
-            if (!profile.department || !profile.job_title) {
-                document.getElementById('auth-layer').style.display = 'none';
-                document.getElementById('onboarding-modal').style.display = 'flex';
-                document.getElementById('ob-fullname').value = state.user.user_metadata.full_name || '';
-            } else {
-                showAppLayer();
-            }
-        }
-
-        // CRITICAL FIX: Fetch user explicitly to prevent 'null' error
-        async function submitOrgWizard() {
-            // 1. Fetch fresh user
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            
-            if (!user) {
-                alert("Session lost. Please refresh and try again.");
-                return;
-            }
-
-            const orgName = document.getElementById('wizard-org-name').value;
-            if(!orgName) return alert("Please enter a company name.");
-
-            // 2. Pass fresh user object
-            const success = await createOrganizationAndCEO(user, orgName);
-            
-            if(success) {
-                document.getElementById('org-setup-modal').style.display = 'none';
-                // Update local state and reload
-                state.user = user;
-                loadProfileData(); 
-            }
-        }
-
-        // Shared Logic for creating DB Records
-        async function createOrganizationAndCEO(userObj, orgName) {
-            // 1. Create Organization
-            const { data: orgData, error: orgError } = await supabaseClient
-                .from('organizations')
-                .insert([{ name: orgName, subscription_plan: 'free' }])
-                .select()
-                .single();
-
-            if (orgError) {
-                alert("Error creating Org: " + orgError.message);
-                return false;
-            }
-
-            // 2. Create CEO Profile
-            const { error: profError } = await supabaseClient
-                .from('profiles')
-                .insert([{
-                    id: userObj.id,
-                    organization_id: orgData.id,
-                    full_name: userObj.user_metadata?.full_name || "CEO",
-                    role: 'ceo',
-                    email: userObj.email,
-                    status: 'active'
-                }]);
-
-            if (profError) {
-                alert("Error creating Profile: " + profError.message);
-                return false;
-            }
-            return true;
-        }
-
-        async function submitOnboarding() {
-            const updates = {
-                full_name: document.getElementById('ob-fullname').value,
-                department: document.getElementById('ob-dept').value,
-                job_title: document.getElementById('ob-title').value,
-                updated_at: new Date()
-            };
-
-            const { error } = await supabaseClient
-                .from('profiles')
-                .update(updates)
-                .eq('id', state.user.id);
-
-            if (error) alert(error.message);
-            else {
-                document.getElementById('onboarding-modal').style.display = 'none';
-                state.profile = { ...state.profile, ...updates };
-                showAppLayer();
-            }
-        }
-
-        // ==========================================
-        // 5. UI RENDERING
-        // ==========================================
-
-        function showAuthLayer() {
-            document.getElementById('auth-layer').style.display = 'flex';
-            document.getElementById('app-layer').classList.add('hidden');
-            document.getElementById('app-layer').style.display = 'none';
-        }
-
-        function showAppLayer() {
-            document.getElementById('auth-layer').style.display = 'none';
-            document.getElementById('app-layer').classList.remove('hidden');
-            document.getElementById('app-layer').style.display = 'flex';
-
-            document.getElementById('org-name-display').innerText = state.org.name;
-            document.getElementById('user-name-display').innerText = state.profile.full_name;
-            document.getElementById('user-role-display').innerText = state.profile.role.replace('_', ' ');
-            document.getElementById('user-avatar').src = `https://ui-avatars.com/api/?name=${state.profile.full_name}&background=3498db&color=fff`;
-
-            state.activeView = (state.profile.role === 'employee') ? 'attendance' : 'dashboard';
-            renderSidebar();
-            renderMainContent();
-        }
-
-        function toggleAuthMode(mode) {
-            const login = document.getElementById('login-form');
-            const reg = document.getElementById('register-form');
-            if(mode === 'register') { login.classList.add('hidden'); reg.classList.remove('hidden'); } 
-            else { reg.classList.add('hidden'); login.classList.remove('hidden'); }
-        }
-
-        function renderSidebar() {
-            const nav = document.getElementById('nav-container');
-            nav.innerHTML = '';
-            
-            let menu = [];
-            if (['ceo', 'hr_admin'].includes(state.profile.role)) {
-                menu = [
-                    { title: "Overview", items: [{ icon: 'fa-chart-pie', label: "Dashboard", key: 'dashboard' }] },
-                    { title: "People", items: [{ icon: 'fa-users', label: "Employees", key: 'employees' }, { icon: 'fa-briefcase', label: "Recruitment", key: 'ats' }] },
-                    { title: "Operations", items: [{ icon: 'fa-money-bill-wave', label: "Payroll", key: 'payroll' }, { icon: 'fa-clock', label: "Attendance", key: 'attendance' }] }
-                ];
-            } else {
-                menu = [{ title: "Self Service", items: [{ icon: 'fa-clock', label: "My Attendance", key: 'attendance' }] }];
-            }
-
-            menu.forEach(sec => {
-                const h = document.createElement('div'); h.className = 'nav-header'; h.innerText = sec.title; nav.appendChild(h);
-                sec.items.forEach(item => {
-                    const d = document.createElement('div');
-                    d.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
-                    d.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
-                    d.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); };
-                    nav.appendChild(d);
-                });
+        if (role === 'ceo' || role === 'admin') {
+            sections.push({
+                title: "Executive Overview",
+                items: [
+                    { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
+                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
+                    { icon: 'fa-timeline', label: t.wfm, key: 'wfm' },
+                    { icon: 'fa-file-alt', label: t.reports, key: 'reports' }
+                ]
             });
         }
 
-        function renderMainContent() {
-            const container = document.getElementById('main-view');
-            if(state.activeView === 'dashboard') container.innerHTML = generateDashboardHTML();
-            else if(state.activeView === 'employees') container.innerHTML = generateEmployeesHTML();
-            else if(state.activeView === 'attendance') container.innerHTML = generateAttendanceHTML();
-            else container.innerHTML = `<div class="card"><div class="card-title">Coming Soon</div></div>`;
+        if (role === 'ceo' || role === 'hr_manager') {
+            sections.push({
+                title: "HR Management",
+                items: [
+                    { icon: 'fa-users', label: t.employees, key: 'employees' },
+                    { icon: 'fa-briefcase', label: t.ats, key: 'ats' },
+                    { icon: 'fa-star', label: t.performance, key: 'performance' }
+                ]
+            });
         }
 
-        // HTML Generators
-        function generateDashboardHTML() {
-            return `
-                <div class="page-title">Welcome back, ${state.profile.full_name.split(' ')[0]}</div>
-                <div class="dashboard-grid">
-                     <div class="card" style="border-left:4px solid var(--primary)">
-                        <div class="card-title">Total Headcount</div><h1 style="margin-top:10px;">142</h1>
-                    </div>
-                    <div class="card" style="border-left:4px solid var(--success)">
-                        <div class="card-title">Attendance</div><h1 style="margin-top:10px; color:var(--success);">96%</h1>
-                    </div>
-                    <div class="card" style="border-left:4px solid var(--warning)">
-                        <div class="card-title">Pending</div><h1 style="margin-top:10px; color:var(--warning);">8</h1>
-                    </div>
+        sections.push({
+            title: "My Workspace",
+            items: [
+                { icon: 'fa-clock', label: t.attendance, key: 'attendance' },
+            ]
+        });
+
+        sections.forEach(sec => {
+            const header = document.createElement('div');
+            header.className = 'nav-header';
+            header.innerText = sec.title;
+            container.appendChild(header);
+
+            const ul = document.createElement('ul');
+            ul.className = 'nav-links';
+            sec.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
+                li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
+                li.onclick = () => {
+                    state.activeView = item.key;
+                    renderSidebar();
+                    renderMainContent();
+                    if(window.innerWidth <= 768) toggleSidebar();
+                };
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
+        });
+    }
+
+    // --- MAIN VIEW LOGIC ---
+
+    function renderMainContent() {
+        const view = state.activeView;
+        const main = document.getElementById('main-view');
+        if(!main) return;
+        
+        if(view === 'dashboard') main.innerHTML = getDashboardHTML();
+        else if(view === 'employees') {
+            if(['ceo','hr_manager'].includes(state.profile.role)) {
+                loadEmployeesView(main);
+            } else {
+                main.innerHTML = `<div class="card">Access Denied</div>`;
+            }
+        }
+        else if(view === 'payroll') main.innerHTML = `<h1>${i18n[state.lang].payroll}</h1><div class="card">Restricted Financial Data</div>`;
+        else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
+    }
+
+    function getDashboardHTML() {
+        return `
+            <div class="page-title">
+                <span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span>
+            </div>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-title">My Org: ${state.org.name}</div>
+                    <p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p>
                 </div>
+                    <div class="card">
+                    <div class="card-title">Role Permissions</div>
+                    <div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- DATA FETCHING FOR VIEWS ---
+    
+    async function loadEmployeesView(container) {
+        container.innerHTML = `
+            <div class="page-title">
+                ${i18n[state.lang].employees}
+                <button class="btn-primary" onclick="onboardNewHire()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
+            </div>
+            <div class="card">Loading employees...</div>
+        `;
+
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('org_id', state.org.id);
+
+        if(error) {
+            container.innerHTML += `<div class="card" style="color:red">${error.message}</div>`;
+            return;
+        }
+
+        let html = `
+            <div class="page-title">
+                ${i18n[state.lang].employees}
+                <button class="btn-primary" onclick="onboardNewHire()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
+            </div>
+            <div class="card">
+            <table>
+                <thead><tr><th>Avatar</th><th>Name</th><th>Role</th><th>Email</th></tr></thead>
+                <tbody>
+        `;
+        
+        data.forEach(emp => {
+            html += `
+                <tr>
+                    <td><img src="${emp.avatar_url || 'default.png'}" style="width:30px; height:30px; border-radius:50%"></td>
+                    <td>${emp.full_name}</td>
+                    <td><span class="badge" style="position:static; background:var(--primary)">${emp.role}</span></td>
+                    <td>${emp.email}</td>
+                </tr>
             `;
+        });
+
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+    }
+
+    // --- UTILS ---
+    function toggleSidebar() { 
+        const sb = document.getElementById('sidebar');
+        if(sb) sb.classList.toggle('active'); 
+    }
+    
+    function showToast(msg, isError = false) {
+        const t = document.getElementById('toast');
+        if(!t) return;
+        const msgEl = document.getElementById('toast-msg');
+        if(msgEl) msgEl.innerText = msg;
+        t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)';
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+    
+    function toggleLang() {
+        state.lang = state.lang === 'en' ? 'ar' : 'en';
+        const html = document.documentElement;
+        if(state.lang === 'ar') {
+            html.setAttribute('dir', 'rtl');
+            document.getElementById('lang-btn').innerText = "English";
+        } else {
+            html.setAttribute('dir', 'ltr');
+            document.getElementById('lang-btn').innerText = "عربي";
         }
+        renderSidebar();
+        renderMainContent();
+    }
 
-        function generateEmployeesHTML() {
-            return `
-                <div class="page-title">Employees 
-                    ${['ceo','hr_admin'].includes(state.profile.role) ? `<button class="btn-primary" onclick="showOnboardForm()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>` : ''}
-                </div>
-                <div id="new-hire-form" class="card hidden" style="margin-bottom:20px; border:1px solid var(--primary);">
-                    <div class="card-title" style="margin-bottom:15px;">Create Login Credentials</div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
-                        <input type="email" id="hire-email" class="input-field" placeholder="Employee Email">
-                        <input type="password" id="hire-pass" class="input-field" placeholder="Temporary Password">
-                        <input type="text" id="hire-name" class="input-field" placeholder="Full Name">
-                        <select id="hire-role" class="input-field" style="background:#2c3e50;">
-                            <option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_admin">HR Admin</option>
-                        </select>
-                    </div>
-                    <div style="margin-top:15px; display:flex; gap:10px;">
-                        <button class="btn-primary" onclick="createNewHire()">Create User</button>
-                        <button class="btn-outline" onclick="document.getElementById('new-hire-form').classList.add('hidden')">Cancel</button>
-                    </div>
-                </div>
-                <div class="card"><div class="card-header"><div class="card-title">Directory</div></div>
-                <table style="width:100%"><tbody id="employee-table-body"><tr><td>Loading...</td></tr></tbody></table></div>
-            `;
-        }
-
-        function generateAttendanceHTML() {
-            return `<div class="card"><div class="card-title">Attendance</div><div style="text-align:center; padding:50px;"><h1 style="font-size:3rem;">09:00 AM</h1><button class="btn-primary">Clock In</button></div></div>`;
-        }
-
-        // Logic for Manual Employee Creation
-        function showOnboardForm() { document.getElementById('new-hire-form').classList.remove('hidden'); }
-        async function createNewHire() {
-            const email = document.getElementById('hire-email').value;
-            const name = document.getElementById('hire-name').value;
-            const role = document.getElementById('hire-role').value;
-            const fakeId = crypto.randomUUID(); 
-            const { error } = await supabaseClient.from('profiles').insert([{ id: fakeId, organization_id: state.org.id, full_name: name, email: email, role: role, status: 'active' }]);
-            if(error) alert("Error: " + error.message);
-            else { alert(`Profile Created for ${email}. Passwords must be set via Invite Email in Production.`); document.getElementById('new-hire-form').classList.add('hidden'); loadEmployeesTable(); }
-        }
-
-        async function loadEmployeesTable() {
-            const body = document.getElementById('employee-table-body');
-            if(!body) return;
-            const { data } = await supabaseClient.from('profiles').select('*').eq('organization_id', state.org.id);
-            if(data) body.innerHTML = data.map(e => `<tr><td style="padding:15px;">${e.full_name} <br><span style="font-size:0.8em; color:#999">${e.email}</span></td><td style="padding:15px;">${e.role}</td><td style="color:#2ecc71">Active</td></tr>`).join('');
-        }
-
-        // Watch for DOM changes to load table
-        new MutationObserver(() => { if(document.getElementById('employee-table-body')) loadEmployeesTable(); }).observe(document.getElementById('main-view'), { childList: true });
-
-        // Run
-        initAuth();
-        setInterval(() => { document.getElementById('current-date').innerText = new Date().toDateString(); }, 1000);
-
-    </script>
+</script>
 </body>
 </html>
