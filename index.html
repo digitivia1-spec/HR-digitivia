@@ -186,7 +186,6 @@
             <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Success!</span></div>
         </div>
     </div>
-
 <script>
     // --- CONFIG ---
     const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
@@ -234,7 +233,7 @@
         }
     };
 
-    // --- INIT & AUTH [KEPT EXACTLY THE SAME] ---
+    // --- INIT & AUTH ---
     window.addEventListener('DOMContentLoaded', async () => {
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -308,7 +307,6 @@
              if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`;
         }
         else if(view === 'wfm') {
-             // WFM VIEW (Role-Based)
              if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); 
              else renderEmployeeWFM(main);
         }
@@ -329,10 +327,8 @@
     // ==========================================
 
     async function renderWFMUI(container) {
-        // 1. Fetch KPI Data (Simulated or Real)
-        const adherence = 94; // %
-        const productivity = 85; // Score
-        const forecast = 98; // %
+        // 1. Fetch Real KPI Data
+        const { adherence, productivity, forecast } = await calculateWFMStats();
 
         container.innerHTML = `
             <div class="page-title">
@@ -361,7 +357,9 @@
             <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
                 <div class="card">
                     <div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Live)</div>
-                    <canvas id="wfmChart" height="200"></canvas>
+                    <div style="position: relative; height: 200px; width: 100%;">
+                        <canvas id="wfmChart"></canvas>
+                    </div>
                 </div>
                 <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
                     <div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">
@@ -380,32 +378,78 @@
         loadWFMRoster();
     }
 
-    async function renderEmployeeWFM(container) {
-        container.innerHTML = `
-            <div class="page-title">My Schedule</div>
-            <div class="card" style="text-align:center; padding:50px;">
-                <h2>09:00 AM - 05:00 PM</h2>
-                <p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p>
-                <button class="btn-primary" onclick="showToast('Clocked In Successfully')">Clock In</button>
-            </div>
-        `;
+    async function calculateWFMStats() {
+        // Calculate Adherence: (Active / Total Scheduled) * 100
+        const { count: totalScheduled } = await supabaseClient
+            .from('wfm_shifts')
+            .select('*', { count: 'exact' })
+            .eq('org_id', state.org.id)
+            .eq('shift_date', new Date().toISOString().split('T')[0]); // Today's shifts
+
+        if(!totalScheduled) return { adherence: 0, productivity: 0, forecast: 0 };
+
+        // Count who is actually 'On Queue'
+        const { count: activeAgents } = await supabaseClient
+            .from('wfm_activity')
+            .select('*', { count: 'exact' })
+            .eq('org_id', state.org.id)
+            .eq('current_status', 'On Queue');
+
+        const adherence = totalScheduled > 0 ? Math.round((activeAgents / totalScheduled) * 100) : 0;
+        
+        return {
+            adherence: adherence, 
+            productivity: 82, // Placeholder logic for now
+            forecast: 95 // Placeholder
+        };
     }
 
-    function initWFMChart() {
+    async function initWFMChart() {
         const ctx = document.getElementById('wfmChart');
         if(!ctx) return;
+
+        // Fetch Scheduled Data Grouped by Hour
+        // (Simplified logic: we fetch all shifts and count in JS for speed)
+        const { data: shifts } = await supabaseClient
+            .from('wfm_shifts')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('shift_date', new Date().toISOString().split('T')[0]);
+
+        // Initialize Hourly Buckets (8am to 5pm)
+        const hours = ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17'];
+        const scheduledCounts = new Array(hours.length).fill(0);
+
+        if(shifts) {
+            shifts.forEach(shift => {
+                // Parse "09:00:00" -> 9
+                const startH = parseInt(shift.start_time.split(':')[0]);
+                const endH = parseInt(shift.end_time.split(':')[0]);
+                
+                hours.forEach((h, index) => {
+                    const currentH = parseInt(h);
+                    if (currentH >= startH && currentH < endH) {
+                        scheduledCounts[index]++;
+                    }
+                });
+            });
+        }
+
+        // Mock "Actual" Data (Random variance from Scheduled)
+        const actualCounts = scheduledCounts.map(val => Math.max(0, val - Math.floor(Math.random() * 2)));
 
         new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm'],
+                labels: hours.map(h => `${h}:00`),
                 datasets: [
-                    { label: 'Scheduled', data: [5, 8, 10, 10, 8, 10, 10, 8, 5], borderColor: '#3498db', tension: 0.4 },
-                    { label: 'Actual', data: [4, 7, 9, 10, 7, 9, 10, 8, 4], borderColor: '#2ecc71', tension: 0.4 }
+                    { label: 'Scheduled', data: scheduledCounts, borderColor: '#3498db', tension: 0.4 },
+                    { label: 'Actual', data: actualCounts, borderColor: '#2ecc71', tension: 0.4 }
                 ]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { labels: { color: 'white' } } },
                 scales: {
                     y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
@@ -419,18 +463,25 @@
         const list = document.getElementById('wfm-roster-list');
         if(!list) return;
 
-        // Fetch from 'wfm_activity' joined with profiles
-        // For simplicity in this demo, we'll fetch profiles and simulate activity if DB is empty
-        const { data: employees } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
+        // Fetch Profiles + Left Join Activity
+        const { data: employees } = await supabaseClient
+            .from('profiles')
+            .select(`
+                *,
+                wfm_activity ( current_status )
+            `)
+            .eq('org_id', state.org.id);
         
         let html = '';
-        const statuses = ['On Queue', 'Break', 'Meeting', 'Offline'];
         const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' };
 
         employees.forEach(emp => {
-            // Random simulation if no real activity exists yet
-            const status = statuses[Math.floor(Math.random() * statuses.length)];
-            const color = colors[status];
+            // Get status from DB or default to Offline
+            const status = (emp.wfm_activity && emp.wfm_activity.length > 0) 
+                ? emp.wfm_activity[0].current_status 
+                : 'Offline';
+                
+            const color = colors[status] || 'var(--text-muted)';
             
             html += `
                 <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);">
@@ -449,23 +500,74 @@
     }
 
     async function seedWFMData() {
-        // "Generate Data" logic - Creates dummy entries in DB
-        const { data: employees } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
-        
-        // This is where you would iterate and INSERT into wfm_shifts
-        // For visual feedback:
+        // "Generate Data" logic
         const btn = document.querySelector('.page-title .btn-outline');
-        const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
-        
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            loadWFMRoster(); // Refresh list
-            showToast("Daily Schedule & Activities Generated");
-        }, 1500);
+
+        try {
+            const { data: employees } = await supabaseClient.from('profiles').select('user_id').eq('org_id', state.org.id);
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. Create Shifts (Option B: Realistic/Random)
+            const shifts = employees.map(emp => {
+                // Random start between 8 and 10 AM
+                const startH = 8 + Math.floor(Math.random() * 3);
+                return {
+                    user_id: emp.user_id,
+                    org_id: state.org.id,
+                    shift_date: today,
+                    start_time: `${startH}:00:00`,
+                    end_time: `${startH + 8}:00:00`, // 8 hour shift
+                    status: 'scheduled'
+                };
+            });
+
+            await supabaseClient.from('wfm_shifts').insert(shifts);
+
+            // 2. Create Current Activity (Random Status)
+            const statuses = ['On Queue', 'Break', 'Meeting', 'On Queue', 'On Queue']; // Weighted towards 'On Queue'
+            
+            // Upsert activity (Update if exists, Insert if new)
+            for (const emp of employees) {
+                const status = statuses[Math.floor(Math.random() * statuses.length)];
+                
+                // Check if exists first
+                const { data: existing } = await supabaseClient.from('wfm_activity').select('id').eq('user_id', emp.user_id).single();
+                
+                if(existing) {
+                    await supabaseClient.from('wfm_activity').update({ current_status: status }).eq('id', existing.id);
+                } else {
+                    await supabaseClient.from('wfm_activity').insert({ 
+                        user_id: emp.user_id, 
+                        org_id: state.org.id, 
+                        current_status: status 
+                    });
+                }
+            }
+
+            showToast("Data Generated Successfully");
+            renderWFMUI(document.getElementById('main-view')); // Refresh UI
+
+        } catch(e) {
+            console.error(e);
+            showToast("Generation Failed", true);
+        } finally {
+            btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Daily Data';
+        }
     }
 
-    // --- PAYROLL FUNCTIONS (Kept from previous steps) ---
+    async function renderEmployeeWFM(container) {
+        container.innerHTML = `
+            <div class="page-title">My Schedule</div>
+            <div class="card" style="text-align:center; padding:50px;">
+                <h2>09:00 AM - 05:00 PM</h2>
+                <p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p>
+                <button class="btn-primary" onclick="showToast('Clocked In Successfully')">Clock In</button>
+            </div>
+        `;
+    }
+
+    // --- [KEEP EXISTING PAYROLL & HELPER FUNCTIONS EXACTLY AS BEFORE] ---
     async function renderPayrollUI(container) {
         container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`;
         const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false });
@@ -506,8 +608,6 @@
         html += `</tbody></table></div></div>`; container.innerHTML = html;
     }
     async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
-
-    // --- OTHER HELPERS ---
     async function loadEmployeesView(container) { container.innerHTML = `<div class="card">Loading...</div>`; const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody>`; data.forEach(emp => { html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`; }); html += `</tbody></table></div>`; container.innerHTML = html; }
     async function onboardNewHire() { const email = prompt("Email:"); if(!email) return; const name = prompt("Name:"); const role = prompt("Role:", "employee"); await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id }); showToast("Done"); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
