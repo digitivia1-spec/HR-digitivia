@@ -367,7 +367,7 @@
         document.getElementById('onboard-modal').classList.add('hidden');
     }
 
-  async function executeOnboard() {
+async function executeOnboard() {
         const fullName = document.getElementById('new-name').value;
         const email = document.getElementById('new-email').value;
         const password = document.getElementById('new-pass').value;
@@ -380,7 +380,12 @@
             return;
         }
 
-        // Prepare flexible metadata
+        // Safety Check for Org ID
+        if (!state.org || !state.org.id) {
+            showToast("System Error: Organization ID missing. Refresh page.", true);
+            return;
+        }
+
         const metaData = {};
         if(phone) metaData.phone = phone;
         if(dept) metaData.department = dept;
@@ -390,8 +395,14 @@
         btn.innerText = "Creating...";
 
         try {
-            // 1. Create a SECONDARY client
-            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            // --- THE FIX: Configure client to NOT persist session ---
+            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                auth: {
+                    persistSession: false, // <--- CRITICAL FIX
+                    autoRefreshToken: false,
+                    detectSessionInUrl: false
+                }
+            });
             
             const { data, error } = await tempClient.auth.signUp({
                 email: email,
@@ -400,7 +411,7 @@
                     data: {
                         full_name: fullName,
                         org_name: state.org.name, 
-                        org_id: state.org.id, // <--- CRITICAL FIX: Send ID directly
+                        org_id: state.org.id, // Direct ID
                         role: role, 
                         meta_data: metaData, 
                         avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
@@ -410,18 +421,28 @@
 
             if (error) throw error;
 
+            // If we get here, check if Profile actually exists (Double Check)
+            if (data.user) {
+                const { data: checkProfile } = await supabaseClient
+                    .from('profiles')
+                    .select('id')
+                    .eq('user_id', data.user.id)
+                    .maybeSingle();
+                
+                if (!checkProfile) throw new Error("User created in Auth but Profile failed. Check Database Logs.");
+            }
+
             showToast(`User created! Login: ${email} / ${password}`);
             closeOnboardModal();
             loadEmployeesView(document.getElementById('main-view'));
 
         } catch (err) {
-            console.error("Onboarding Error:", err); // Check console for details
+            console.error("Onboarding Error:", err);
             showToast(err.message, true);
         } finally {
             btn.innerText = oldText;
         }
     }
-
     // --- [KEEP ALL EXISTING REPORTS, WFM, PAYROLL FUNCTIONS BELOW] ---
     
     // --- REPORTS ---
