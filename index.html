@@ -327,6 +327,19 @@
         tr:last-child td { border-bottom: none; }
         tr:hover { background: rgba(255,255,255,0.02); }
 
+        /* Editable Table Inputs */
+        .table-input {
+            background: transparent;
+            border: 1px solid transparent;
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+            width: 100%;
+            transition: 0.2s;
+        }
+        .table-input:hover { border-color: var(--glass-border); background: rgba(0,0,0,0.2); }
+        .table-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); outline: none; }
+
         /* Toast */
         .toast {
             position: fixed; bottom: 30px; right: 30px;
@@ -459,15 +472,14 @@
     </div>
 
 <script>
-    // --- SUPABASE CONFIGURATION ---
-    // !!! REPLACE THESE WITH YOUR KEYS !!!
+    // --- CONFIG ---
     const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
+    const N8N_WEBHOOK_URL = 'PLACEHOLDER_FOR_YOUR_N8N_WEBHOOK'; // <--- PASTE YOUR N8N URL HERE
     
-    // FIX: We use a specific name 'supabaseClient' to avoid conflicts
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- STATE MANAGEMENT ---
+    // --- STATE ---
     const state = {
         user: null,
         profile: null,
@@ -481,7 +493,7 @@
         en: {
             welcome: "Welcome back,",
             dashboard: "Dashboard",
-            payroll: "Payroll",
+            payroll: "Payroll Automation",
             employees: "Employees",
             attendance: "Time & Attendance",
             ats: "ATS Recruitment",
@@ -494,7 +506,7 @@
         ar: {
             welcome: "مرحباً بعودتك،",
             dashboard: "لوحة التحكم",
-            payroll: "مسير الرواتب",
+            payroll: "أتمتة الرواتب",
             employees: "الموظفين",
             attendance: "الحضور والانصراف",
             ats: "نظام التوظيف",
@@ -508,13 +520,11 @@
 
     // --- INIT ---
     window.addEventListener('DOMContentLoaded', async () => {
-        // Fix for date element potentially missing
         const dateEl = document.getElementById('current-date');
         if (dateEl) {
             dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         
-        // Check Session
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             loadAppData(session.user);
@@ -523,9 +533,7 @@
         }
     });
 
-    // --- AUTH LOGIC ---
-
-    // This function was missing because the script crashed before reaching it
+    // --- AUTH ---
     function toggleAuthMode(mode) {
         if(mode === 'register') {
             document.getElementById('login-card').classList.add('hidden');
@@ -561,7 +569,6 @@
         }
 
         try {
-            // We pass metadata so the DB Trigger can create the Org and CEO profile
             const { data, error } = await supabaseClient.auth.signUp({
                 email, 
                 password,
@@ -575,10 +582,7 @@
             });
             
             if (error) throw error;
-
             showToast("Registration successful! Logging in...");
-            
-            // Auto login if session exists (Email confirmation might block this)
             if(data.session) {
                 loadAppData(data.user);
             } else {
@@ -612,11 +616,9 @@
     }
 
     // --- DATA LOADING ---
-
     async function loadAppData(user) {
         state.user = user;
         
-        // Fetch Profile & Org logic
         const { data: profileData, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*, organizations(*)')
@@ -632,7 +634,6 @@
         state.profile = profileData;
         state.org = profileData.organizations;
 
-        // Update UI with User Data
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         
@@ -654,34 +655,7 @@
         renderMainContent();
     }
 
-    // --- ONBOARDING NEW HIRE (CEO ONLY) ---
-
-    async function onboardNewHire() {
-        const email = prompt("Enter new employee Email:");
-        if(!email) return;
-        const name = prompt("Enter employee Full Name:");
-        const role = prompt("Enter Role (manager, hr_manager, employee):", "employee");
-        
-        if(!email || !name || !role) return;
-
-        try {
-            const { error } = await supabaseClient.from('profiles').insert({
-                email: email,
-                full_name: name,
-                role: role,
-                org_id: state.org.id,
-                avatar_url: `https://ui-avatars.com/api/?name=${name}&background=random`
-            });
-
-            if(error) throw error;
-            showToast(`Employee pre-registered! Tell them to Sign Up with ${email}`);
-        } catch(err) {
-            showToast(err.message, true);
-        }
-    }
-
-    // --- RENDER SIDEBAR (Role Based) ---
-
+    // --- SIDEBAR ---
     function renderSidebar() {
         const t = i18n[state.lang];
         const role = state.profile.role;
@@ -696,7 +670,7 @@
                 title: "Executive Overview",
                 items: [
                     { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
-                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
+                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, // UPDATED KEY
                     { icon: 'fa-timeline', label: t.wfm, key: 'wfm' },
                     { icon: 'fa-file-alt', label: t.reports, key: 'reports' }
                 ]
@@ -745,22 +719,24 @@
         });
     }
 
-    // --- MAIN VIEW LOGIC ---
-
+    // --- MAIN ROUTER ---
     function renderMainContent() {
         const view = state.activeView;
         const main = document.getElementById('main-view');
         if(!main) return;
         
+        main.innerHTML = ''; // Clear
+
         if(view === 'dashboard') main.innerHTML = getDashboardHTML();
         else if(view === 'employees') {
-            if(['ceo','hr_manager'].includes(state.profile.role)) {
-                loadEmployeesView(main);
-            } else {
-                main.innerHTML = `<div class="card">Access Denied</div>`;
-            }
+            if(['ceo','hr_manager'].includes(state.profile.role)) loadEmployeesView(main);
+            else main.innerHTML = `<div class="card">Access Denied</div>`;
         }
-        else if(view === 'payroll') main.innerHTML = `<h1>${i18n[state.lang].payroll}</h1><div class="card">Restricted Financial Data</div>`;
+        else if(view === 'payroll') {
+             // PAYROLL LOGIC
+             if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main);
+             else main.innerHTML = `<div class="card">Access Denied</div>`;
+        }
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
@@ -782,45 +758,147 @@
         `;
     }
 
-    // --- DATA FETCHING FOR VIEWS ---
-    
-    async function loadEmployeesView(container) {
+    // --- PAYROLL FEATURE (UPLOAD + AI + EDIT) ---
+    function renderPayrollUI(container) {
         container.innerHTML = `
             <div class="page-title">
-                ${i18n[state.lang].employees}
-                <button class="btn-primary" onclick="onboardNewHire()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
+                Payroll Intelligence
+                <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File
+                </button>
+                <input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)">
             </div>
-            <div class="card">Loading employees...</div>
+            
+            <div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i>
+                <h3 style="margin-top:20px;">AI is analyzing your file...</h3>
+                <p style="color:var(--text-muted)">Extracting keys, calculating totals, and normalizing data via N8N.</p>
+            </div>
+
+            <div id="payroll-content">
+                <div class="card" style="text-align:center; padding:50px; color:var(--text-muted);">
+                    <i class="fa-solid fa-file-invoice-dollar" style="font-size:4rem; margin-bottom:20px; opacity:0.3"></i>
+                    <p>No payroll batch active. Upload an Excel/CSV file to start.</p>
+                </div>
+            </div>
         `;
+        // Load latest batch if exists (Optional enhancement)
+    }
 
-        const { data, error } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('org_id', state.org.id);
+    async function handlePayrollUpload(input) {
+        const file = input.files[0];
+        if(!file) return;
 
-        if(error) {
-            container.innerHTML += `<div class="card" style="color:red">${error.message}</div>`;
-            return;
+        // UI Loading State
+        document.getElementById('payroll-content').classList.add('hidden');
+        document.getElementById('payroll-loading').classList.remove('hidden');
+
+        try {
+            // 1. Upload to Supabase Storage
+            const fileName = `${Date.now()}_${file.name}`;
+            const { data: uploadData, error: uploadError } = await supabaseClient
+                .storage
+                .from('payroll_files')
+                .upload(fileName, file);
+
+            if(uploadError) throw uploadError;
+
+            // 2. Get Public URL
+            const { data: { publicUrl } } = supabaseClient
+                .storage
+                .from('payroll_files')
+                .getPublicUrl(fileName);
+
+            // 3. Track Batch in DB
+            const { data: batchData, error: batchError } = await supabaseClient
+                .from('payroll_batches')
+                .insert({
+                    org_id: state.org.id,
+                    uploaded_by: state.user.id,
+                    file_url: publicUrl,
+                    status: 'processing'
+                })
+                .select()
+                .single();
+
+            if(batchError) throw batchError;
+
+            // 4. Call N8N Webhook (Live/Active Mode)
+            const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    file_url: publicUrl,
+                    org_id: state.org.id,
+                    batch_id: batchData.id
+                })
+            });
+
+            if(!n8nResponse.ok) throw new Error("AI Analysis Failed (N8N Error)");
+            
+            const aiData = await n8nResponse.json(); 
+            // Expecting Array: [{employee_name, salary, bonus...}, ...]
+
+            // 5. Save Items to DB
+            const itemsToInsert = aiData.map(item => ({
+                batch_id: batchData.id,
+                employee_name: item.employee_name || 'Unknown',
+                salary: item.salary || 0,
+                bonus: item.bonus || 0,
+                deductions: item.deductions || 0,
+                net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0)
+            }));
+
+            const { data: savedItems, error: itemsError } = await supabaseClient
+                .from('payroll_items')
+                .insert(itemsToInsert)
+                .select();
+            
+            if(itemsError) throw itemsError;
+
+            // 6. Render the Table
+            renderPayrollTable(savedItems);
+
+        } catch(err) {
+            console.error(err);
+            showToast(err.message, true);
+            document.getElementById('payroll-loading').classList.add('hidden');
+            document.getElementById('payroll-content').classList.remove('hidden');
         }
+    }
+
+    function renderPayrollTable(items) {
+        document.getElementById('payroll-loading').classList.add('hidden');
+        const container = document.getElementById('payroll-content');
+        container.classList.remove('hidden');
 
         let html = `
-            <div class="page-title">
-                ${i18n[state.lang].employees}
-                <button class="btn-primary" onclick="onboardNewHire()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
-            </div>
             <div class="card">
-            <table>
-                <thead><tr><th>Avatar</th><th>Name</th><th>Role</th><th>Email</th></tr></thead>
-                <tbody>
+                <div class="card-header">
+                    <div class="card-title">Processed Batch Results</div>
+                    <span class="badge" style="position:static; background:var(--success)">AI Verified</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Salary</th>
+                            <th>Bonus</th>
+                            <th>Deductions</th>
+                            <th>Net Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
         `;
-        
-        data.forEach(emp => {
+
+        items.forEach(item => {
             html += `
                 <tr>
-                    <td><img src="${emp.avatar_url || 'default.png'}" style="width:30px; height:30px; border-radius:50%"></td>
-                    <td>${emp.full_name}</td>
-                    <td><span class="badge" style="position:static; background:var(--primary)">${emp.role}</span></td>
-                    <td>${emp.email}</td>
+                    <td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td>
+                    <td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td>
+                    <td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td>
+                    <td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td>
+                    <td style="color:var(--success); font-weight:bold">${item.net_pay}</td>
                 </tr>
             `;
         });
@@ -829,34 +907,71 @@
         container.innerHTML = html;
     }
 
-    // --- UTILS ---
-    function toggleSidebar() { 
-        const sb = document.getElementById('sidebar');
-        if(sb) sb.classList.toggle('active'); 
+    async function updatePayrollItem(id, field, newValue, oldValue) {
+        if(newValue === oldValue) return; // No change
+
+        try {
+            // 1. Update Record
+            const { error: updateError } = await supabaseClient
+                .from('payroll_items')
+                .update({ [field]: newValue })
+                .eq('id', id);
+
+            if(updateError) throw updateError;
+
+            // 2. Log History
+            const { error: historyError } = await supabaseClient
+                .from('payroll_history')
+                .insert({
+                    item_id: id,
+                    changed_by: state.user.id,
+                    field_changed: field,
+                    old_value: oldValue,
+                    new_value: newValue
+                });
+
+            if(historyError) console.error("History Log Error", historyError);
+            
+            showToast("Updated & Saved to History");
+
+        } catch(err) {
+            showToast("Update Failed: " + err.message, true);
+        }
     }
-    
+
+    // --- OTHER HELPERS ---
+    async function loadEmployeesView(container) {
+        container.innerHTML = `<div class="card">Loading...</div>`;
+        const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
+        let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody>`;
+        data.forEach(emp => {
+            html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`;
+        });
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+    }
+
+    async function onboardNewHire() {
+        const email = prompt("Email:"); if(!email) return;
+        const name = prompt("Name:");
+        const role = prompt("Role:", "employee");
+        await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id });
+        showToast("Done");
+    }
+
+    function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) {
         const t = document.getElementById('toast');
         if(!t) return;
-        const msgEl = document.getElementById('toast-msg');
-        if(msgEl) msgEl.innerText = msg;
+        document.getElementById('toast-msg').innerText = msg;
         t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)';
         t.classList.add('show');
         setTimeout(() => t.classList.remove('show'), 3000);
     }
-    
     function toggleLang() {
         state.lang = state.lang === 'en' ? 'ar' : 'en';
-        const html = document.documentElement;
-        if(state.lang === 'ar') {
-            html.setAttribute('dir', 'rtl');
-            document.getElementById('lang-btn').innerText = "English";
-        } else {
-            html.setAttribute('dir', 'ltr');
-            document.getElementById('lang-btn').innerText = "عربي";
-        }
-        renderSidebar();
-        renderMainContent();
+        document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr');
+        renderSidebar(); renderMainContent();
     }
 
 </script>
