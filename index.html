@@ -381,7 +381,7 @@ async function executeOnboard() {
         }
 
         if (!state.org || !state.org.id) {
-            showToast("System Error: Organization ID missing. Please refresh.", true);
+            showToast("Error: Org ID missing. Refresh page.", true);
             return;
         }
 
@@ -394,59 +394,43 @@ async function executeOnboard() {
         btn.innerText = "Creating...";
 
         try {
-            // --- ISOLATION FIX START ---
-            // We create a dummy storage object so this client writes to NOWHERE.
-            // This prevents it from overwriting the CEO's session in LocalStorage.
-            const dummyStorage = {
-                getItem: () => null,
-                setItem: () => {},
-                removeItem: () => {}
-            };
-
+            // 1. Create User in Auth System (Using Temp Client)
+            const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
             const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                auth: {
-                    persistSession: false, 
-                    storage: dummyStorage, // <--- This is the key fix
-                    autoRefreshToken: false,
-                    detectSessionInUrl: false
-                }
+                auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false }
             });
-            // --- ISOLATION FIX END ---
             
-            const { data, error } = await tempClient.auth.signUp({
+            const { data: authData, error: authError } = await tempClient.auth.signUp({
                 email: email,
                 password: password,
                 options: {
-                    data: {
-                        full_name: fullName,
-                        org_name: state.org.name, 
-                        org_id: state.org.id, 
-                        role: role, 
-                        meta_data: metaData, 
-                        avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
-                    }
+                    // We don't need metadata here anymore, the RPC handles it
+                    data: { full_name: fullName } 
                 }
             });
 
-            if (error) throw error;
+            if (authError) throw authError;
+            if (!authData.user) throw new Error("Auth creation failed (No User returned)");
 
-            // Wait a moment for the Database Trigger to finish insertion
-await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds
-            // Verify using the MAIN client (CEO)
-            const { data: check } = await supabaseClient
-                .from('profiles')
-                .select('id')
-                .eq('user_id', data.user.id)
-                .maybeSingle();
+            // 2. Create Profile in Database (Using MAIN CEO Client + RPC)
+            // This calls the SQL function we just created
+            const { error: profileError } = await supabaseClient.rpc('admin_create_profile', {
+                target_user_id: authData.user.id,
+                user_email: email,
+                full_name: fullName,
+                user_role: role,
+                target_org_id: state.org.id,
+                user_meta: metaData,
+                avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
+            });
 
-            if (!check) {
-                console.warn("Profile not found immediately. This might be latency.");
+            if (profileError) {
+                console.error("RPC Error:", profileError);
+                throw new Error("Auth successful, but Profile creation failed: " + profileError.message);
             }
 
-            showToast(`User created! Login: ${email} / ${password}`);
+            showToast(`Success! User created: ${email}`);
             closeOnboardModal();
-            
-            // Refresh the list
             loadEmployeesView(document.getElementById('main-view'));
 
         } catch (err) {
