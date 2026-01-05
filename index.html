@@ -380,9 +380,9 @@ async function executeOnboard() {
             return;
         }
 
-        // Safety Check for Org ID
+        // Safety Check: Ensure the CEO's org data is loaded
         if (!state.org || !state.org.id) {
-            showToast("System Error: Organization ID missing. Refresh page.", true);
+            showToast("System Error: Organization ID missing. Please refresh the page.", true);
             return;
         }
 
@@ -395,10 +395,11 @@ async function executeOnboard() {
         btn.innerText = "Creating...";
 
         try {
-            // --- THE FIX: Configure client to NOT persist session ---
+            // --- CRITICAL FIX: Create client WITHOUT saving session ---
+            // This prevents the "Multiple GoTrueClient" error and logout issues
             const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 auth: {
-                    persistSession: false, // <--- CRITICAL FIX
+                    persistSession: false, 
                     autoRefreshToken: false,
                     detectSessionInUrl: false
                 }
@@ -411,7 +412,7 @@ async function executeOnboard() {
                     data: {
                         full_name: fullName,
                         org_name: state.org.name, 
-                        org_id: state.org.id, // Direct ID
+                        org_id: state.org.id, // Direct ID link
                         role: role, 
                         meta_data: metaData, 
                         avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
@@ -421,15 +422,23 @@ async function executeOnboard() {
 
             if (error) throw error;
 
-            // If we get here, check if Profile actually exists (Double Check)
-            if (data.user) {
-                const { data: checkProfile } = await supabaseClient
-                    .from('profiles')
-                    .select('id')
-                    .eq('user_id', data.user.id)
-                    .maybeSingle();
-                
-                if (!checkProfile) throw new Error("User created in Auth but Profile failed. Check Database Logs.");
+            // --- ADDED: Retry Logic for Profile Check ---
+            // Sometimes the DB is 100ms slower than the UI. We wait and retry.
+            let profileExists = false;
+            for(let i=0; i<3; i++) {
+                if(data.user) {
+                    const { data: check } = await supabaseClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('user_id', data.user.id)
+                        .maybeSingle();
+                    if(check) { profileExists = true; break; }
+                }
+                await new Promise(r => setTimeout(r, 1000)); // Wait 1s
+            }
+
+            if (!profileExists) {
+                throw new Error("User created in Auth, but Profile database insert failed.");
             }
 
             showToast(`User created! Login: ${email} / ${password}`);
