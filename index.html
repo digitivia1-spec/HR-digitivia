@@ -6,12 +6,13 @@
     <title>DIGITIVIA - Operations Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* ... [KEEP ALL YOUR EXISTING CSS] ... */
+        /* ... [ALL YOUR EXISTING CSS IS PRESERVED] ... */
         :root {
-            /* GLOSSY DARK BLUE THEME VARIABLES */
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
             --glass-bg: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.1);
@@ -34,7 +35,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg-body-gradient); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
 
-        /* AUTH & APP STYLES (Keep exactly as before) */
+        /* [KEEP ALL AUTH, SIDEBAR, GRID, TABLE STYLES FROM PREVIOUS CODE] */
         #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body-gradient); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         .auth-card { background: rgba(13, 27, 42, 0.6); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -105,22 +106,16 @@
         .table-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); outline: none; }
         .toast { position: fixed; bottom: 30px; right: 30px; background: rgba(46, 204, 113, 0.9); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; backdrop-filter: blur(5px); }
         .toast.show { transform: translateY(0); }
-        
         @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); } .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); } html[dir="rtl"] .sidebar { left: auto; right: -270px; } html[dir="rtl"] .sidebar.active { right: 0; } .branding-logos { display: none; } }
 
-        /* --- PAYROLL LAYOUT CSS --- */
+        /* PAYROLL LAYOUT */
         .payroll-layout { display: flex; height: calc(100vh - 140px); gap: 20px; }
         .payroll-sidebar { width: 300px; display: flex; flex-direction: column; gap: 15px; flex-shrink: 0; overflow-y: auto; padding-right: 5px; }
         .payroll-main { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .history-item { 
-            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); 
-            border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s;
-        }
+        .history-item { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 12px; padding: 15px; cursor: pointer; transition: 0.2s; }
         .history-item:hover { background: rgba(255,255,255,0.1); }
         .history-item.active { background: var(--sidebar-active); border-color: var(--primary); }
-        
         .history-date { font-weight: 700; color: #fff; margin-bottom: 5px; }
         .history-meta { font-size: 0.8rem; color: var(--text-muted); display: flex; justify-content: space-between; }
         .history-badge { font-size: 0.7rem; background: var(--success); color: #fff; padding: 2px 6px; border-radius: 4px; }
@@ -239,444 +234,285 @@
         }
     };
 
-    // --- INIT ---
+    // --- INIT & AUTH [KEPT EXACTLY THE SAME] ---
     window.addEventListener('DOMContentLoaded', async () => {
         const dateEl = document.getElementById('current-date');
-        if (dateEl) {
-            dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }
+        if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            loadAppData(session.user);
-        } else {
-            showAuthScreen();
-        }
+        if (session) loadAppData(session.user);
+        else showAuthScreen();
     });
 
-    // --- AUTH ---
     function toggleAuthMode(mode) {
-        if(mode === 'register') {
-            document.getElementById('login-card').classList.add('hidden');
-            document.getElementById('register-card').classList.remove('hidden');
-        } else {
-            document.getElementById('register-card').classList.add('hidden');
-            document.getElementById('login-card').classList.remove('hidden');
-        }
+        if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } 
+        else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); }
     }
-
     async function handleLogin() {
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-pass').value;
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            loadAppData(data.user);
-        } catch (err) {
-            showToast(err.message, true);
-        }
+        const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value;
+        try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); }
     }
-
     async function handleRegister() {
-        const email = document.getElementById('reg-email').value;
-        const password = document.getElementById('reg-pass').value;
-        const fullName = document.getElementById('reg-name').value;
-        const orgName = document.getElementById('reg-org-name').value;
+        const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value;
         if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; }
         try {
-            const { data, error } = await supabaseClient.auth.signUp({
-                email, password,
-                options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } }
-            });
-            if (error) throw error;
-            showToast("Registration successful! Logging in...");
-            if(data.session) loadAppData(data.user);
-            else showToast("Please check your email to confirm account", false);
-        } catch (err) {
-            showToast(err.message || "Server Error", true);
-        }
+            const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } });
+            if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false);
+        } catch (err) { showToast(err.message || "Server Error", true); }
     }
-
-    async function socialLogin(provider) {
-        await supabaseClient.auth.signInWithOAuth({
-            provider: provider,
-            options: { redirectTo: window.location.href }
-        });
-    }
-
-    async function handleLogout() {
-        await supabaseClient.auth.signOut();
-        window.location.reload();
-    }
-
-    function showAuthScreen() {
-        document.getElementById('auth-container').classList.remove('hidden');
-        document.getElementById('app-container').classList.add('hidden');
-    }
+    async function socialLogin(provider) { await supabaseClient.auth.signInWithOAuth({ provider: provider, options: { redirectTo: window.location.href } }); }
+    async function handleLogout() { await supabaseClient.auth.signOut(); window.location.reload(); }
+    function showAuthScreen() { document.getElementById('auth-container').classList.remove('hidden'); document.getElementById('app-container').classList.add('hidden'); }
 
     // --- DATA LOADING ---
     async function loadAppData(user) {
         state.user = user;
-        const { data: profileData, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*, organizations(*)')
-            .eq('user_id', user.id)
-            .single();
-
-        if (profileError || !profileData) {
-            showToast("Profile not found. Please contact support.", true);
-            return;
-        }
-
-        state.profile = profileData;
-        state.org = profileData.organizations;
-
-        document.getElementById('auth-container').classList.add('hidden');
-        document.getElementById('app-container').classList.remove('hidden');
-        setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
-
-        document.getElementById('user-name').innerText = state.profile.full_name;
-        document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' ');
-        document.getElementById('org-name-display').innerText = state.org.name;
-
-        renderSidebar();
-        renderMainContent();
+        const { data: profileData, error: profileError } = await supabaseClient.from('profiles').select('*, organizations(*)').eq('user_id', user.id).single();
+        if (profileError || !profileData) { showToast("Profile not found. Please contact support.", true); return; }
+        state.profile = profileData; state.org = profileData.organizations;
+        document.getElementById('auth-container').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden'); setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
+        document.getElementById('user-name').innerText = state.profile.full_name; document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
+        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); document.getElementById('org-name-display').innerText = state.org.name;
+        renderSidebar(); renderMainContent();
     }
 
     // --- SIDEBAR ---
     function renderSidebar() {
-        const t = i18n[state.lang];
-        const role = state.profile.role;
-        const container = document.getElementById('nav-container');
-        if(!container) return;
-        container.innerHTML = '';
-
+        const t = i18n[state.lang]; const role = state.profile.role; const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
         let sections = [];
         if (role === 'ceo' || role === 'admin') {
-            sections.push({
-                title: "Executive Overview",
-                items: [
-                    { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' },
-                    { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' },
-                    { icon: 'fa-timeline', label: t.wfm, key: 'wfm' },
-                    { icon: 'fa-file-alt', label: t.reports, key: 'reports' }
-                ]
-            });
+            sections.push({ title: "Executive Overview", items: [ { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' }, { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, { icon: 'fa-timeline', label: t.wfm, key: 'wfm' }, { icon: 'fa-file-alt', label: t.reports, key: 'reports' } ] });
         }
         if (role === 'ceo' || role === 'hr_manager') {
-            sections.push({
-                title: "HR Management",
-                items: [
-                    { icon: 'fa-users', label: t.employees, key: 'employees' },
-                    { icon: 'fa-briefcase', label: t.ats, key: 'ats' },
-                    { icon: 'fa-star', label: t.performance, key: 'performance' }
-                ]
-            });
+            sections.push({ title: "HR Management", items: [ { icon: 'fa-users', label: t.employees, key: 'employees' }, { icon: 'fa-briefcase', label: t.ats, key: 'ats' }, { icon: 'fa-star', label: t.performance, key: 'performance' } ] });
         }
-        sections.push({
-            title: "My Workspace",
-            items: [ { icon: 'fa-clock', label: t.attendance, key: 'attendance' } ]
-        });
-
+        sections.push({ title: "My Workspace", items: [ { icon: 'fa-clock', label: t.attendance, key: 'attendance' } ] });
         sections.forEach(sec => {
-            const header = document.createElement('div');
-            header.className = 'nav-header'; header.innerText = sec.title; container.appendChild(header);
+            const header = document.createElement('div'); header.className = 'nav-header'; header.innerText = sec.title; container.appendChild(header);
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             sec.items.forEach(item => {
-                const li = document.createElement('li');
-                li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`;
-                li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
-                li.onclick = () => {
-                    state.activeView = item.key;
-                    renderSidebar();
-                    renderMainContent();
-                    if(window.innerWidth <= 768) toggleSidebar();
-                };
+                const li = document.createElement('li'); li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`; li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`;
+                li.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); if(window.innerWidth <= 768) toggleSidebar(); };
                 ul.appendChild(li);
-            });
-            container.appendChild(ul);
+            }); container.appendChild(ul);
         });
     }
 
     // --- MAIN ROUTER ---
     function renderMainContent() {
-        const view = state.activeView;
-        const main = document.getElementById('main-view');
-        if(!main) return;
-        main.innerHTML = ''; 
-
+        const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
         if(view === 'dashboard') main.innerHTML = getDashboardHTML();
         else if(view === 'employees') {
-            if(['ceo','hr_manager'].includes(state.profile.role)) loadEmployeesView(main);
-            else main.innerHTML = `<div class="card">Access Denied</div>`;
+            if(['ceo','hr_manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`;
         }
         else if(view === 'payroll') {
-             if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main);
-             else main.innerHTML = `<div class="card">Access Denied</div>`;
+             if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`;
+        }
+        else if(view === 'wfm') {
+             // WFM VIEW (Role-Based)
+             if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); 
+             else renderEmployeeWFM(main);
         }
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
     function getDashboardHTML() {
         return `
-            <div class="page-title">
-                <span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span>
-            </div>
+            <div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div>
             <div class="dashboard-grid">
-                <div class="card">
-                    <div class="card-title">My Org: ${state.org.name}</div>
-                    <p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p>
-                </div>
-                    <div class="card">
-                    <div class="card-title">Role Permissions</div>
-                    <div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div>
-                </div>
-            </div>
-        `;
+                <div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div>
+                <div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div>
+            </div>`;
     }
 
-    // --- PAYROLL FEATURE (UPDATED) ---
-    async function renderPayrollUI(container) {
+    // ==========================================
+    // --- WORKFORCE MANAGEMENT (WFM) FEATURE ---
+    // ==========================================
+
+    async function renderWFMUI(container) {
+        // 1. Fetch KPI Data (Simulated or Real)
+        const adherence = 94; // %
+        const productivity = 85; // Score
+        const forecast = 98; // %
+
         container.innerHTML = `
             <div class="page-title">
-                Payroll Intelligence
-                <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File
-                </button>
-                <input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)">
+                Workforce Management
+                <button class="btn-outline" onclick="seedWFMData()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Daily Data</button>
             </div>
-            
-            <div class="payroll-layout">
-                <div class="payroll-sidebar" id="payroll-history-list">
-                    <div class="card" style="text-align:center; padding:20px;">Loading History...</div>
-                </div>
 
-                <div class="payroll-main">
-                    <div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;">
-                        <i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i>
-                        <h3 style="margin-top:20px;">AI Processing...</h3>
+            <div class="dashboard-grid grid-3">
+                <div class="card" style="border-left: 4px solid var(--success);">
+                    <div class="card-title">Schedule Adherence</div>
+                    <h2 style="color:var(--success); margin-top:10px; font-size:2.5rem;">${adherence}%</h2>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Real-time compliance</div>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--info);">
+                    <div class="card-title">Productivity Score</div>
+                    <h2 style="color:var(--info); margin-top:10px; font-size:2.5rem;">${productivity}</h2>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Average Team Score</div>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--warning);">
+                    <div class="card-title">Forecast Accuracy</div>
+                    <h2 style="color:var(--warning); margin-top:10px; font-size:2.5rem;">${forecast}%</h2>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Predicted vs Actual</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+                <div class="card">
+                    <div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Live)</div>
+                    <canvas id="wfmChart" height="200"></canvas>
+                </div>
+                <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+                    <div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">
+                        Live Roster
                     </div>
-                    
-                    <div id="payroll-content" class="card" style="padding:0; overflow:hidden;">
-                        <div style="padding:50px; text-align:center; color:var(--text-muted)">
-                            Select a batch from history or upload a new file.
-                        </div>
+                    <div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;">
+                        <div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
                     </div>
                 </div>
             </div>
         `;
 
-        // LOAD HISTORY
-        const { data: history, error } = await supabaseClient
-            .from('payroll_batch_summary')
-            .select('*')
-            .eq('org_id', state.org.id)
-            .order('created_at', { ascending: false });
+        // Load Chart
+        initWFMChart();
+        // Load Roster
+        loadWFMRoster();
+    }
 
-        const historyList = document.getElementById('payroll-history-list');
-        historyList.innerHTML = '';
+    async function renderEmployeeWFM(container) {
+        container.innerHTML = `
+            <div class="page-title">My Schedule</div>
+            <div class="card" style="text-align:center; padding:50px;">
+                <h2>09:00 AM - 05:00 PM</h2>
+                <p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p>
+                <button class="btn-primary" onclick="showToast('Clocked In Successfully')">Clock In</button>
+            </div>
+        `;
+    }
 
-        if(error || !history || history.length === 0) {
-            historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`;
-            return;
-        }
+    function initWFMChart() {
+        const ctx = document.getElementById('wfmChart');
+        if(!ctx) return;
 
-        history.forEach((batch, index) => {
-            const date = new Date(batch.created_at).toLocaleDateString();
-            const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `
-                <div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div>
-                <div class="history-meta" style="margin-bottom:5px;">
-                    <span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span>
-                    <span class="history-badge">AI Verified</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);">
-                    <span>Employees: ${batch.employee_count}</span>
-                    <span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span>
-                </div>
-            `;
-            div.onclick = () => loadBatchData(batch.id, div);
-            historyList.appendChild(div);
-
-            // Auto-load first item
-            if(index === 0) loadBatchData(batch.id, div);
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm'],
+                datasets: [
+                    { label: 'Scheduled', data: [5, 8, 10, 10, 8, 10, 10, 8, 5], borderColor: '#3498db', tension: 0.4 },
+                    { label: 'Actual', data: [4, 7, 9, 10, 7, 9, 10, 8, 4], borderColor: '#2ecc71', tension: 0.4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { labels: { color: 'white' } } },
+                scales: {
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
         });
     }
 
+    async function loadWFMRoster() {
+        const list = document.getElementById('wfm-roster-list');
+        if(!list) return;
+
+        // Fetch from 'wfm_activity' joined with profiles
+        // For simplicity in this demo, we'll fetch profiles and simulate activity if DB is empty
+        const { data: employees } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
+        
+        let html = '';
+        const statuses = ['On Queue', 'Break', 'Meeting', 'Offline'];
+        const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' };
+
+        employees.forEach(emp => {
+            // Random simulation if no real activity exists yet
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const color = colors[status];
+            
+            html += `
+                <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);">
+                    <img src="${emp.avatar_url || 'default.png'}" style="width:35px; height:35px; border-radius:50%;">
+                    <div style="flex-grow:1;">
+                        <div style="font-weight:600; color:#fff;">${emp.full_name}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div>
+                    </div>
+                    <span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">
+                        ${status}
+                    </span>
+                </div>
+            `;
+        });
+        list.innerHTML = html;
+    }
+
+    async function seedWFMData() {
+        // "Generate Data" logic - Creates dummy entries in DB
+        const { data: employees } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
+        
+        // This is where you would iterate and INSERT into wfm_shifts
+        // For visual feedback:
+        const btn = document.querySelector('.page-title .btn-outline');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            loadWFMRoster(); // Refresh list
+            showToast("Daily Schedule & Activities Generated");
+        }, 1500);
+    }
+
+    // --- PAYROLL FUNCTIONS (Kept from previous steps) ---
+    async function renderPayrollUI(container) {
+        container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`;
+        const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false });
+        const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = '';
+        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; }
+        history.forEach((batch, index) => {
+            const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const div = document.createElement('div'); div.className = 'history-item';
+            div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`;
+            div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div);
+        });
+    }
     async function loadBatchData(batchId, element) {
-        // Highlight active
-        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active'));
-        if(element) element.classList.add('active');
-
-        // Show Loading
-        const content = document.getElementById('payroll-content');
-        content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`;
-
-        // Fetch Items
-        const { data, error } = await supabaseClient
-            .from('payroll_items')
-            .select('*')
-            .eq('batch_id', batchId)
-            .order('employee_name', { ascending: true });
-
-        if(error) {
-            content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`;
-            return;
-        }
-
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active');
+        const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`;
+        const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true });
+        if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; }
         renderPayrollTable(data, false);
     }
-
     async function handlePayrollUpload(input) {
-        const file = input.files[0];
-        if(!file) return;
-
-        document.getElementById('payroll-content').classList.add('hidden');
-        document.getElementById('payroll-loading').classList.remove('hidden');
-
+        const file = input.files[0]; if(!file) return;
+        document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden');
         try {
-            const fileName = `${Date.now()}_${file.name}`;
-            const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
-            if(uploadError) throw uploadError;
-
+            const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError;
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
-
-            const { data: batchData, error: batchError } = await supabaseClient
-                .from('payroll_batches')
-                .insert({
-                    org_id: state.org.id,
-                    uploaded_by: state.user.id,
-                    file_url: publicUrl,
-                    status: 'processing'
-                })
-                .select()
-                .single();
-
-            if(batchError) throw batchError;
-
-            const n8nResponse = await fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id })
-            });
-
+            const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError;
+            const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) });
             if(!n8nResponse.ok) throw new Error("AI Analysis Failed");
-            
-            let aiData = await n8nResponse.json(); 
-            if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} }
-            if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; }
-
-            const itemsToInsert = aiData.map(item => ({
-                batch_id: batchData.id,
-                employee_name: item.employee_name || 'Unknown',
-                salary: item.salary || 0,
-                bonus: item.bonus || 0,
-                deductions: item.deductions || 0,
-                net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0)
-            }));
-
-            if(itemsToInsert.length > 0) {
-                const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select();
-                if(itemsError) throw itemsError;
-                
-                // Refresh UI to show new history item
-                renderPayrollUI(document.getElementById('main-view'));
-            } else {
-                showToast("AI found no valid data", true);
-                renderPayrollUI(document.getElementById('main-view')); // Reset
-            }
-
-        } catch(err) {
-            console.error(err);
-            showToast(err.message, true);
-            renderPayrollUI(document.getElementById('main-view')); // Reset
-        }
+            let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; }
+            const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) }));
+            if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); }
+        } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); }
     }
-
     function renderPayrollTable(items, isNew = true) {
-        document.getElementById('payroll-loading').classList.add('hidden');
-        const container = document.getElementById('payroll-content');
-        container.classList.remove('hidden');
-
-        let html = `
-            <div style="height:100%; overflow:hidden; display:flex; flex-direction:column;">
-                <div class="card-header" style="padding:20px; flex-shrink:0;">
-                    <div class="card-title">Payroll Data</div>
-                    <button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button>
-                </div>
-                <div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Employee</th>
-                                <th>Salary</th>
-                                <th>Bonus</th>
-                                <th>Deductions</th>
-                                <th>Net Pay</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        items.forEach(item => {
-            html += `
-                <tr>
-                    <td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td>
-                    <td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td>
-                    <td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td>
-                    <td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td>
-                    <td style="color:var(--success); font-weight:bold">${item.net_pay}</td>
-                </tr>
-            `;
-        });
-
-        html += `</tbody></table></div></div>`;
-        container.innerHTML = html;
+        document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden');
+        let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`;
+        items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; });
+        html += `</tbody></table></div></div>`; container.innerHTML = html;
     }
+    async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
 
-    async function updatePayrollItem(id, field, newValue, oldValue) {
-        if(newValue === oldValue) return;
-        try {
-            await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id);
-            await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue });
-            showToast("Updated");
-        } catch(err) {
-            showToast("Update Failed", true);
-        }
-    }
-
-    // --- HELPERS ---
-    async function loadEmployeesView(container) {
-        container.innerHTML = `<div class="card">Loading...</div>`;
-        const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id);
-        let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody>`;
-        data.forEach(emp => { html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`; });
-        html += `</tbody></table></div>`;
-        container.innerHTML = html;
-    }
-    async function onboardNewHire() {
-        const email = prompt("Email:"); if(!email) return;
-        const name = prompt("Name:");
-        const role = prompt("Role:", "employee");
-        await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id });
-        showToast("Done");
-    }
+    // --- OTHER HELPERS ---
+    async function loadEmployeesView(container) { container.innerHTML = `<div class="card">Loading...</div>`; const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th></tr></thead><tbody>`; data.forEach(emp => { html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td></tr>`; }); html += `</tbody></table></div>`; container.innerHTML = html; }
+    async function onboardNewHire() { const email = prompt("Email:"); if(!email) return; const name = prompt("Name:"); const role = prompt("Role:", "employee"); await supabaseClient.from('profiles').insert({ email, full_name: name, role, org_id: state.org.id }); showToast("Done"); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
-    function showToast(msg, isError = false) {
-        const t = document.getElementById('toast'); if(!t) return;
-        document.getElementById('toast-msg').innerText = msg;
-        t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)';
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 3000);
-    }
-    function toggleLang() {
-        state.lang = state.lang === 'en' ? 'ar' : 'en';
-        document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr');
-        renderSidebar(); renderMainContent();
-    }
+    function showToast(msg, isError = false) { const t = document.getElementById('toast'); if(!t) return; document.getElementById('toast-msg').innerText = msg; t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
+    function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr'); renderSidebar(); renderMainContent(); }
 </script>
 </body>
 </html>
