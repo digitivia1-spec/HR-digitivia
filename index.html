@@ -585,8 +585,7 @@
         reader.readAsText(file);
     }
 
-    // Helper: Haversine
-// Helper: Haversine Distance Formula (FIXED)
+// 1. Fixed Distance Calculator + Missing Helper
 function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
   var R = 6371; // Radius of the earth in km
   var dLat = deg2rad(lat2-lat1); 
@@ -596,6 +595,56 @@ function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
   var d = R * c; // Distance in km
   return d * 1000; // Returns meters
+}
+
+// THIS WAS MISSING:
+function deg2rad(deg) {
+  return deg * (Math.PI/180);
+}
+
+// 2. Fixed History Loader (Prevents Crash on Error)
+async function loadAttendanceHistory() {
+    const { data: logs, error } = await supabaseClient
+        .from('wfm_activity')
+        .select('*')
+        .eq('user_id', state.user.id)
+        .order('clock_in_time', { ascending: false })
+        .limit(5);
+
+    // Error Handling: If DB fails, don't crash the page
+    if (error) {
+        console.error("History Error:", error);
+        document.getElementById('attendance-history').innerHTML = `<div style="padding:20px; color:var(--danger)">Table not ready. Run SQL script.</div>`;
+        return;
+    }
+
+    // Safety check: Ensure 'logs' is an array
+    const safeLogs = logs || [];
+
+    if (safeLogs.length === 0) {
+        document.getElementById('attendance-history').innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted)">No activity yet. Clock in to start!</div>`;
+        return;
+    }
+
+    let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`;
+    
+    safeLogs.forEach(log => {
+        const date = new Date(log.clock_in_time).toLocaleDateString();
+        const inTime = new Date(log.clock_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        const outTime = log.clock_out_time ? new Date(log.clock_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success)">Active</span>';
+        
+        const sourceBadge = (log.record_source === 'csv_upload') 
+            ? '<span class="badge" style="background:#95a5a6; position:static">Import</span>' 
+            : '<span class="badge" style="background:var(--success); position:static">Live</span>';
+            
+        const proofLink = log.check_in_photo 
+            ? `<a href="${log.check_in_photo}" target="_blank" style="color:var(--primary)">View Selfie</a>` 
+            : '-';
+            
+        html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+    document.getElementById('attendance-history').innerHTML = html;
 }
     // ==========================================
     // --- ONBOARDING LOGIC ---
