@@ -586,41 +586,17 @@
     }
 
     // Helper: Haversine
-    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-      var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); 
-      var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
-      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return d * R * 1000;
-    }
-    function deg2rad(deg) { return deg * (Math.PI/180); }
-
-    // --- EMPLOYEES VIEW ---
-    async function loadEmployeesView(container) { 
-        container.innerHTML = `
-            <div class="page-title">
-                ${i18n[state.lang].employees}
-                <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button>
-            </div>
-            <div class="card">Loading...</div>
-        `; 
-        
-        const { data } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
-        let html = `
-            <div class="card">
-                <table>
-                    <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead>
-                    <tbody>`;
-        
-        data.forEach(emp => { 
-            const meta = emp.meta_data || {};
-            const metaKeys = Object.keys(meta);
-            const metaDisplay = metaKeys.length > 0 ? `<div class="details-json">${JSON.stringify(meta, null, 2)}</div>` : ''; 
-            html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span>${metaDisplay}</td></tr>`; 
-        }); 
-        html += `</tbody></table></div>`; 
-        container.innerHTML += html; 
-        document.querySelector('.card').remove(); // remove loading
-    }
-
+// Helper: Haversine Distance Formula (FIXED)
+function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+  var R = 6371; // Radius of the earth in km
+  var dLat = deg2rad(lat2-lat1); 
+  var dLon = deg2rad(lon2-lon1); 
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  var d = R * c; // Distance in km
+  return d * 1000; // Returns meters
+}
     // ==========================================
     // --- ONBOARDING LOGIC ---
     // ==========================================
