@@ -586,7 +586,7 @@
         }
     }
 
-    async function handlePerformanceSubmit() {
+   async function handlePerformanceSubmit() {
         const btn = document.querySelector('#perf-modal .btn-primary');
         const oldText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
@@ -602,8 +602,7 @@
                 const file = fileInput.files[0];
                 const fileName = `perf_${Date.now()}_${file.name}`;
                 
-                // Upload to Storage
-                const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); // Reusing payroll bucket for simplicity
+                const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
                 if (uploadError) throw uploadError;
                 
                 const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
@@ -613,7 +612,7 @@
                 if (!payloadData) throw new Error("Please enter text logs.");
             }
 
-            // 2. Call Webhook (AI Analysis)
+            // 2. Call Webhook
             const response = await fetch(N8N_PERF_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -630,19 +629,28 @@
             if (!response.ok) throw new Error("AI Analysis Failed");
             
             let aiResponse = await response.json();
-            // Handle n8n returning string vs object
+            
+            // --- FIX START: Better N8N Parsing ---
+            console.log("Raw AI Response:", aiResponse); // Debugging
+
+            // If N8N returns an array like [{ status: "success", results: [...] }]
+            if (Array.isArray(aiResponse) && aiResponse.length > 0) {
+                aiResponse = aiResponse[0]; 
+            }
+            
+            // Parse if it's a stringified JSON
             if (typeof aiResponse === 'string') {
                 try { aiResponse = JSON.parse(aiResponse); } catch(e) {}
             }
-            
-            // Expecting: { results: [ { email: "...", score_quality: 90... } ] }
-            const results = aiResponse.results || (Array.isArray(aiResponse) ? aiResponse : []);
 
-            if (results.length === 0) throw new Error("AI returned no results. Check input data.");
+            // Extract results
+            const results = aiResponse.results || [];
+            // --- FIX END ---
 
-            // 3. Match Emails to User IDs and Insert
+            if (results.length === 0) throw new Error("AI returned no results. Check if emails match employee profiles.");
+
+            // 3. Insert Data
             for (const res of results) {
-                // Find User ID
                 const { data: userProfile } = await supabaseClient
                     .from('profiles')
                     .select('user_id')
@@ -650,12 +658,11 @@
                     .single();
                 
                 if (userProfile) {
-                    // Insert Review
                     await supabaseClient.from('performance_reviews').insert({
                         org_id: state.org.id,
                         user_id: userProfile.user_id,
                         review_period: state.perfCycle,
-                        period_start: new Date(), // Simplified for demo
+                        period_start: new Date(),
                         period_end: new Date(),
                         score_quality: res.score_quality || 0,
                         score_speed: res.score_speed || 0,
@@ -665,6 +672,8 @@
                         ai_feedback: res.ai_feedback || "No feedback generated.",
                         raw_data_source: state.perfInputMode
                     });
+                } else {
+                    console.warn(`Skipping: Employee ${res.email} not found in database.`);
                 }
             }
 
@@ -679,7 +688,6 @@
             btn.innerHTML = oldText;
         }
     }
-
 
     // ==========================================
     // --- ATS RECRUITMENT LOGIC ---
