@@ -9,6 +9,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
         /* ... [ALL EXISTING CSS PRESERVED] ... */
@@ -130,6 +131,20 @@
         .modal-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
         .close-modal { float: right; cursor: pointer; color: var(--text-muted); }
         .close-modal:hover { color: white; }
+
+        /* --- ATS KANBAN STYLES (NEW) --- */
+        .ats-layout { display: flex; gap: 20px; height: calc(100vh - 160px); overflow-x: auto; padding-bottom: 20px; }
+        .ats-column { flex: 0 0 300px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; flex-direction: column; max-height: 100%; }
+        .ats-col-header { padding: 15px; font-weight: 700; color: var(--text-header); border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+        .ats-count { background: var(--glass-bg); padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; color: var(--text-muted); }
+        .ats-cards { flex-grow: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .ats-card { background: var(--glass-bg); border: 1px solid var(--glass-border); padding: 15px; border-radius: 8px; cursor: grab; transition: 0.2s; position: relative; }
+        .ats-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .ats-name { font-weight: 600; color: white; margin-bottom: 5px; }
+        .ats-role { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+        .ats-actions { display: flex; justify-content: flex-end; gap: 5px; }
+        .ats-btn-hire { font-size: 0.75rem; background: var(--success); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
     </style>
 </head>
 <body>
@@ -297,6 +312,7 @@
         else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
         else if(view === 'reports') { if(['ceo','admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'ats') { if(['ceo','admin','hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
@@ -440,6 +456,101 @@ async function executeOnboard() {
             btn.innerText = oldText;
         }
     }
+
+    // ==========================================
+    // --- ATS RECRUITMENT LOGIC (NEW) ---
+    // ==========================================
+
+    async function loadATSView(container) {
+        container.innerHTML = `
+            <div class="page-title">
+                ATS Recruitment Pipeline
+                <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button>
+            </div>
+            <div class="ats-layout" id="ats-board">
+                <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
+            </div>
+        `;
+
+        // 1. Fetch Candidates
+        const { data: candidates, error } = await supabaseClient
+            .from('ats_applications')
+            .select('*, ats_jobs(title, department)')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error(error);
+            container.innerHTML = `<div class="card">Error loading pipeline</div>`;
+            return;
+        }
+
+        // 2. Define Columns
+        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired'];
+        const board = document.getElementById('ats-board');
+        board.innerHTML = '';
+
+        stages.forEach(stage => {
+            const col = document.createElement('div');
+            col.className = 'ats-column';
+            const stageCandidates = candidates.filter(c => c.status === stage);
+            
+            col.innerHTML = `
+                <div class="ats-col-header">
+                    ${stage} <span class="ats-count">${stageCandidates.length}</span>
+                </div>
+                <div class="ats-cards" id="stage-${stage}"></div>
+            `;
+            
+            const cardContainer = col.querySelector('.ats-cards');
+            stageCandidates.forEach(cand => {
+                const card = document.createElement('div');
+                card.className = 'ats-card';
+                card.draggable = true;
+                let actionBtn = '';
+                
+                // If in Hired column, show "Promote" button
+                if (stage === 'Hired') {
+                    actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="ats-name">${cand.full_name}</div>
+                    <div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div>
+                    <div class="ats-actions">
+                        ${actionBtn}
+                        <i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i>
+                    </div>
+                `;
+                cardContainer.appendChild(card);
+            });
+
+            board.appendChild(col);
+        });
+    }
+
+    async function promoteCandidateToEmployee(candidateId) {
+        // 1. Fetch Candidate Data
+        const { data: candidate, error } = await supabaseClient
+            .from('ats_applications')
+            .select('*, ats_jobs(title, department)')
+            .eq('id', candidateId)
+            .single();
+
+        if (error) {
+            showToast("Error fetching details", true);
+            return;
+        }
+
+        // 2. Open Onboard Modal & Pre-fill
+        openOnboardModal();
+        document.getElementById('new-name').value = candidate.full_name;
+        document.getElementById('new-email').value = candidate.email;
+        document.getElementById('new-meta-phone').value = candidate.phone || '';
+        document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || '';
+        
+        showToast("Candidate data pre-filled. Please set a password.");
+    }
+
     // --- REPORTS ---
     async function renderReportsUI(container) { container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsCSV()"><i class="fa-solid fa-download"></i> Export Data</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; const { data: reports } = await supabaseClient.from('reports_master').select('*').eq('org_id', state.org.id); if(reports && reports.length > 0) { initReportCharts(reports); renderROITable(reports); } else { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;">No data available yet. Generate WFM/Payroll data first.</td></tr>'; } }
     function initReportCharts(data) { new Chart(document.getElementById('burnoutChart'), { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Scheduled Hours', data: data.map(r => r.scheduled_hours), backgroundColor: '#3498db' }, { label: 'Actual Hours', data: data.map(r => r.actual_hours_worked), backgroundColor: '#e74c3c' } ] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); const roles = [...new Set(data.map(r => r.role))]; const efficiency = roles.map(role => { const users = data.filter(r => r.role === role); return users.reduce((sum, u) => sum + u.productivity_score, 0) / users.length; }); new Chart(document.getElementById('efficiencyChart'), { type: 'radar', data: { labels: roles, datasets: [{ label: 'Avg Productivity Score', data: efficiency, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.2)' }] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } } } }); }
