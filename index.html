@@ -586,7 +586,7 @@
         }
     }
 
-   async function handlePerformanceSubmit() {
+ async function handlePerformanceSubmit() {
         const btn = document.querySelector('#perf-modal .btn-primary');
         const oldText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
@@ -630,32 +630,27 @@
             
             let aiResponse = await response.json();
             
-            // --- FIX START: Better N8N Parsing ---
-            console.log("Raw AI Response:", aiResponse); // Debugging
-
-            // If N8N returns an array like [{ status: "success", results: [...] }]
+            // Handle N8N array response
             if (Array.isArray(aiResponse) && aiResponse.length > 0) {
                 aiResponse = aiResponse[0]; 
             }
-            
-            // Parse if it's a stringified JSON
             if (typeof aiResponse === 'string') {
                 try { aiResponse = JSON.parse(aiResponse); } catch(e) {}
             }
 
-            // Extract results
             const results = aiResponse.results || [];
-            // --- FIX END ---
 
-            if (results.length === 0) throw new Error("AI returned no results. Check if emails match employee profiles.");
+            if (results.length === 0) throw new Error("AI returned no results.");
 
             // 3. Insert Data
+            let successCount = 0;
             for (const res of results) {
-                const { data: userProfile } = await supabaseClient
+                // USE maybeSingle() TO PREVENT 406 ERROR
+                const { data: userProfile, error: profileError } = await supabaseClient
                     .from('profiles')
                     .select('user_id')
                     .eq('email', res.email)
-                    .single();
+                    .maybeSingle(); // <--- THIS IS THE FIX
                 
                 if (userProfile) {
                     await supabaseClient.from('performance_reviews').insert({
@@ -669,17 +664,22 @@
                         score_teamwork: res.score_teamwork || 0,
                         score_efficiency: res.score_efficiency || 0,
                         score_final: res.score_final || 0,
-                        ai_feedback: res.ai_feedback || "No feedback generated.",
+                        ai_feedback: res.ai_feedback || "No feedback.",
                         raw_data_source: state.perfInputMode
                     });
+                    successCount++;
                 } else {
-                    console.warn(`Skipping: Employee ${res.email} not found in database.`);
+                    console.warn(`Skipping: ${res.email} (User not found in 'profiles' table)`);
                 }
             }
 
-            showToast("Analysis Complete!");
-            document.getElementById('perf-modal').classList.add('hidden');
-            renderPerformanceUI(document.getElementById('main-view'));
+            if (successCount === 0) {
+                showToast("Analysis done, but no matching user emails found!", true);
+            } else {
+                showToast(`Success! Saved ${successCount} reviews.`);
+                document.getElementById('perf-modal').classList.add('hidden');
+                renderPerformanceUI(document.getElementById('main-view'));
+            }
 
         } catch (err) {
             console.error(err);
@@ -688,7 +688,6 @@
             btn.innerHTML = oldText;
         }
     }
-
     // ==========================================
     // --- ATS RECRUITMENT LOGIC ---
     // ==========================================
