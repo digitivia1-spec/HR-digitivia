@@ -15,7 +15,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     
     <style>
-        /* ... [ALL EXISTING CSS PRESERVED] ... */
+        /* --- CORE VARIABLES --- */
         :root {
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
             --glass-bg: rgba(255, 255, 255, 0.05);
@@ -39,7 +39,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg-body-gradient); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
 
-        /* [KEEP ALL AUTH, SIDEBAR, GRID, TABLE STYLES FROM PREVIOUS CODE] */
+        /* --- LAYOUT & COMPONENTS --- */
         #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body-gradient); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         .auth-card { background: rgba(13, 27, 42, 0.6); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -80,7 +80,6 @@
         .header-right { display: flex; align-items: center; gap: 20px; }
         .branding-logos { display: flex; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--glass-border); }
         html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
-        .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
         .user-controls { display: flex; align-items: center; gap: 15px; }
         .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
         .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
@@ -97,8 +96,6 @@
         .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
         .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
-        .btn-back-circle { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 1.1rem; }
-        .btn-back-circle:hover { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; align-items: stretch; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
@@ -414,268 +411,12 @@
         });
     }
 
-    // --- MAIN ROUTER ---
-    function renderMainContent() {
-        const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
-        if(view === 'dashboard') main.innerHTML = getDashboardHTML();
-        else if(view === 'employees') { if(['ceo','hr_manager','manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-        else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-        else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
-        else if(view === 'reports') { if(['ceo','admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-        else if(view === 'ats') { if(['ceo','admin','hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-        else if(view === 'performance') { if(['ceo','admin','hr_manager','manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-        else if(view === 'attendance') { renderAttendanceUI(main); }
-        else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
-    }
+    /* ========================================================================
+       CRITICAL FIX: ALL VIEW FUNCTIONS DEFINED BEFORE USE
+       ========================================================================
+    */
 
-    function getDashboardHTML() {
-        if (!state.profile) return `<div>Loading...</div>`;
-        return `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div><div class="dashboard-grid"><div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div><div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div></div>`;
-    }
-
-    // ==========================================
-    // --- UPDATED ATTENDANCE UI (Includes Map) ---
-    // ==========================================
-    async function renderAttendanceUI(container) {
-        // Check current status
-        const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
-        const isClockedIn = !!activity;
-        const startTime = activity ? new Date(activity.clock_in_time) : null;
-        
-        let durationHTML = '';
-        if (isClockedIn) {
-            const diffMs = new Date() - startTime;
-            const hrs = Math.floor(diffMs / 3600000);
-            const mins = Math.floor((diffMs % 3600000) / 60000);
-            let statusColor = 'var(--success)'; let statusText = 'Healthy Pace';
-            if (hrs > 9) { statusColor = 'var(--danger)'; statusText = 'CRITICAL: BURNOUT RISK'; }
-            else if (hrs > 8) { statusColor = 'var(--warning)'; statusText = 'Overtime Detected'; }
-            durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:${statusColor}; text-shadow:0 0 20px ${statusColor}40;">${hrs}h ${mins}m</div><div class="perf-badge" style="background:${statusColor}20; color:${statusColor}; border-color:${statusColor}">${statusText}</div></div>`;
-        }
-
-        // Show Import Button only for Admins
-        const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
-        const importBtn = isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy Data</button>` : '';
-
-        // --- ADDED: ADMIN MAP VIEW ---
-        let adminControls = '';
-        if(isAdmin) {
-            adminControls = `
-            <div class="card" style="margin-top:25px; height:500px;">
-                <div class="card-header">
-                    <div class="card-title">Live Organization Map (Last Known Locations)</div>
-                    <button class="btn-outline" onclick="handleExportAttendance()"><i class="fa-solid fa-download"></i> Export CSV Dump</button>
-                </div>
-                <div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div>
-            </div>`;
-        }
-
-        container.innerHTML = `
-            <div class="page-title">
-                Smart Attendance Workspace
-                ${importBtn}
-            </div>
-            
-            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
-                <div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">
-                    ${durationHTML}
-                    <div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>
-                    ${!isClockedIn ? `
-                        <button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button>
-                        <div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>
-                    ` : `
-                        <button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>
-                    `}
-                </div>
-
-                <div class="card">
-                    <div class="card-title">My Recent Activity</div>
-                    <div id="attendance-history" style="overflow-y:auto; height:100%;">Loading...</div>
-                </div>
-            </div>
-            ${adminControls}
-        `;
-        loadAttendanceHistory();
-        if(isAdmin) setTimeout(initLiveMap, 500); // Initialize map after DOM render
-    }
-
-    // --- LEAFLET MAP LOGIC (ALL EMPLOYEES) ---
-    async function initLiveMap() {
-        if (!document.getElementById('work-map')) return;
-        const map = L.map('work-map').setView([OFFICE_COORDS.lat, OFFICE_COORDS.lng], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-
-        // Fetch ALL profiles & their latest WFM activity
-        const { data: profiles } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id);
-        
-        // For each user, get latest activity to see if they are active and where
-        for (const p of profiles) {
-            const { data: act } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', p.user_id).order('clock_in_time', {ascending:false}).limit(1).maybeSingle();
-            if (act && act.check_in_lat && act.check_in_long) {
-                const isActive = act.clock_out_time === null;
-                const color = isActive ? 'green' : 'grey';
-                // Custom Marker
-                const iconHtml = `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px black;"></div>`;
-                const customIcon = L.divIcon({ html: iconHtml, className: 'custom-pin' });
-                
-                L.marker([act.check_in_lat, act.check_in_long], { icon: customIcon }).addTo(map)
-                 .bindPopup(`<b>${p.full_name}</b><br>${isActive ? 'Online' : 'Offline'}<br>${new Date(act.clock_in_time).toLocaleTimeString()}`);
-            }
-        }
-    }
-
-    // --- EXPORT FUNCTION (CSV DUMP) ---
-    async function handleExportAttendance() {
-        showToast("Generating CSV...");
-        const { data: logs } = await supabaseClient.from('wfm_activity').select('*, profiles(full_name, email)').eq('org_id', state.org.id).order('clock_in_time', {ascending: false});
-        if(!logs || logs.length === 0) { showToast("No data to export", true); return; }
-        
-        let csv = "User,Email,In Time,Out Time,Status,Source\n";
-        logs.forEach(row => {
-            csv += `"${row.profiles?.full_name}","${row.profiles?.email}","${row.clock_in_time}","${row.clock_out_time||''}","${row.current_status}","${row.record_source}"\n`;
-        });
-        downloadCSV(csv, `Attendance_Dump_${new Date().toISOString().split('T')[0]}.csv`);
-    }
-
-    function downloadCSV(csv, filename) {
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-    }
-
-    // --- BIOMETRIC FLOW ---
-    let stream = null;
-    async function startClockInFlow() {
-        const btn = document.getElementById('btn-scan');
-        const locStatus = document.getElementById('loc-status');
-        const vidContainer = document.getElementById('camera-preview');
-        const vid = document.getElementById('vid');
-        btn.classList.add('hidden'); locStatus.innerText = "Acquiring Secure GPS Signal...";
-        try {
-            const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
-            const { latitude, longitude } = position.coords;
-            const dist = getDistanceFromLatLonInM(latitude, longitude, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
-            // Flexible Geofence: Don't block, just tag
-            const workMode = dist < MAX_DISTANCE_METERS ? 'Office' : 'Remote';
-            
-            locStatus.innerText = `Verified: ${workMode} (${Math.round(dist)}m from HQ)`;
-            locStatus.style.color = 'var(--success)';
-
-            vidContainer.classList.remove('hidden');
-            stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            vid.srcObject = stream;
-
-            setTimeout(async () => {
-                const canvas = document.createElement('canvas'); canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
-                canvas.getContext('2d').drawImage(vid, 0, 0);
-                canvas.toBlob(async (blob) => {
-                    const fileName = `selfie_${state.user.id}_${Date.now()}.jpg`;
-                    const { error: upErr } = await supabaseClient.storage.from('attendance_photos').upload(fileName, blob);
-                    if (upErr) throw upErr;
-                    const { data: { publicUrl } } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
-                    
-                    // FIXED: Using toISOString to match SQL Schema
-                    await supabaseClient.from('wfm_activity').insert({
-                        org_id: state.org.id, user_id: state.user.id, 
-                        clock_in_time: new Date().toISOString(), 
-                        current_status: 'On Queue',
-                        check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
-                        record_source: 'mobile_app'
-                    });
-                    stream.getTracks().forEach(t => t.stop());
-                    showToast("Identity Verified. Welcome back!");
-                    renderAttendanceUI(document.getElementById('main-view'));
-                }, 'image/jpeg');
-            }, 1500);
-        } catch (err) { console.error(err); showToast("Access Denied: " + err.message, true); btn.classList.remove('hidden'); if(stream) stream.getTracks().forEach(t => t.stop()); }
-    }
-
-    async function handleClockOut(activityId) {
-        await supabaseClient.from('wfm_activity').update({ clock_out_time: new Date(), current_status: 'Offline' }).eq('id', activityId);
-        showToast("Shift Ended. Have a great evening!");
-        renderAttendanceUI(document.getElementById('main-view'));
-    }
-
-    async function loadAttendanceHistory() {
-        const { data: logs, error } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).order('clock_in_time', { ascending: false }).limit(5);
-        if(error) { console.error(error); return; }
-        let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`;
-        logs.forEach(log => {
-            const date = new Date(log.clock_in_time).toLocaleDateString();
-            const inTime = new Date(log.clock_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            const outTime = log.clock_out_time ? new Date(log.clock_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success)">Active</span>';
-            const sourceBadge = log.record_source === 'csv_upload' ? '<span class="badge" style="background:#95a5a6; position:static">Import</span>' : '<span class="badge" style="background:var(--success); position:static">Live</span>';
-            const proofLink = log.check_in_photo ? `<a href="${log.check_in_photo}" target="_blank" style="color:var(--primary)">View Selfie</a>` : '-';
-            html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById('attendance-history').innerHTML = html;
-    }
-
-    // --- UNIVERSAL IMPORT (SMART MERGE) ---
-    async function handleAttendanceImport() {
-        const fileInput = document.getElementById('attendance-file');
-        if (!fileInput.files.length) { showToast("Please select a CSV file", true); return; }
-        const file = fileInput.files[0];
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const text = e.target.result;
-            const rows = text.split('\n').slice(1); // Skip header
-            let success = 0; let skipped = 0;
-
-            for (const row of rows) {
-                const cols = row.split(',');
-                if (cols.length < 3) continue;
-                const email = cols[0].trim();
-                const dateStr = cols[1].trim(); // YYYY-MM-DD
-                const inTime = cols[2].trim(); // HH:MM
-                
-                const { data: user } = await supabaseClient.from('profiles').select('user_id').eq('email', email).maybeSingle();
-                if (!user) { skipped++; continue; }
-
-                const startOfDay = new Date(dateStr); 
-                const endOfDay = new Date(dateStr); endOfDay.setDate(endOfDay.getDate() + 1);
-                
-                const { data: conflict } = await supabaseClient.from('wfm_activity')
-                    .select('id')
-                    .eq('user_id', user.user_id)
-                    .eq('record_source', 'mobile_app')
-                    .gte('clock_in_time', startOfDay.toISOString())
-                    .lt('clock_in_time', endOfDay.toISOString());
-
-                if (conflict && conflict.length > 0) { skipped++; continue; }
-
-                const clockIn = new Date(`${dateStr}T${inTime}`);
-                const clockOut = cols[3] ? new Date(`${dateStr}T${cols[3].trim()}`) : null;
-                
-                await supabaseClient.from('wfm_activity').insert({
-                    org_id: state.org.id, user_id: user.user_id, clock_in_time: clockIn, clock_out_time: clockOut,
-                    record_source: 'csv_upload', current_status: 'Offline'
-                });
-                success++;
-            }
-            showToast(`Import Done: ${success} added, ${skipped} skipped.`);
-            document.getElementById('import-modal').classList.add('hidden');
-            renderAttendanceUI(document.getElementById('main-view'));
-        };
-        reader.readAsText(file);
-    }
-
-    // --- FIXED: HAVERSINE FORMULA (Solves "d is not defined") ---
-    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-      var R = 6371; // Radius of the earth in km
-      var dLat = deg2rad(lat2 - lat1); 
-      var dLon = deg2rad(lon2 - lon1); 
-      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      var d = R * c; // Distance in KM
-      return d * 1000; // Return Meters
-    }
-    function deg2rad(deg) { return deg * (Math.PI/180); }
-
-    // --- EMPLOYEES VIEW (Fixed Hierarchy) ---
+    // --- 1. EMPLOYEES VIEW ---
     async function loadEmployeesView(container) { 
         container.innerHTML = `
             <div class="page-title">
@@ -684,7 +425,6 @@
             </div>
             <div class="card">Loading...</div>
         `; 
-        // We query the whole org, but RLS in SQL filters it for us automatically now
         const { data, error } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
         
         if (error) { container.innerHTML = `<div class="card" style="color:var(--danger)">Error: ${error.message}</div>`; return; }
@@ -705,51 +445,44 @@
         document.querySelector('.card').remove(); 
     }
 
-    // ==========================================
-    // --- ONBOARDING LOGIC ---
-    // ==========================================
-    function openOnboardModal() {
-        const roleSelect = document.getElementById('new-role');
-        roleSelect.innerHTML = '';
-        const myRole = state.profile.role;
-        const options = [];
-        if (myRole === 'ceo' || myRole === 'admin') options.push('hr_manager', 'manager', 'employee');
-        else if (myRole === 'hr_manager') options.push('manager', 'employee');
-        else { showToast("Permission Denied", true); return; }
-        options.forEach(r => {
-            const opt = document.createElement('option'); opt.value = r; opt.innerText = r.toUpperCase().replace('_', ' '); roleSelect.appendChild(opt);
-        });
-        document.getElementById('onboard-modal').classList.remove('hidden');
-    }
-    function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
-    async function executeOnboard() {
-        const fullName = document.getElementById('new-name').value;
-        const email = document.getElementById('new-email').value;
-        const password = document.getElementById('new-pass').value;
-        const role = document.getElementById('new-role').value;
-        const phone = document.getElementById('new-meta-phone').value;
-        const dept = document.getElementById('new-meta-dept').value;
-        if(!fullName || !email || !password) { showToast("Fields Required", true); return; }
-        const metaData = {}; if(phone) metaData.phone = phone; if(dept) metaData.department = dept;
-        const btn = document.querySelector('#onboard-modal .btn-primary');
-        const oldText = btn.innerText; btn.innerText = "Creating...";
-        try {
-            const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
-            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } });
-            const { data: authData, error: authError } = await tempClient.auth.signUp({ email: email, password: password, options: { data: { full_name: fullName } } });
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Auth Failed");
-            const { error: profileError } = await supabaseClient.rpc('admin_create_profile', {
-                target_user_id: authData.user.id, user_email: email, full_name: fullName, user_role: role, target_org_id: state.org.id, user_meta: metaData, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random`
-            });
-            if (profileError) throw profileError;
-            showToast(`Success! User created: ${email}`); closeOnboardModal(); loadEmployeesView(document.getElementById('main-view'));
-        } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerText = oldText; }
+    // --- 2. PAYROLL VIEW ---
+    async function renderPayrollUI(container) { 
+        container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; 
+        const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); 
+        const historyList = document.getElementById('payroll-history-list'); 
+        historyList.innerHTML = ''; 
+        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } 
+        history.forEach((batch, index) => { 
+            const date = new Date(batch.created_at).toLocaleDateString(); 
+            const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
+            const div = document.createElement('div'); div.className = 'history-item'; 
+            div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`; 
+            div.onclick = () => loadBatchData(batch.id, div); 
+            historyList.appendChild(div); 
+            if(index === 0) loadBatchData(batch.id, div); 
+        }); 
     }
 
-    // ==========================================
-    // --- PERFORMANCE MANAGEMENT LOGIC ---
-    // ==========================================
+    // --- 3. ATS VIEW ---
+    async function loadATSView(container) {
+        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
+        const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
+        if (error) { container.innerHTML = `<div class="card">Error loading pipeline</div>`; return; }
+        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; const board = document.getElementById('ats-board'); board.innerHTML = '';
+        stages.forEach(stage => {
+            const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
+            col.innerHTML = `<div class="ats-col-header">${stage} <span class="ats-count">${stageCandidates.length}</span></div><div class="ats-cards" id="stage-${stage}"></div>`;
+            const cardContainer = col.querySelector('.ats-cards');
+            stageCandidates.forEach(cand => {
+                const card = document.createElement('div'); card.className = 'ats-card'; card.draggable = true; let actionBtn = '';
+                if (stage === 'Hired') actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
+                card.innerHTML = `<div class="ats-name">${cand.full_name}</div><div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div><div class="ats-actions">${actionBtn}<i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i></div>`;
+                cardContainer.appendChild(card);
+            }); board.appendChild(col);
+        });
+    }
+
+    // --- 4. PERFORMANCE VIEW ---
     async function renderPerformanceUI(container) {
         container.innerHTML = `
             <div class="page-title">
@@ -771,6 +504,186 @@
         const statsDivs = document.querySelectorAll('#perf-stats .score-val'); statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
         renderPerformanceTable(reviews);
     }
+
+    // --- 5. ATTENDANCE VIEW (Map + Export) ---
+    async function renderAttendanceUI(container) {
+        const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
+        const isClockedIn = !!activity;
+        const startTime = activity ? new Date(activity.clock_in_time) : null;
+        
+        let durationHTML = '';
+        if (isClockedIn) {
+            const diffMs = new Date() - startTime;
+            const hrs = Math.floor(diffMs / 3600000); const mins = Math.floor((diffMs % 3600000) / 60000);
+            durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:var(--success); text-shadow:0 0 20px rgba(46,204,113,0.4);">${hrs}h ${mins}m</div><div class="perf-badge" style="background:rgba(46,204,113,0.2); color:var(--success);">Active Session</div></div>`;
+        }
+
+        const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
+        
+        let adminControls = '';
+        if(isAdmin) {
+            adminControls = `
+            <div class="card" style="margin-top:25px; height:500px;">
+                <div class="card-header">
+                    <div class="card-title">Live Organization Map (Last Known Locations)</div>
+                    <button class="btn-outline" onclick="handleExportAttendance()"><i class="fa-solid fa-download"></i> Export CSV Dump</button>
+                </div>
+                <div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div>
+            </div>`;
+        }
+
+        container.innerHTML = `
+            <div class="page-title">Smart Attendance Workspace ${isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy</button>` : ''}</div>
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">
+                    ${durationHTML}
+                    <div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>
+                    ${!isClockedIn ? `<button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button><div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>` 
+                    : `<button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>`}
+                </div>
+                <div class="card" style="overflow-y:auto">
+                    <div class="card-title">My Recent Activity</div>
+                    <div id="attendance-history" style="margin-top:15px;">Loading...</div>
+                </div>
+            </div>
+            ${adminControls}
+        `;
+        
+        loadAttendanceHistory();
+        if(isAdmin) setTimeout(initLiveMap, 500); 
+    }
+
+    // --- 6. WFM VIEW (Option B Logic) ---
+    async function renderWFMUI(container) { 
+        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
+        initWFMChart(); loadWFMRoster(); 
+    }
+
+    // --- 7. REPORTS VIEW ---
+    async function renderReportsUI(container) { 
+        container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsSummary()"><i class="fa-solid fa-download"></i> Export Summary</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; 
+        const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
+        if(error || !reports) { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="color:red">View not ready. Run SQL.</td></tr>'; return; }
+        // Fix: Ensure DOM is ready before Chart.js runs
+        setTimeout(() => {
+            initReportCharts(reports); 
+        }, 100);
+        renderROITable(reports); 
+    }
+
+    // --- MAIN ROUTER (NOW SAFE TO CALL FUNCTIONS) ---
+    function renderMainContent() {
+        const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
+        if(view === 'dashboard') main.innerHTML = getDashboardHTML();
+        else if(view === 'employees') { if(['ceo','hr_manager','manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
+        else if(view === 'reports') { if(['ceo','admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'ats') { if(['ceo','admin','hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'performance') { if(['ceo','admin','hr_manager','manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'attendance') { renderAttendanceUI(main); }
+        else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
+    }
+
+    // --- HELPER FUNCTIONS ---
+
+    // Leaflet Map Init
+    async function initLiveMap() {
+        if (!document.getElementById('work-map')) return;
+        const map = L.map('work-map').setView([OFFICE_COORDS.lat, OFFICE_COORDS.lng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        const { data: profiles } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id);
+        for (const p of profiles) {
+            const { data: act } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', p.user_id).order('clock_in_time', {ascending:false}).limit(1).maybeSingle();
+            if (act && act.check_in_lat && act.check_in_long) {
+                const isActive = act.clock_out_time === null;
+                const color = isActive ? 'green' : 'grey';
+                const iconHtml = `<div style="background:${color}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px black;"></div>`;
+                const customIcon = L.divIcon({ html: iconHtml, className: 'custom-pin' });
+                L.marker([act.check_in_lat, act.check_in_long], { icon: customIcon }).addTo(map)
+                 .bindPopup(`<b>${p.full_name}</b><br>${isActive ? 'Online' : 'Offline'}<br>${new Date(act.clock_in_time).toLocaleTimeString()}`);
+            }
+        }
+    }
+
+    // Chart.js Init (WFM)
+    async function initWFMChart() {
+        // Try-Catch to prevent crash if table is missing
+        try {
+            const { data: schedules, error: schError } = await supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
+            if(schError && schError.code === '404') { console.warn("WFM Table missing"); return; }
+
+            const defaultStart = 9; const defaultEnd = 17; 
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { data: logs } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
+            const hours = Array.from({length: 24}, (_, i) => i);
+            const planned = new Array(24).fill(0);
+            const actual = new Array(24).fill(0);
+            const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
+            const totalStaff = count || 10;
+            
+            let sStart = defaultStart, sEnd = defaultEnd;
+            if(schedules && schedules.length > 0) {
+                const s = schedules[0]; 
+                sStart = parseInt(s.shift_start.split(':')[0]);
+                sEnd = parseInt(s.shift_end.split(':')[0]);
+            }
+            hours.forEach(h => { if (h >= sStart && h < sEnd) planned[h] = totalStaff; });
+            if(logs) { logs.forEach(l => { const inH = new Date(l.clock_in_time).getHours(); const outH = l.clock_out_time ? new Date(l.clock_out_time).getHours() : 23; for(let i=inH; i<=outH; i++) actual[i]++; }); }
+
+            const ctx = document.getElementById('wfmChart');
+            if(!ctx) return;
+            if(window.wfmChartInstance) window.wfmChartInstance.destroy();
+            window.wfmChartInstance = new Chart(ctx, { type: 'line', data: { labels: hours.map(h => `${h}:00`), datasets: [ { label: 'Planned', data: planned, borderColor: '#95a5a6', borderDash: [5, 5], tension: 0.4 }, { label: 'Actual', data: actual, borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 } ] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } });
+        } catch(err) { console.error("WFM Chart Error:", err); }
+    }
+
+    // Chart.js Init (Reports)
+    function initReportCharts(data) { 
+        const ctx1 = document.getElementById('burnoutChart');
+        const ctx2 = document.getElementById('efficiencyChart');
+        if(!ctx1 || !ctx2) return; // Safety check
+
+        new Chart(ctx1, { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Productivity', data: data.map(r => r.productivity_score), backgroundColor: '#3498db' } ] }, options: { plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); 
+        const roles = [...new Set(data.map(r => r.role))]; const efficiency = roles.map(role => { const users = data.filter(r => r.role === role); return users.reduce((sum, u) => sum + u.productivity_score, 0) / users.length; }); 
+        new Chart(ctx2, { type: 'radar', data: { labels: roles, datasets: [{ label: 'Avg Prod', data: efficiency, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.2)' }] }, options: { plugins: { legend: { labels: { color: 'white' } } }, scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } } } }); 
+    }
+
+    // Exports
+    async function handleExportAttendance() {
+        showToast("Generating CSV...");
+        const { data: logs } = await supabaseClient.from('wfm_activity').select('*, profiles(full_name, email)').eq('org_id', state.org.id).order('clock_in_time', {ascending: false});
+        if(!logs || logs.length === 0) { showToast("No data to export", true); return; }
+        let csv = "User,Email,In Time,Out Time,Status,Source\n";
+        logs.forEach(row => { csv += `"${row.profiles?.full_name}","${row.profiles?.email}","${row.clock_in_time}","${row.clock_out_time||''}","${row.current_status}","${row.record_source}"\n`; });
+        downloadCSV(csv, `Attendance_Dump_${new Date().toISOString().split('T')[0]}.csv`);
+    }
+    async function exportReportsSummary() {
+        showToast("Generating Summary...");
+        const { data: reports } = await supabaseClient.from('view_live_reports').select('full_name, role, total_cost, productivity_score, risk_count').eq('org_id', state.org.id);
+        if(!reports) return;
+        let csv = "Employee,Role,Cost,Productivity,Risk Count\n";
+        reports.forEach(r => csv += `"${r.full_name}","${r.role}",${r.total_cost},${r.productivity_score},${r.risk_count}\n`);
+        downloadCSV(csv, `Reports_Summary_${new Date().toISOString().split('T')[0]}.csv`);
+    }
+    function downloadCSV(csv, filename) { const blob = new Blob([csv], { type: 'text/csv' }); const url = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); }
+
+    // Option B Save
+    async function saveDepartmentSchedule() {
+        const dept = document.getElementById('set-dept').value;
+        const start = document.getElementById('set-start').value;
+        const end = document.getElementById('set-end').value;
+        const days = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
+        if(!dept) { showToast("Enter Department Name", true); return; }
+        const { error } = await supabaseClient.from('wfm_schedules').upsert({ org_id: state.org.id, department: dept, work_days: days, shift_start: start, shift_end: end }, { onConflict: 'org_id, department' });
+        if(error) { showToast("Error saving rule: " + error.message, true); } else { showToast("Schedule Saved!"); document.getElementById('settings-modal').classList.add('hidden'); initWFMChart(); }
+    }
+
+    // Other Logic (Helper functions for other tabs)
+    async function loadBatchData(batchId, element) { document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active'); const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`; const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true }); if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; } renderPayrollTable(data, false); }
+    async function handlePayrollUpload(input) { const file = input.files[0]; if(!file) return; document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden'); try { const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError; const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); } } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); } }
+    function renderPayrollTable(items, isNew = true) { document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden'); let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`; items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; }); html += `</tbody></table></div></div>`; container.innerHTML = html; }
+    async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
     function changePerfCycle(cycle) { state.perfCycle = cycle; renderPerformanceUI(document.getElementById('main-view')); }
     function renderPerformanceTable(reviews) {
         let html = `<table><thead><tr><th>Employee</th><th>Role</th><th>Quality</th><th>Speed</th><th>Score</th><th>AI Insight</th></tr></thead><tbody>`;
@@ -805,27 +718,6 @@
             showToast(`Success! Saved ${successCount} reviews.`); document.getElementById('perf-modal').classList.add('hidden'); renderPerformanceUI(document.getElementById('main-view'));
         } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerHTML = oldText; }
     }
-
-    // ==========================================
-    // --- ATS RECRUITMENT LOGIC ---
-    // ==========================================
-    async function loadATSView(container) {
-        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
-        const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
-        if (error) { container.innerHTML = `<div class="card">Error loading pipeline</div>`; return; }
-        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; const board = document.getElementById('ats-board'); board.innerHTML = '';
-        stages.forEach(stage => {
-            const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
-            col.innerHTML = `<div class="ats-col-header">${stage} <span class="ats-count">${stageCandidates.length}</span></div><div class="ats-cards" id="stage-${stage}"></div>`;
-            const cardContainer = col.querySelector('.ats-cards');
-            stageCandidates.forEach(cand => {
-                const card = document.createElement('div'); card.className = 'ats-card'; card.draggable = true; let actionBtn = '';
-                if (stage === 'Hired') actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
-                card.innerHTML = `<div class="ats-name">${cand.full_name}</div><div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div><div class="ats-actions">${actionBtn}<i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i></div>`;
-                cardContainer.appendChild(card);
-            }); board.appendChild(col);
-        });
-    }
     async function promoteCandidateToEmployee(candidateId) {
         const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single();
         if (error) { showToast("Error fetching details", true); return; }
@@ -834,136 +726,15 @@
         document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || '';
         showToast("Candidate data pre-filled. Please set a password.");
     }
-
-    // --- REPORTS (LIVE VIEW Engine) + ADDED EXPORT ---
-    async function renderReportsUI(container) { 
-        container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsSummary()"><i class="fa-solid fa-download"></i> Export Summary</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; 
-        
-        // FIXED: Querying the VIEW instead of the old table
-        const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
-        
-        if(error) { console.error(error); document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="color:red">Error: View not ready. Run SQL Script.</td></tr>'; return; }
-        if(reports && reports.length > 0) { initReportCharts(reports); renderROITable(reports); } else { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;">No data available yet. Generate WFM/Payroll data first.</td></tr>'; } 
-    }
-    // ADDED: Summary Export Logic
-    async function exportReportsSummary() {
-        showToast("Generating Summary...");
-        const { data: reports } = await supabaseClient.from('view_live_reports').select('full_name, role, total_cost, productivity_score, risk_count').eq('org_id', state.org.id);
-        if(!reports) return;
-        let csv = "Employee,Role,Cost,Productivity,Risk Count\n";
-        reports.forEach(r => csv += `"${r.full_name}","${r.role}",${r.total_cost},${r.productivity_score},${r.risk_count}\n`);
-        downloadCSV(csv, `Reports_Summary_${new Date().toISOString().split('T')[0]}.csv`);
-    }
-    function initReportCharts(data) { new Chart(document.getElementById('burnoutChart'), { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Productivity Score', data: data.map(r => r.productivity_score), backgroundColor: '#3498db' } ] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); const roles = [...new Set(data.map(r => r.role))]; const efficiency = roles.map(role => { const users = data.filter(r => r.role === role); return users.reduce((sum, u) => sum + u.productivity_score, 0) / users.length; }); new Chart(document.getElementById('efficiencyChart'), { type: 'radar', data: { labels: roles, datasets: [{ label: 'Avg Productivity Score', data: efficiency, borderColor: '#2ecc71', backgroundColor: 'rgba(46, 204, 113, 0.2)' }] }, options: { responsive: true, plugins: { legend: { labels: { color: 'white' } } }, scales: { r: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { display: false } } } } }); }
-    function renderROITable(data) { const tbody = document.querySelector('#roi-table tbody'); let html = ''; data.forEach(r => { const cost = r.total_cost || 0; const prod = r.productivity_score || 0; const roi = cost > 0 ? ((prod / cost) * 1000).toFixed(1) : 'N/A'; let status = '<span class="badge" style="background:var(--success); position:static">Healthy</span>'; if (prod < 50 && cost > 5000) status = '<span class="badge" style="background:var(--danger); position:static">Overpaid / Low Output</span>'; if (prod > 90 && cost < 3000) status = '<span class="badge" style="background:var(--warning); position:static">Flight Risk (Underpaid)</span>'; html += `<tr><td>${r.full_name}</td><td>${r.role}</td><td>$${cost}</td><td>${prod}</td><td>${roi}</td><td>${status}</td></tr>`; }); tbody.innerHTML = html; }
-    function exportReportsCSV() { showToast("Exporting data..."); }
-
-    // --- WFM FUNCTIONS (Updated for Option B) ---
-    async function renderWFMUI(container) { 
-        // Added Settings Button
-        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
-        initWFMChart(); loadWFMRoster(); 
-    }
-    
-    // SAVE CUSTOM SCHEDULE (Option B)
-    async function saveDepartmentSchedule() {
-        const dept = document.getElementById('set-dept').value;
-        const start = document.getElementById('set-start').value;
-        const end = document.getElementById('set-end').value;
-        const days = Array.from(document.querySelectorAll('.day-check:checked')).map(cb => parseInt(cb.value));
-        
-        if(!dept) { showToast("Enter Department Name", true); return; }
-        
-        const { error } = await supabaseClient.from('wfm_schedules').upsert({
-            org_id: state.org.id, department: dept, work_days: days, shift_start: start, shift_end: end
-        }, { onConflict: 'org_id, department' });
-        
-        if(error) { showToast("Error saving rule: " + error.message, true); }
-        else { showToast("Schedule Saved!"); document.getElementById('settings-modal').classList.add('hidden'); initWFMChart(); }
-    }
-
-    async function initWFMChart() {
-        // 1. Fetch Schedule Rules
-        const { data: schedules } = await supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
-        const defaultStart = 9; const defaultEnd = 17; // Fallback
-        
-        // 2. Fetch Actual Activity
-        const todayStr = new Date().toISOString().split('T')[0];
-        const { data: logs } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
-
-        // 3. Build Data Arrays (Hours 0-23)
-        const hours = Array.from({length: 24}, (_, i) => i);
-        const planned = new Array(24).fill(0);
-        const actual = new Array(24).fill(0);
-
-        // Calculate PLANNED (Based on Saved Rules + Employee Counts)
-        const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
-        const totalStaff = count || 10;
-        
-        // Simple logic: Apply schedule rules to total staff (refine later for per-dept)
-        let sStart = defaultStart, sEnd = defaultEnd;
-        if(schedules && schedules.length > 0) {
-            const s = schedules[0]; // Take first rule for demo chart simplicity
-            sStart = parseInt(s.shift_start.split(':')[0]);
-            sEnd = parseInt(s.shift_end.split(':')[0]);
-        }
-        
-        hours.forEach(h => {
-            if (h >= sStart && h < sEnd) planned[h] = totalStaff; 
-        });
-
-        // Calculate ACTUAL
-        if(logs) {
-            logs.forEach(l => {
-                const inH = new Date(l.clock_in_time).getHours();
-                const outH = l.clock_out_time ? new Date(l.clock_out_time).getHours() : 23;
-                for(let i=inH; i<=outH; i++) actual[i]++;
-            });
-        }
-
-        const ctx = document.getElementById('wfmChart');
-        if(!ctx) return;
-        if(window.wfmChartInstance) window.wfmChartInstance.destroy();
-        
-        window.wfmChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: hours.map(h => `${h}:00`),
-                datasets: [
-                    { label: 'Planned (Target)', data: planned, borderColor: '#95a5a6', borderDash: [5, 5], tension: 0.4 },
-                    { label: 'Actual (Live)', data: actual, borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 }
-                ]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
-        });
-    }
-
-    async function loadWFMRoster() { 
-        const list = document.getElementById('wfm-roster-list'); if(!list) return; 
-        const { data: employees } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id).limit(50);
-        if (!employees || employees.length === 0) { list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No active employees found.</div>'; return; }
-        const { data: active } = await supabaseClient.from('wfm_activity').select('user_id, current_status').eq('org_id', state.org.id).is('clock_out_time', null);
-        const activeMap = {}; if(active) active.forEach(a => activeMap[a.user_id] = a.current_status);
-        let html = ''; 
-        // Using existing color scheme
-        const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' }; 
-        employees.forEach(emp => { 
-            const isActive = activeMap.hasOwnProperty(emp.user_id);
-            const status = isActive ? (activeMap[emp.user_id] || 'Online') : 'Offline'; 
-            const color = isActive ? colors[status] || 'var(--success)' : 'var(--text-muted)'; 
-            html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border); opacity:${isActive?1:0.6}"><img src="${emp.avatar_url || 'https://ui-avatars.com/api/?background=random'}" style="width:35px; height:35px; border-radius:50%;"><div style="flex-grow:1;"><div style="font-weight:600; color:#fff;">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div></div><span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span></div>`; 
-        }); 
-        list.innerHTML = html; 
-    }
+    function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
+    function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
+    async function executeOnboard() { const fullName = document.getElementById('new-name').value; const email = document.getElementById('new-email').value; const password = document.getElementById('new-pass').value; const role = document.getElementById('new-role').value; const phone = document.getElementById('new-meta-phone').value; const dept = document.getElementById('new-meta-dept').value; if(!fullName || !email || !password) { showToast("Fields Required", true); return; } const metaData = {}; if(phone) metaData.phone = phone; if(dept) metaData.department = dept; const btn = document.querySelector('#onboard-modal .btn-primary'); const oldText = btn.innerText; btn.innerText = "Creating..."; try { const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }; const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } }); const { data: authData, error: authError } = await tempClient.auth.signUp({ email: email, password: password, options: { data: { full_name: fullName } } }); if (authError) throw authError; if (!authData.user) throw new Error("Auth Failed"); const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { target_user_id: authData.user.id, user_email: email, full_name: fullName, user_role: role, target_org_id: state.org.id, user_meta: metaData, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` }); if (profileError) throw profileError; showToast(`Success! User created: ${email}`); closeOnboardModal(); loadEmployeesView(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerText = oldText; } }
+    async function loadWFMRoster() { const list = document.getElementById('wfm-roster-list'); if(!list) return; const { data: employees } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id).limit(50); if (!employees || employees.length === 0) { list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No active employees found.</div>'; return; } const { data: active } = await supabaseClient.from('wfm_activity').select('user_id, current_status').eq('org_id', state.org.id).is('clock_out_time', null); const activeMap = {}; if(active) active.forEach(a => activeMap[a.user_id] = a.current_status); let html = ''; employees.forEach(emp => { const isActive = activeMap.hasOwnProperty(emp.user_id); const status = isActive ? (activeMap[emp.user_id] || 'Online') : 'Offline'; const color = isActive ? 'var(--success)' : 'var(--text-muted)'; html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border); opacity:${isActive?1:0.6}"><img src="${emp.avatar_url || 'https://ui-avatars.com/api/?background=random'}" style="width:35px; height:35px; border-radius:50%;"><div style="flex-grow:1;"><div style="font-weight:600; color:#fff;">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div></div><span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span></div>`; }); list.innerHTML = html; }
     async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Use Attendance Tab to Clock In')">Go to Attendance</button></div>`; }
-
-    // --- PAYROLL FUNCTIONS (RESTORED FULLY) ---
-    async function renderPayrollUI(container) { container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = ''; if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } history.forEach((batch, index) => { const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); const div = document.createElement('div'); div.className = 'history-item'; div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`; div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div); }); }
-    async function loadBatchData(batchId, element) { document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active'); const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`; const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true }); if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; } renderPayrollTable(data, false); }
-    async function handlePayrollUpload(input) { const file = input.files[0]; if(!file) return; document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden'); try { const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError; const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); } } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); } }
-    function renderPayrollTable(items, isNew = true) { document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden'); let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`; items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; }); html += `</tbody></table></div></div>`; container.innerHTML = html; }
-    async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
-    
+    async function loadAttendanceHistory() { const { data: logs, error } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).order('clock_in_time', { ascending: false }).limit(5); if(error) { console.error(error); return; } let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`; logs.forEach(log => { const date = new Date(log.clock_in_time).toLocaleDateString(); const inTime = new Date(log.clock_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); const outTime = log.clock_out_time ? new Date(log.clock_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success)">Active</span>'; const sourceBadge = log.record_source === 'csv_upload' ? '<span class="badge" style="background:#95a5a6; position:static">Import</span>' : '<span class="badge" style="background:var(--success); position:static">Live</span>'; const proofLink = log.check_in_photo ? `<a href="${log.check_in_photo}" target="_blank" style="color:var(--primary)">View Selfie</a>` : '-'; html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`; }); html += `</tbody></table>`; document.getElementById('attendance-history').innerHTML = html; }
+    async function handleClockOut(activityId) { await supabaseClient.from('wfm_activity').update({ clock_out_time: new Date(), current_status: 'Offline' }).eq('id', activityId); showToast("Shift Ended. Have a great evening!"); renderAttendanceUI(document.getElementById('main-view')); }
+    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = deg2rad(lat2 - lat1); var dLon = deg2rad(lon2 - lon1); var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); var d = R * c; return d * 1000; }
+    function deg2rad(deg) { return deg * (Math.PI/180); }
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) { const t = document.getElementById('toast'); if(!t) return; document.getElementById('toast-msg').innerText = msg; t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
     function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr'); renderSidebar(); renderMainContent(); }
