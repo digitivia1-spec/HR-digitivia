@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
-        /* ... [ALL EXISTING CSS PRESERVED] ... */
+        /* --- CORE VARIABLES --- */
         :root {
             --bg-body-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); 
             --glass-bg: rgba(255, 255, 255, 0.05);
@@ -36,7 +36,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg-body-gradient); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
 
-        /* [KEEP ALL AUTH, SIDEBAR, GRID, TABLE STYLES FROM PREVIOUS CODE] */
+        /* --- AUTH & LAYOUT --- */
         #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body-gradient); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         .auth-card { background: rgba(13, 27, 42, 0.6); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -77,7 +77,6 @@
         .header-right { display: flex; align-items: center; gap: 20px; }
         .branding-logos { display: flex; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--glass-border); }
         html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
-        .branding-logos img.secondary-logo { height: 50px; width: auto; object-fit: contain; opacity: 0.9; }
         .user-controls { display: flex; align-items: center; gap: 15px; }
         .icon-btn { cursor: pointer; color: var(--text-main); font-size: 1.2rem; position: relative; transition: 0.2s; }
         .icon-btn:hover { color: var(--primary); transform: scale(1.1); }
@@ -94,8 +93,6 @@
         .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(41, 128, 185, 0.6); }
         .btn-outline { background-color: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: #fff; }
-        .btn-back-circle { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 1.1rem; }
-        .btn-back-circle:hover { background: var(--primary); color: white; border-color: var(--primary); transform: scale(1.1); box-shadow: 0 0 15px rgba(52, 152, 219, 0.4); }
         .dashboard-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-bottom: 25px; align-items: stretch; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 15px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--glass-border); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
@@ -394,6 +391,7 @@
     }
 
     function getDashboardHTML() {
+        if (!state.profile) return `<div>Loading...</div>`;
         return `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div><div class="dashboard-grid"><div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div><div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div></div>`;
     }
 
@@ -578,13 +576,19 @@
         reader.readAsText(file);
     }
 
-    // Helper: Haversine & Radian
+    // --- FIXED: HAVERSINE FORMULA (Solves "d is not defined") ---
     function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-      var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); 
-      var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
-      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return d * R * 1000;
+      var R = 6371; // Radius of the earth in km
+      var dLat = deg2rad(lat2 - lat1); 
+      var dLon = deg2rad(lon2 - lon1); 
+      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      var d = R * c; // Distance in KM
+      return d * 1000; // Return Meters
     }
-    function deg2rad(deg) { return deg * (Math.PI/180); } // FIXED: Added this helper
+    function deg2rad(deg) { return deg * (Math.PI/180); }
 
     // --- EMPLOYEES VIEW (Fixed Hierarchy) ---
     async function loadEmployeesView(container) { 
@@ -765,15 +769,22 @@
         container.innerHTML = `<div class="page-title">Workforce Management</div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Live)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
         initWFMChart(); loadWFMRoster(); 
     }
-    // FIXED: Real-time query for WFM Status
+    
+    // FIXED: Real-time query for WFM Status logic
     async function loadWFMRoster() { 
         const list = document.getElementById('wfm-roster-list'); if(!list) return; 
         
-        // 1. Get All Employees
-        const { data: employees } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id);
+        // 1. Get All Employees within View Scope (Handles RLS implicitly via Supabase)
+        const { data: employees, error: empError } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id).limit(50);
         
+        if (empError || !employees || employees.length === 0) {
+            list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No active employees found in your view.</div>';
+            return;
+        }
+
         // 2. Get Active Sessions (Clocked In but not Out)
         const { data: active } = await supabaseClient.from('wfm_activity').select('user_id, current_status').eq('org_id', state.org.id).is('clock_out_time', null);
+        
         const activeMap = {}; 
         if(active) active.forEach(a => activeMap[a.user_id] = a.current_status);
 
@@ -781,12 +792,24 @@
         const colors = { 'On Queue': 'var(--success)', 'Break': 'var(--warning)', 'Meeting': 'var(--info)', 'Offline': 'var(--text-muted)' }; 
         
         employees.forEach(emp => { 
-            const status = activeMap[emp.user_id] || 'Offline'; 
-            const color = colors[status] || 'var(--text-muted)'; 
-            html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);"><img src="${emp.avatar_url || 'https://ui-avatars.com/api/?background=random'}" style="width:35px; height:35px; border-radius:50%;"><div style="flex-grow:1;"><div style="font-weight:600; color:#fff;">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div></div><span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span></div>`; 
+            // REAL STATUS LOGIC: If they are in activeMap, they are Online. If not, Offline.
+            const isActive = activeMap.hasOwnProperty(emp.user_id);
+            const status = isActive ? (activeMap[emp.user_id] || 'Online') : 'Offline'; 
+            const color = isActive ? colors[status] || 'var(--success)' : 'var(--text-muted)'; 
+            const opacity = isActive ? '1' : '0.5';
+
+            html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border); opacity:${opacity}">
+                <img src="${emp.avatar_url || 'https://ui-avatars.com/api/?background=random'}" style="width:35px; height:35px; border-radius:50%;">
+                <div style="flex-grow:1;">
+                    <div style="font-weight:600; color:#fff;">${emp.full_name}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div>
+                </div>
+                <span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span>
+            </div>`; 
         }); 
         list.innerHTML = html; 
     }
+    
     async function initWFMChart() { /* Chart logic same as before, simplified for brevity */ }
     async function calculateWFMStats() { /* Stats logic same as before */ return { adherence: 88, productivity: 82, forecast: 95 }; }
     async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Use Attendance Tab to Clock In')">Go to Attendance</button></div>`; }
