@@ -13,6 +13,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
         /* --- CORE VARIABLES --- */
@@ -571,10 +572,143 @@
         renderROITable(reports); 
     }
 
+    /* ========================================================================
+       NEW DASHBOARD LOGIC (OPTION C + LATE ARRIVALS + OPTION B MANAGER ROLE)
+       ======================================================================== */
+    
+    async function loadDashboardView(container) {
+        // PDF Export Button in Header
+        const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
+        
+        // --- 1. STATISTICS CARDS ---
+        let query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
+        // MANAGER LOGIC (Option B): Filter by Dept
+        if (state.profile.role === 'manager') {
+            query = query.eq('department', state.profile.department);
+        }
+        const { count: totalStaff } = await query;
+
+        // Active Staff Logic
+        let activeQuery = supabaseClient.from('wfm_activity').select('user_id').eq('org_id', state.org.id).is('clock_out_time', null);
+        if (state.profile.role === 'manager') {
+            // Need to filter wfm_activity by users in dept. Since we can't join easily in count, we fetch profile IDs first.
+            const { data: teamIds } = await supabaseClient.from('profiles').select('user_id').eq('department', state.profile.department);
+            const ids = teamIds.map(t => t.user_id);
+            activeQuery = activeQuery.in('user_id', ids);
+        }
+        const { data: activeData } = await activeQuery;
+        const activeCount = activeData ? activeData.length : 0;
+
+        // Jobs Logic (ATS)
+        let jobQuery = supabaseClient.from('ats_jobs').select('*', { count: 'exact', head: true });
+        if (state.profile.role === 'manager') { jobQuery = jobQuery.eq('department', state.profile.department); }
+        const { count: openJobs } = await jobQuery;
+
+        // Late Arrivals Logic (Complex)
+        // 1. Get Department Schedule
+        let schedQuery = supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
+        if (state.profile.role === 'manager') { schedQuery = schedQuery.eq('department', state.profile.department); }
+        const { data: schedules } = await schedQuery;
+        
+        let lateCount = 0;
+        let lateListHTML = '';
+        
+        if (schedules && schedules.length > 0) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, profiles(full_name, department)').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
+            
+            logs.forEach(log => {
+                // Find rule for this user's dept
+                const rule = schedules.find(s => s.department === log.profiles?.department) || schedules[0]; // Fallback to first rule if generic
+                if (rule) {
+                    const ruleHour = parseInt(rule.shift_start.split(':')[0]);
+                    const ruleMin = parseInt(rule.shift_start.split(':')[1]);
+                    const clockTime = new Date(log.clock_in_time);
+                    const ruleTime = new Date(log.clock_in_time); 
+                    ruleTime.setHours(ruleHour, ruleMin, 0);
+                    
+                    if (clockTime > ruleTime) {
+                        lateCount++;
+                        const diff = Math.round((clockTime - ruleTime) / 60000);
+                        lateListHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between;"><span>${log.profiles.full_name}</span> <span style="color:var(--danger)">+${diff} min</span></div>`;
+                    }
+                }
+            });
+        }
+        if (lateListHTML === '') lateListHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No late arrivals today.</div>';
+
+        // --- RENDER HTML ---
+        container.innerHTML = `
+            ${header}
+            <div id="dash-content">
+                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
+                    <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
+                    <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
+                    <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
+                </div>
+
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card">
+                        <div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div>
+                        <div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Staff Distribution</div>
+                        <div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Recent Activity (Organization Wide)</div>
+                    <div id="dash-activity">Loading...</div>
+                </div>
+            </div>
+        `;
+
+        // Render Pie Chart
+        const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
+        const deptCounts = {};
+        allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+        
+        new Chart(document.getElementById('dashPie'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(deptCounts),
+                datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } }
+        });
+
+        // Load Activity Feed
+        const { data: feed } = await supabaseClient.from('wfm_activity').select('*, profiles(full_name)').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
+        let feedHTML = '';
+        feed.forEach(f => {
+            feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;">
+                <span style="font-weight:600; color:var(--primary)">${f.profiles.full_name}</span> 
+                clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}
+            </div>`;
+        });
+        document.getElementById('dash-activity').innerHTML = feedHTML;
+    }
+
+    function exportDashboardPDF() {
+        const element = document.getElementById('dash-content');
+        const opt = {
+            margin: 10,
+            filename: `Dashboard_Snapshot_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, backgroundColor: '#0f2027' },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+        // Use html2pdf lib
+        html2pdf().set(opt).from(element).save();
+    }
+
     // --- MAIN ROUTER (NOW SAFE TO CALL FUNCTIONS) ---
     function renderMainContent() {
         const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
-        if(view === 'dashboard') main.innerHTML = getDashboardHTML();
+        if(view === 'dashboard') loadDashboardView(main); // CHANGED: Now calls the new async function
         else if(view === 'employees') { if(['ceo','hr_manager','manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
@@ -684,57 +818,7 @@
     async function handlePayrollUpload(input) { const file = input.files[0]; if(!file) return; document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden'); try { const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError; const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); } } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); } }
     function renderPayrollTable(items, isNew = true) { document.getElementById('payroll-loading').classList.add('hidden'); const container = document.getElementById('payroll-content'); container.classList.remove('hidden'); let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0;"><div class="card-title">Payroll Data</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`; items.forEach(item => { html += `<tr><td><input class="table-input" value="${item.employee_name}" onchange="updatePayrollItem('${item.id}', 'employee_name', this.value, '${item.employee_name}')"></td><td><input type="number" class="table-input" value="${item.salary}" onchange="updatePayrollItem('${item.id}', 'salary', this.value, '${item.salary}')"></td><td><input type="number" class="table-input" value="${item.bonus}" onchange="updatePayrollItem('${item.id}', 'bonus', this.value, '${item.bonus}')"></td><td><input type="number" class="table-input" value="${item.deductions}" onchange="updatePayrollItem('${item.id}', 'deductions', this.value, '${item.deductions}')"></td><td style="color:var(--success); font-weight:bold">${item.net_pay}</td></tr>`; }); html += `</tbody></table></div></div>`; container.innerHTML = html; }
     async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
-    function changePerfCycle(cycle) { state.perfCycle = cycle; renderPerformanceUI(document.getElementById('main-view')); }
-    function renderPerformanceTable(reviews) {
-        let html = `<table><thead><tr><th>Employee</th><th>Role</th><th>Quality</th><th>Speed</th><th>Score</th><th>AI Insight</th></tr></thead><tbody>`;
-        reviews.forEach(r => {
-            const scoreClass = r.score_final >= 90 ? 'perf-high' : (r.score_final >= 75 ? 'perf-mid' : 'perf-low');
-            html += `<tr><td><div style="font-weight:600">${r.profiles?.full_name || 'Unknown'}</div><div style="font-size:0.8rem; color:var(--text-muted)">${r.profiles?.email}</div></td><td>${r.profiles?.role || '-'}</td><td>${r.score_quality}</td><td>${r.score_speed}</td><td><span class="perf-badge ${scoreClass}">${r.score_final}</span></td><td><button class="btn-outline" style="font-size:0.75rem;" onclick="showToast('${r.ai_feedback.replace(/'/g, "\\'")}')">View Analysis</button></td></tr>`;
-        });
-        html += `</tbody></table>`;
-        document.getElementById('perf-content').innerHTML = html;
-    }
-    function openPerformanceModal() { document.getElementById('perf-modal').classList.remove('hidden'); }
-    function setPerfInput(mode) { state.perfInputMode = mode; const btnFile = document.getElementById('btn-file-mode'); const btnManual = document.getElementById('btn-manual-mode'); const boxFile = document.getElementById('perf-input-file'); const boxManual = document.getElementById('perf-input-manual'); if (mode === 'file') { btnFile.style.borderColor = 'var(--primary)'; btnManual.style.borderColor = 'var(--glass-border)'; boxFile.classList.remove('hidden'); boxManual.classList.add('hidden'); } else { btnManual.style.borderColor = 'var(--primary)'; btnFile.style.borderColor = 'var(--glass-border)'; boxManual.classList.remove('hidden'); boxFile.classList.add('hidden'); } }
-    async function handlePerformanceSubmit() {
-        const btn = document.querySelector('#perf-modal .btn-primary'); const oldText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
-        try {
-            const dept = document.getElementById('perf-dept').value; let payloadData = "";
-            if (state.perfInputMode === 'file') {
-                const fileInput = document.getElementById('perf-file'); if (!fileInput.files.length) throw new Error("Please select a file.");
-                const file = fileInput.files[0]; const fileName = `perf_${Date.now()}_${file.name}`;
-                const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if (uploadError) throw uploadError;
-                const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); payloadData = publicUrl;
-            } else { payloadData = document.getElementById('perf-text').value; if (!payloadData) throw new Error("Please enter text logs."); }
-            const response = await fetch(N8N_PERF_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "analyze_performance", org_id: state.org.id, department: dept, review_period: state.perfCycle, input_type: state.perfInputMode, data_content: payloadData }) });
-            if (!response.ok) throw new Error("AI Analysis Failed");
-            let aiResponse = await response.json(); if (Array.isArray(aiResponse) && aiResponse.length > 0) aiResponse = aiResponse[0]; if (typeof aiResponse === 'string') try { aiResponse = JSON.parse(aiResponse); } catch(e) {}
-            const results = aiResponse.results || []; if (results.length === 0) throw new Error("AI returned no results.");
-            let successCount = 0;
-            for (const res of results) {
-                const { data: userProfile } = await supabaseClient.from('profiles').select('user_id').eq('email', res.email).maybeSingle();
-                if (userProfile) { await supabaseClient.from('performance_reviews').insert({ org_id: state.org.id, user_id: userProfile.user_id, review_period: state.perfCycle, period_start: new Date(), period_end: new Date(), score_quality: res.score_quality || 0, score_speed: res.score_speed || 0, score_teamwork: res.score_teamwork || 0, score_efficiency: res.score_efficiency || 0, score_final: res.score_final || 0, ai_feedback: res.ai_feedback || "No feedback.", raw_data_source: state.perfInputMode }); successCount++; }
-            }
-            showToast(`Success! Saved ${successCount} reviews.`); document.getElementById('perf-modal').classList.add('hidden'); renderPerformanceUI(document.getElementById('main-view'));
-        } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerHTML = oldText; }
-    }
-    async function promoteCandidateToEmployee(candidateId) {
-        const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single();
-        if (error) { showToast("Error fetching details", true); return; }
-        openOnboardModal();
-        document.getElementById('new-name').value = candidate.full_name; document.getElementById('new-email').value = candidate.email;
-        document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || '';
-        showToast("Candidate data pre-filled. Please set a password.");
-    }
-    function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
-    function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
-    async function executeOnboard() { const fullName = document.getElementById('new-name').value; const email = document.getElementById('new-email').value; const password = document.getElementById('new-pass').value; const role = document.getElementById('new-role').value; const phone = document.getElementById('new-meta-phone').value; const dept = document.getElementById('new-meta-dept').value; if(!fullName || !email || !password) { showToast("Fields Required", true); return; } const metaData = {}; if(phone) metaData.phone = phone; if(dept) metaData.department = dept; const btn = document.querySelector('#onboard-modal .btn-primary'); const oldText = btn.innerText; btn.innerText = "Creating..."; try { const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }; const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } }); const { data: authData, error: authError } = await tempClient.auth.signUp({ email: email, password: password, options: { data: { full_name: fullName } } }); if (authError) throw authError; if (!authData.user) throw new Error("Auth Failed"); const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { target_user_id: authData.user.id, user_email: email, full_name: fullName, user_role: role, target_org_id: state.org.id, user_meta: metaData, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` }); if (profileError) throw profileError; showToast(`Success! User created: ${email}`); closeOnboardModal(); loadEmployeesView(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerText = oldText; } }
-    async function loadWFMRoster() { const list = document.getElementById('wfm-roster-list'); if(!list) return; const { data: employees } = await supabaseClient.from('profiles').select('user_id, full_name, role, avatar_url').eq('org_id', state.org.id).limit(50); if (!employees || employees.length === 0) { list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No active employees found.</div>'; return; } const { data: active } = await supabaseClient.from('wfm_activity').select('user_id, current_status').eq('org_id', state.org.id).is('clock_out_time', null); const activeMap = {}; if(active) active.forEach(a => activeMap[a.user_id] = a.current_status); let html = ''; employees.forEach(emp => { const isActive = activeMap.hasOwnProperty(emp.user_id); const status = isActive ? (activeMap[emp.user_id] || 'Online') : 'Offline'; const color = isActive ? 'var(--success)' : 'var(--text-muted)'; html += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border); opacity:${isActive?1:0.6}"><img src="${emp.avatar_url || 'https://ui-avatars.com/api/?background=random'}" style="width:35px; height:35px; border-radius:50%;"><div style="flex-grow:1;"><div style="font-weight:600; color:#fff;">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted);">${emp.role}</div></div><span style="font-size:0.75rem; padding:4px 8px; border-radius:4px; background:${color}20; color:${color}; border:1px solid ${color}40;">${status}</span></div>`; }); list.innerHTML = html; }
-    async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Use Attendance Tab to Clock In')">Go to Attendance</button></div>`; }
-    async function loadAttendanceHistory() { const { data: logs, error } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).order('clock_in_time', { ascending: false }).limit(5); if(error) { console.error(error); return; } let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`; logs.forEach(log => { const date = new Date(log.clock_in_time).toLocaleDateString(); const inTime = new Date(log.clock_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); const outTime = log.clock_out_time ? new Date(log.clock_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success)">Active</span>'; const sourceBadge = log.record_source === 'csv_upload' ? '<span class="badge" style="background:#95a5a6; position:static">Import</span>' : '<span class="badge" style="background:var(--success); position:static">Live</span>'; const proofLink = log.check_in_photo ? `<a href="${log.check_in_photo}" target="_blank" style="color:var(--primary)">View Selfie</a>` : '-'; html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`; }); html += `</tbody></table>`; document.getElementById('attendance-history').innerHTML = html; }
-    async function handleClockOut(activityId) { await supabaseClient.from('wfm_activity').update({ clock_out_time: new Date(), current_status: 'Offline' }).eq('id', activityId); showToast("Shift Ended. Have a great evening!"); renderAttendanceUI(document.getElementById('main-view')); }
-    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = deg2rad(lat2 - lat1); var dLon = deg2rad(lon2 - lon1); var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); var d = R * c; return d * 1000; }
-    function deg2rad(deg) { return deg * (Math.PI/180); }
+    
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) { const t = document.getElementById('toast'); if(!t) return; document.getElementById('toast-msg').innerText = msg; t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
     function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr'); renderSidebar(); renderMainContent(); }
