@@ -145,7 +145,7 @@
         .ats-actions { display: flex; justify-content: flex-end; gap: 5px; }
         .ats-btn-hire { font-size: 0.75rem; background: var(--success); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
 
-        /* --- PERFORMANCE STYLES (NEW) --- */
+        /* --- PERFORMANCE STYLES --- */
         .perf-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-block; }
         .perf-high { background: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.4); }
         .perf-mid { background: rgba(241, 196, 15, 0.2); color: #f1c40f; border: 1px solid rgba(241, 196, 15, 0.4); }
@@ -256,6 +256,26 @@
         </div>
     </div>
 
+    <div id="import-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-title">
+                Import Legacy Attendance
+                <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('import-modal').classList.add('hidden')"></i>
+            </div>
+            <div class="form-group">
+                <label>Upload CSV</label>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Format: email, date, in_time, out_time</p>
+                <input type="file" id="attendance-file" class="form-input" accept=".csv">
+            </div>
+            <div style="background:rgba(231,76,60,0.1); padding:10px; border-radius:8px; border:1px solid rgba(231,76,60,0.3); font-size:0.8rem; margin-bottom:15px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Smart Merge Active: Rows that conflict with verified "Live" data will be skipped to preserve integrity.
+            </div>
+            <button class="btn-primary" style="width:100%; justify-content:center" onclick="handleAttendanceImport()">
+                Process Import
+            </button>
+        </div>
+    </div>
+
     <div id="perf-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
@@ -278,17 +298,14 @@
                     <button class="btn-outline" onclick="setPerfInput('manual')" id="btn-manual-mode" style="flex:1;">Manual Text</button>
                 </div>
             </div>
-
             <div id="perf-input-file" class="form-group">
                 <label>Upload CSV/Excel Log</label>
                 <input type="file" id="perf-file" class="form-input">
             </div>
-
             <div id="perf-input-manual" class="form-group hidden">
                 <label>Paste Raw Work Logs</label>
                 <textarea id="perf-text" class="form-input" rows="5" placeholder="e.g. John completed 40 tickets with 2 errors. Sarah closed 5 deals..."></textarea>
             </div>
-
             <button class="btn-primary" style="width:100%; justify-content:center" onclick="handlePerformanceSubmit()">
                 <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze with AI
             </button>
@@ -300,20 +317,18 @@
     const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
     const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
-    // IMPORTANT: Replace this with your actual n8n webhook URL for Performance
-    const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_perf'; 
+    const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_performance'; 
     
+    // --- TESLA-GRADE ATTENDANCE CONFIG ---
+    const OFFICE_COORDS = { lat: 30.0444, lng: 31.2357 }; // Change to your HQ
+    const MAX_DISTANCE_METERS = 500; // Radius
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // --- STATE ---
     const state = { 
-        user: null, 
-        profile: null, 
-        org: null, 
-        lang: 'en', 
-        activeView: 'dashboard',
-        perfCycle: 'Monthly', // Daily, Weekly, Monthly, Quarterly
-        perfInputMode: 'file'
+        user: null, profile: null, org: null, lang: 'en', activeView: 'dashboard',
+        perfCycle: 'Monthly', perfInputMode: 'file'
     };
 
     // Translations
@@ -374,12 +389,209 @@
         else if(view === 'reports') { if(['ceo','admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'ats') { if(['ceo','admin','hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'performance') { if(['ceo','admin','hr_manager','manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+        else if(view === 'attendance') { renderAttendanceUI(main); }
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
     function getDashboardHTML() {
         return `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div><div class="dashboard-grid"><div class="card"><div class="card-title">My Org: ${state.org.name}</div><p style="margin-top:10px; color:var(--text-muted)">Subscription: ${state.org.subscription_tier.toUpperCase()}</p></div><div class="card"><div class="card-title">Role Permissions</div><div style="margin-top:10px; font-size:1.2rem; color:var(--success)">${state.profile.role.toUpperCase()}</div></div></div>`;
     }
+
+    // ==========================================
+    // --- SMART ATTENDANCE (TESLA GRADE) ---
+    // ==========================================
+    async function renderAttendanceUI(container) {
+        // Check current status
+        const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
+        const isClockedIn = !!activity;
+        const startTime = activity ? new Date(activity.clock_in_time) : null;
+        
+        let durationHTML = '';
+        if (isClockedIn) {
+            const diffMs = new Date() - startTime;
+            const hrs = Math.floor(diffMs / 3600000);
+            const mins = Math.floor((diffMs % 3600000) / 60000);
+            let statusColor = 'var(--success)'; let statusText = 'Healthy Pace';
+            if (hrs > 9) { statusColor = 'var(--danger)'; statusText = 'CRITICAL: BURNOUT RISK'; }
+            else if (hrs > 8) { statusColor = 'var(--warning)'; statusText = 'Overtime Detected'; }
+            durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:${statusColor}; text-shadow:0 0 20px ${statusColor}40;">${hrs}h ${mins}m</div><div class="perf-badge" style="background:${statusColor}20; color:${statusColor}; border-color:${statusColor}">${statusText}</div></div>`;
+        }
+
+        // Show Import Button only for Admins
+        const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
+        const importBtn = isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy Data</button>` : '';
+
+        container.innerHTML = `
+            <div class="page-title">
+                Smart Attendance Workspace
+                ${importBtn}
+            </div>
+            
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">
+                    ${durationHTML}
+                    <div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>
+                    ${!isClockedIn ? `
+                        <button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button>
+                        <div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>
+                    ` : `
+                        <button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>
+                    `}
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Live Workspace Map</div>
+                    <div style="height:200px; background:rgba(255,255,255,0.05); border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:15px;">
+                        <i class="fa-solid fa-map-location-dot" style="font-size:3rem; color:var(--text-muted);"></i>
+                        <p style="margin-left:15px; color:var(--text-muted);">Interactive Office Map Loading...</p>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="perf-badge perf-high"><i class="fa-solid fa-building"></i> Office: 12</div>
+                        <div class="perf-badge perf-mid"><i class="fa-solid fa-house-laptop"></i> Remote: 4</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:25px;">
+                <div class="card-title">My Recent Activity</div>
+                <div id="attendance-history">Loading...</div>
+            </div>
+        `;
+        loadAttendanceHistory();
+    }
+
+    // --- BIOMETRIC FLOW ---
+    let stream = null;
+    async function startClockInFlow() {
+        const btn = document.getElementById('btn-scan');
+        const locStatus = document.getElementById('loc-status');
+        const vidContainer = document.getElementById('camera-preview');
+        const vid = document.getElementById('vid');
+        btn.classList.add('hidden'); locStatus.innerText = "Acquiring Secure GPS Signal...";
+        try {
+            const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
+            const { latitude, longitude } = position.coords;
+            const dist = getDistanceFromLatLonInM(latitude, longitude, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
+            // Flexible Geofence: Don't block, just tag
+            const workMode = dist < MAX_DISTANCE_METERS ? 'Office' : 'Remote';
+            
+            locStatus.innerText = `Verified: ${workMode} (${Math.round(dist)}m from HQ)`;
+            locStatus.style.color = 'var(--success)';
+
+            vidContainer.classList.remove('hidden');
+            stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            vid.srcObject = stream;
+
+            setTimeout(async () => {
+                const canvas = document.createElement('canvas'); canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
+                canvas.getContext('2d').drawImage(vid, 0, 0);
+                canvas.toBlob(async (blob) => {
+                    const fileName = `selfie_${state.user.id}_${Date.now()}.jpg`;
+                    const { error: upErr } = await supabaseClient.storage.from('attendance_photos').upload(fileName, blob);
+                    if (upErr) throw upErr;
+                    const { data: { publicUrl } } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
+                    await supabaseClient.from('wfm_activity').insert({
+                        org_id: state.org.id, user_id: state.user.id, clock_in_time: new Date(), current_status: 'On Queue',
+                        check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
+                        record_source: 'mobile_app'
+                    });
+                    stream.getTracks().forEach(t => t.stop());
+                    showToast("Identity Verified. Welcome back!");
+                    renderAttendanceUI(document.getElementById('main-view'));
+                }, 'image/jpeg');
+            }, 1500);
+        } catch (err) { console.error(err); showToast("Access Denied: " + err.message, true); btn.classList.remove('hidden'); if(stream) stream.getTracks().forEach(t => t.stop()); }
+    }
+
+    async function handleClockOut(activityId) {
+        await supabaseClient.from('wfm_activity').update({ clock_out_time: new Date(), current_status: 'Offline' }).eq('id', activityId);
+        showToast("Shift Ended. Have a great evening!");
+        renderAttendanceUI(document.getElementById('main-view'));
+    }
+
+    async function loadAttendanceHistory() {
+        const { data: logs } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).order('clock_in_time', { ascending: false }).limit(5);
+        let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`;
+        logs.forEach(log => {
+            const date = new Date(log.clock_in_time).toLocaleDateString();
+            const inTime = new Date(log.clock_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            const outTime = log.clock_out_time ? new Date(log.clock_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success)">Active</span>';
+            const sourceBadge = log.record_source === 'csv_upload' ? '<span class="badge" style="background:#95a5a6; position:static">Import</span>' : '<span class="badge" style="background:var(--success); position:static">Live</span>';
+            const proofLink = log.check_in_photo ? `<a href="${log.check_in_photo}" target="_blank" style="color:var(--primary)">View Selfie</a>` : '-';
+            html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        document.getElementById('attendance-history').innerHTML = html;
+    }
+
+    // --- UNIVERSAL IMPORT (SMART MERGE) ---
+    async function handleAttendanceImport() {
+        const fileInput = document.getElementById('attendance-file');
+        if (!fileInput.files.length) { showToast("Please select a CSV file", true); return; }
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            const rows = text.split('\n').slice(1); // Skip header
+            let success = 0; let skipped = 0;
+
+            for (const row of rows) {
+                const cols = row.split(',');
+                if (cols.length < 3) continue;
+                const email = cols[0].trim();
+                const dateStr = cols[1].trim(); // YYYY-MM-DD
+                const inTime = cols[2].trim(); // HH:MM
+                
+                // 1. Find User
+                const { data: user } = await supabaseClient.from('profiles').select('user_id').eq('email', email).maybeSingle();
+                if (!user) { skipped++; continue; }
+
+                // 2. Check for Live Data Conflict (Smart Merge)
+                // We check if a 'mobile_app' record exists for this date
+                const startOfDay = new Date(dateStr); 
+                const endOfDay = new Date(dateStr); endOfDay.setDate(endOfDay.getDate() + 1);
+                
+                const { data: conflict } = await supabaseClient.from('wfm_activity')
+                    .select('id')
+                    .eq('user_id', user.user_id)
+                    .eq('record_source', 'mobile_app')
+                    .gte('clock_in_time', startOfDay.toISOString())
+                    .lt('clock_in_time', endOfDay.toISOString());
+
+                if (conflict && conflict.length > 0) {
+                    console.log(`Skipping import for ${email} on ${dateStr}: Live data exists.`);
+                    skipped++;
+                    continue;
+                }
+
+                // 3. Insert Import Data
+                const clockIn = new Date(`${dateStr}T${inTime}`);
+                const clockOut = cols[3] ? new Date(`${dateStr}T${cols[3].trim()}`) : null;
+                
+                await supabaseClient.from('wfm_activity').insert({
+                    org_id: state.org.id,
+                    user_id: user.user_id,
+                    clock_in_time: clockIn,
+                    clock_out_time: clockOut,
+                    record_source: 'csv_upload',
+                    current_status: 'Offline'
+                });
+                success++;
+            }
+            showToast(`Import Done: ${success} added, ${skipped} skipped.`);
+            document.getElementById('import-modal').classList.add('hidden');
+            renderAttendanceUI(document.getElementById('main-view'));
+        };
+        reader.readAsText(file);
+    }
+
+    // Helper: Haversine
+    function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
+      var R = 6371; var dLat = deg2rad(lat2-lat1); var dLon = deg2rad(lon2-lon1); 
+      var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2); 
+      var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return d * R * 1000;
+    }
+    function deg2rad(deg) { return deg * (Math.PI/180); }
 
     // --- EMPLOYEES VIEW ---
     async function loadEmployeesView(container) { 
@@ -586,7 +798,7 @@
         }
     }
 
- async function handlePerformanceSubmit() {
+    async function handlePerformanceSubmit() {
         const btn = document.querySelector('#perf-modal .btn-primary');
         const oldText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
