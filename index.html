@@ -511,22 +511,29 @@
     }
 
     // --- HELPER: GLOBAL FUNCTIONS FOR HTML BUTTONS ---
-    // FIXED: Removed strict 0-row check to tolerate RLS policies that block data return
+    // FIXED: Added check for 0 rows to alert user of Permission Error
     window.handleClockOut = async function(activityId) {
         try {
-            console.log("Ending active shift for user:", state.user.id);
+            console.log("Attempting to end shift for Activity ID:", activityId);
             
-            // Bypass ID specific update and close ANY open session for this user
-            const { error } = await supabaseClient
+            // Explicitly select returned data to verify update
+            const { data, error } = await supabaseClient
                 .from('wfm_activity')
                 .update({ 
                     clock_out_time: new Date().toISOString(), 
                     current_status: 'Offline' 
                 })
-                .eq('user_id', state.user.id)
-                .is('clock_out_time', null);
+                .eq('id', activityId)
+                .select();
             
             if (error) throw error;
+            
+            // CRITICAL CHECK: If 0 rows updated, it means RLS blocked it
+            if (!data || data.length === 0) {
+                console.error("Update succeeded but 0 rows changed. Check RLS policies.");
+                showToast("Database Permission Error: Run the SQL Fix!", true);
+                return;
+            }
             
             showToast("Shift Ended. Have a great evening!");
             
@@ -534,7 +541,7 @@
             await renderAttendanceUI(document.getElementById('main-view'));
         } catch (err) {
             console.error("Clock Out Error:", err);
-            showToast("Failed to end shift: " + err.message, true);
+            showToast("Failed: " + err.message, true);
         }
     }
     
