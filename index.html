@@ -514,19 +514,32 @@
     // FIXED: Added error checking and robust Date formatting
     window.handleClockOut = async function(activityId) {
         try {
-            const { error } = await supabaseClient
+            console.log("Attempting to end shift for Activity ID:", activityId);
+            
+            // Explicitly select returned data to verify update
+            const { data, error } = await supabaseClient
                 .from('wfm_activity')
-                .update({ clock_out_time: new Date().toISOString(), current_status: 'Offline' })
-                .eq('id', activityId);
+                .update({ 
+                    clock_out_time: new Date().toISOString(), 
+                    current_status: 'Offline' 
+                })
+                .eq('id', activityId)
+                .select();
             
             if (error) throw error;
             
+            // Check if any rows were actually updated
+            if (!data || data.length === 0) {
+                throw new Error("Session not found or already ended (0 rows updated).");
+            }
+            
             showToast("Shift Ended. Have a great evening!");
+            
             // Force immediate UI refresh
-            renderAttendanceUI(document.getElementById('main-view'));
+            await renderAttendanceUI(document.getElementById('main-view'));
         } catch (err) {
             console.error("Clock Out Error:", err);
-            showToast("Failed to end shift. Try again.", true);
+            showToast("Failed to end shift: " + err.message, true);
         }
     }
     
