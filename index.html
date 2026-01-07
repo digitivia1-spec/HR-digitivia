@@ -206,7 +206,7 @@
         <div class="main-content">
             <header class="top-header">
                 <div class="header-left">
-                    <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
+                    <i class="fa-solid fa-bars icon-btn" onclick="document.getElementById('sidebar').classList.toggle('active')" style="margin-right:10px;"></i> 
                     <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
                 </div>
                 <div class="header-right">
@@ -370,9 +370,10 @@
         ar: { welcome: "مرحباً بعودتك،", dashboard: "لوحة التحكم", payroll: "أتمتة الرواتب", employees: "الموظفين", attendance: "الحضور والانصراف", ats: "نظام التوظيف", performance: "الأداء", reports: "التقارير", wfm: "إدارة القوى العاملة", viewAll: "عرض الكل", create: "إنشاء جديد" }
     };
 
-    /* -------------------------------------------------------------------------
-       CRITICAL: ALL HELPER FUNCTIONS DEFINED FIRST TO AVOID "NOT DEFINED" ERRORS
-       ------------------------------------------------------------------------- */
+    /* ========================================================================
+       CRITICAL: ALL VIEW FUNCTIONS DEFINED BEFORE USE
+       ========================================================================
+    */
 
     // --- HELPER: LEAFLET MAP ---
     async function initLiveMap() {
@@ -583,8 +584,8 @@
     
     // DASHBOARD
     async function loadDashboardView(container) {
+        // Safe queries with null checks
         const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
-        
         let query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
         if (state.profile.role === 'manager') query = query.eq('department', state.profile.department);
         const { count: totalStaff } = await query;
@@ -608,7 +609,8 @@
         
         if (schedules && schedules.length > 0) {
             const todayStr = new Date().toISOString().split('T')[0];
-            const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, profiles:user_id(full_name, department)').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
+            // FIXED JOIN SYNTAX: profiles(full_name) instead of profiles:user_id(...)
+            const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, profiles(full_name, department)').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
             if(logs) {
                 logs.forEach(log => {
                     if(!log.profiles) return;
@@ -655,7 +657,8 @@
         }
 
         // Corrected Join for Activity Feed
-        const { data: feed } = await supabaseClient.from('wfm_activity').select('*, profiles:user_id(full_name)').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
+        // FIXED JOIN SYNTAX: profiles(full_name) instead of profiles:user_id(...)
+        const { data: feed } = await supabaseClient.from('wfm_activity').select('*, profiles(full_name)').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
         let feedHTML = '';
         if(feed) {
             feed.forEach(f => {
@@ -723,7 +726,8 @@
             <div class="card" id="perf-content"><div style="padding:40px; text-align:center;">Loading Performance Data...</div></div>
         `;
         // Explicit Join for Performance
-        const { data: reviews, error } = await supabaseClient.from('performance_reviews').select(`*, profiles:user_id ( full_name, email, role )`).eq('org_id', state.org.id).eq('review_period', state.perfCycle).order('score_final', { ascending: false });
+        // FIXED JOIN SYNTAX: profiles(full_name...) instead of profiles:user_id(...)
+        const { data: reviews, error } = await supabaseClient.from('performance_reviews').select(`*, profiles( full_name, email, role )`).eq('org_id', state.org.id).eq('review_period', state.perfCycle).order('score_final', { ascending: false });
         if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data for this cycle (${state.perfCycle}).</div>`; return; }
         const avgQ = (reviews.reduce((sum, r) => sum + (r.score_quality || 0), 0) / reviews.length).toFixed(1);
         const avgS = (reviews.reduce((sum, r) => sum + (r.score_speed || 0), 0) / reviews.length).toFixed(1);
@@ -763,11 +767,14 @@
         container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsSummary()"><i class="fa-solid fa-download"></i> Export Summary</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; 
         const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
         if(error || !reports) { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="color:red">View not ready. Run SQL.</td></tr>'; return; }
-        setTimeout(() => { initReportCharts(reports); }, 100);
+        // Fix: Ensure DOM is ready before Chart.js runs
+        setTimeout(() => {
+            initReportCharts(reports); 
+        }, 100);
         renderROITable(reports); 
     }
 
-    // --- MAIN ROUTER ---
+    // --- MAIN ROUTER (NOW SAFE TO CALL FUNCTIONS) ---
     function renderMainContent() {
         const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
         if(view === 'dashboard') loadDashboardView(main);
@@ -808,7 +815,14 @@
     function openPerformanceModal() { document.getElementById('perf-modal').classList.remove('hidden'); }
     function setPerfInput(mode) { state.perfInputMode = mode; const btnFile = document.getElementById('btn-file-mode'); const btnManual = document.getElementById('btn-manual-mode'); const boxFile = document.getElementById('perf-input-file'); const boxManual = document.getElementById('perf-input-manual'); if (mode === 'file') { btnFile.style.borderColor = 'var(--primary)'; btnManual.style.borderColor = 'var(--glass-border)'; boxFile.classList.remove('hidden'); boxManual.classList.add('hidden'); } else { btnManual.style.borderColor = 'var(--primary)'; btnFile.style.borderColor = 'var(--glass-border)'; boxManual.classList.remove('hidden'); boxFile.classList.add('hidden'); } }
     async function handlePerformanceSubmit() { const btn = document.querySelector('#perf-modal .btn-primary'); const oldText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...'; try { const dept = document.getElementById('perf-dept').value; let payloadData = ""; if (state.perfInputMode === 'file') { const fileInput = document.getElementById('perf-file'); if (!fileInput.files.length) throw new Error("Please select a file."); const file = fileInput.files[0]; const fileName = `perf_${Date.now()}_${file.name}`; const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if (uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); payloadData = publicUrl; } else { payloadData = document.getElementById('perf-text').value; if (!payloadData) throw new Error("Please enter text logs."); } const response = await fetch(N8N_PERF_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "analyze_performance", org_id: state.org.id, department: dept, review_period: state.perfCycle, input_type: state.perfInputMode, data_content: payloadData }) }); if (!response.ok) throw new Error("AI Analysis Failed"); let aiResponse = await response.json(); if (Array.isArray(aiResponse) && aiResponse.length > 0) aiResponse = aiResponse[0]; if (typeof aiResponse === 'string') try { aiResponse = JSON.parse(aiResponse); } catch(e) {} const results = aiResponse.results || []; if (results.length === 0) throw new Error("AI returned no results."); let successCount = 0; for (const res of results) { const { data: userProfile } = await supabaseClient.from('profiles').select('user_id').eq('email', res.email).maybeSingle(); if (userProfile) { await supabaseClient.from('performance_reviews').insert({ org_id: state.org.id, user_id: userProfile.user_id, review_period: state.perfCycle, period_start: new Date(), period_end: new Date(), score_quality: res.score_quality || 0, score_speed: res.score_speed || 0, score_teamwork: res.score_teamwork || 0, score_efficiency: res.score_efficiency || 0, score_final: res.score_final || 0, ai_feedback: res.ai_feedback || "No feedback.", raw_data_source: state.perfInputMode }); successCount++; } } showToast(`Success! Saved ${successCount} reviews.`); document.getElementById('perf-modal').classList.add('hidden'); renderPerformanceUI(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerHTML = oldText; } }
-    async function promoteCandidateToEmployee(candidateId) { const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single(); if (error) { showToast("Error fetching details", true); return; } openOnboardModal(); document.getElementById('new-name').value = candidate.full_name; document.getElementById('new-email').value = candidate.email; document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || ''; showToast("Candidate data pre-filled. Please set a password."); }
+    async function promoteCandidateToEmployee(candidateId) {
+        const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single();
+        if (error) { showToast("Error fetching details", true); return; }
+        openOnboardModal();
+        document.getElementById('new-name').value = candidate.full_name; document.getElementById('new-email').value = candidate.email;
+        document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || '';
+        showToast("Candidate data pre-filled. Please set a password.");
+    }
     function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
     function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
     async function executeOnboard() { const fullName = document.getElementById('new-name').value; const email = document.getElementById('new-email').value; const password = document.getElementById('new-pass').value; const role = document.getElementById('new-role').value; const phone = document.getElementById('new-meta-phone').value; const dept = document.getElementById('new-meta-dept').value; if(!fullName || !email || !password) { showToast("Fields Required", true); return; } const metaData = {}; if(phone) metaData.phone = phone; if(dept) metaData.department = dept; const btn = document.querySelector('#onboard-modal .btn-primary'); const oldText = btn.innerText; btn.innerText = "Creating..."; try { const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }; const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } }); const { data: authData, error: authError } = await tempClient.auth.signUp({ email: email, password: password, options: { data: { full_name: fullName } } }); if (authError) throw authError; if (!authData.user) throw new Error("Auth Failed"); const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { target_user_id: authData.user.id, user_email: email, full_name: fullName, user_role: role, target_org_id: state.org.id, user_meta: metaData, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` }); if (profileError) throw profileError; showToast(`Success! User created: ${email}`); closeOnboardModal(); loadEmployeesView(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerText = oldText; } }
