@@ -442,35 +442,42 @@
 
     // --- HELPER: WFM CHART ---
     async function initWFMChart() {
-        try {
-            const { data: schedules, error: schError } = await supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
-            const defaultStart = 9; const defaultEnd = 17; 
-            const todayStr = new Date().toISOString().split('T')[0];
-            const { data: logs } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
-            const hours = Array.from({length: 24}, (_, i) => i);
-            const planned = new Array(24).fill(0);
-            const actual = new Array(24).fill(0);
-            const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
-            const totalStaff = count || 10;
-            
-            let sStart = defaultStart, sEnd = defaultEnd;
-            if(schedules && schedules.length > 0) {
-                const s = schedules[0]; 
-                sStart = parseInt(s.shift_start.split(':')[0]);
-                sEnd = parseInt(s.shift_end.split(':')[0]);
-            }
-            hours.forEach(h => { if (h >= sStart && h < sEnd) planned[h] = totalStaff; });
-            if(logs) { logs.forEach(l => { const inH = new Date(l.clock_in_time).getHours(); const outH = l.clock_out_time ? new Date(l.clock_out_time).getHours() : 23; for(let i=inH; i<=outH; i++) actual[i]++; }); }
-
+        // SAFETY FIX: Wait for DOM
+        setTimeout(async () => {
             const ctx = document.getElementById('wfmChart');
-            if(!ctx) return;
-            if(window.wfmChartInstance) window.wfmChartInstance.destroy();
-            window.wfmChartInstance = new Chart(ctx, { type: 'line', data: { labels: hours.map(h => `${h}:00`), datasets: [ { label: 'Planned', data: planned, borderColor: '#95a5a6', borderDash: [5, 5], tension: 0.4 }, { label: 'Actual', data: actual, borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 } ] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } });
-        } catch(err) { console.error("WFM Chart Error:", err); }
+            if(!ctx) return; // Prevent "Failed to create chart"
+
+            try {
+                const { data: schedules, error: schError } = await supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
+                const defaultStart = 9; const defaultEnd = 17; 
+                const todayStr = new Date().toISOString().split('T')[0];
+                const { data: logs } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
+                const hours = Array.from({length: 24}, (_, i) => i);
+                const planned = new Array(24).fill(0);
+                const actual = new Array(24).fill(0);
+                const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
+                const totalStaff = count || 10;
+                
+                let sStart = defaultStart, sEnd = defaultEnd;
+                if(schedules && schedules.length > 0) {
+                    const s = schedules[0]; 
+                    sStart = parseInt(s.shift_start.split(':')[0]);
+                    sEnd = parseInt(s.shift_end.split(':')[0]);
+                }
+                hours.forEach(h => { if (h >= sStart && h < sEnd) planned[h] = totalStaff; });
+                if(logs) { logs.forEach(l => { const inH = new Date(l.clock_in_time).getHours(); const outH = l.clock_out_time ? new Date(l.clock_out_time).getHours() : 23; for(let i=inH; i<=outH; i++) actual[i]++; }); }
+
+                if(window.wfmChartInstance) window.wfmChartInstance.destroy();
+                window.wfmChartInstance = new Chart(ctx, { type: 'line', data: { labels: hours.map(h => `${h}:00`), datasets: [ { label: 'Planned', data: planned, borderColor: '#95a5a6', borderDash: [5, 5], tension: 0.4 }, { label: 'Actual', data: actual, borderColor: '#3498db', backgroundColor: 'rgba(52, 152, 219, 0.2)', fill: true, tension: 0.4 } ] }, options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } });
+            } catch(err) { console.error("WFM Chart Error:", err); }
+        }, 100);
     }
 
     // --- HELPER: ATTENDANCE HISTORY ---
     async function loadAttendanceHistory() {
+        const histDiv = document.getElementById('attendance-history');
+        if(!histDiv) return;
+
         const { data: logs, error } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).order('clock_in_time', { ascending: false }).limit(5);
         if(error || !logs) { return; }
         let html = `<table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Source</th><th>Proof</th></tr></thead><tbody>`;
@@ -483,7 +490,7 @@
             html += `<tr><td>${date}</td><td>${inTime}</td><td>${outTime}</td><td>${sourceBadge}</td><td>${proofLink}</td></tr>`;
         });
         html += `</tbody></table>`;
-        document.getElementById('attendance-history').innerHTML = html;
+        histDiv.innerHTML = html;
     }
 
     // --- HELPER: PAYROLL TABLE ---
@@ -530,6 +537,8 @@
     function initReportCharts(data) { 
         const ctx1 = document.getElementById('burnoutChart');
         const ctx2 = document.getElementById('efficiencyChart');
+        
+        // SAFETY FIX: Check context
         if(!ctx1 || !ctx2 || !data) return;
 
         new Chart(ctx1, { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Productivity', data: data.map(r => r.productivity_score), backgroundColor: '#3498db' } ] }, options: { plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); 
@@ -538,33 +547,22 @@
     }
 
     // --- HELPER: GLOBAL FUNCTIONS FOR HTML BUTTONS ---
-    // FIXED: Added check for 0 rows to alert user of Permission Error
     window.handleClockOut = async function(activityId) {
         try {
             console.log("Attempting to end shift for Activity ID:", activityId);
-            
-            // Explicitly select returned data to verify update
             const { data, error } = await supabaseClient
                 .from('wfm_activity')
-                .update({ 
-                    clock_out_time: new Date().toISOString(), 
-                    current_status: 'Offline' 
-                })
+                .update({ clock_out_time: new Date().toISOString(), current_status: 'Offline' })
                 .eq('id', activityId)
                 .select();
             
             if (error) throw error;
-            
-            // CRITICAL CHECK: If 0 rows updated, it means RLS blocked it
             if (!data || data.length === 0) {
                 console.error("Update succeeded but 0 rows changed. Check RLS policies.");
                 showToast("Database Permission Error: Run the SQL Fix!", true);
                 return;
             }
-            
             showToast("Shift Ended. Have a great evening!");
-            
-            // Force immediate UI refresh
             await renderAttendanceUI(document.getElementById('main-view'));
         } catch (err) {
             console.error("Clock Out Error:", err);
@@ -637,15 +635,12 @@
         document.getElementById('user-name').innerText = state.profile.full_name; document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
         document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
         
-        // REMOVED THE LINE BELOW THAT WAS CAUSING THE NULL ERROR BECAUSE 'org-name-display' IS NO LONGER IN THE HTML
-        // document.getElementById('org-name-display').innerText = state.org.name;
-        
         renderSidebar(); renderMainContent();
     }
 
     // --- VIEW RENDERERS ---
     
-    // DASHBOARD
+    // 1. DASHBOARD
     async function loadDashboardView(container) {
         const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
         
@@ -672,29 +667,18 @@
         
         if (schedules && schedules.length > 0) {
             const todayStr = new Date().toISOString().split('T')[0];
-            
-            // FIXED: Two-step fetch to avoid 400 Bad Request on foreign key join
-            // Step 1: Get activity logs
-            const { data: logs } = await supabaseClient.from('wfm_activity')
-                .select('clock_in_time, user_id')
-                .eq('org_id', state.org.id)
-                .gte('clock_in_time', todayStr);
+            const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, user_id').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
             
             if(logs && logs.length > 0) {
-                // Step 2: Get profiles for these users
                 const userIds = logs.map(l => l.user_id);
-                const { data: logProfiles } = await supabaseClient.from('profiles')
-                    .select('user_id, full_name, department')
-                    .in('user_id', userIds);
+                const { data: logProfiles } = await supabaseClient.from('profiles').select('user_id, full_name, department').in('user_id', userIds);
                 
-                // Map profiles for easy lookup
                 const profileMap = {};
                 if(logProfiles) logProfiles.forEach(p => profileMap[p.user_id] = p);
 
                 logs.forEach(log => {
                     const profile = profileMap[log.user_id];
                     if(!profile) return;
-
                     const rule = schedules.find(s => s.department === profile.department) || schedules[0]; 
                     if (rule) {
                         const ruleHour = parseInt(rule.shift_start.split(':')[0]);
@@ -730,28 +714,25 @@
             </div>
         `;
 
-        const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
-        if(allProfs) {
-            const deptCounts = {};
-            allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
-            new Chart(document.getElementById('dashPie'), { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
-        }
+        // SAFETY FIX: Chart Creation
+        setTimeout(async () => {
+            const chartCanvas = document.getElementById('dashPie');
+            if (chartCanvas) {
+                const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
+                if(allProfs) {
+                    const deptCounts = {};
+                    allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+                    new Chart(chartCanvas, { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
+                }
+            }
+        }, 100);
 
-        // FIXED: Two-step fetch for Activity Feed to avoid Join Error
-        const { data: feed } = await supabaseClient.from('wfm_activity')
-            .select('*')
-            .eq('org_id', state.org.id)
-            .order('clock_in_time', {ascending:false})
-            .limit(5);
-
+        // Activity Feed
+        const { data: feed } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
         let feedHTML = '';
         if(feed && feed.length > 0) {
-            // Fetch profiles for these feed items
             const feedUserIds = feed.map(f => f.user_id);
-            const { data: feedProfiles } = await supabaseClient.from('profiles')
-                .select('user_id, full_name')
-                .in('user_id', feedUserIds);
-            
+            const { data: feedProfiles } = await supabaseClient.from('profiles').select('user_id, full_name').in('user_id', feedUserIds);
             const feedProfileMap = {};
             if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
 
@@ -762,7 +743,111 @@
         } else {
             feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
         }
-        document.getElementById('dash-activity').innerHTML = feedHTML;
+        const activityDiv = document.getElementById('dash-activity');
+        if(activityDiv) activityDiv.innerHTML = feedHTML;
+    }
+
+    // 2. EMPLOYEES (Restored)
+    async function loadEmployeesView(container) { 
+        container.innerHTML = `<div class="page-title">${i18n[state.lang].employees} <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button></div><div class="card">Loading...</div>`; 
+        const { data, error } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
+        if (error) { container.innerHTML = `<div class="card">Error: ${error.message}</div>`; return; }
+        let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead><tbody>`;
+        data.forEach(emp => { const meta = emp.meta_data || {}; html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span><div class="details-json">${JSON.stringify(meta, null, 2)}</div></td></tr>`; }); 
+        container.innerHTML = html + `</tbody></table></div>`; 
+    }
+
+    // 3. PAYROLL (Restored)
+    async function renderPayrollUI(container) { 
+        container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; 
+        const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); 
+        const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = ''; 
+        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } 
+        history.forEach((batch, index) => { 
+            const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
+            const div = document.createElement('div'); div.className = 'history-item'; 
+            div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`; 
+            div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div); 
+        }); 
+    }
+
+    // 4. ATS (Restored)
+    async function loadATSView(container) {
+        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
+        const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
+        if (error) { container.innerHTML = `<div class="card">Error loading pipeline</div>`; return; }
+        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; const board = document.getElementById('ats-board'); board.innerHTML = '';
+        stages.forEach(stage => {
+            const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
+            col.innerHTML = `<div class="ats-col-header">${stage} <span class="ats-count">${stageCandidates.length}</span></div><div class="ats-cards" id="stage-${stage}"></div>`;
+            const cardContainer = col.querySelector('.ats-cards');
+            stageCandidates.forEach(cand => {
+                const card = document.createElement('div'); card.className = 'ats-card'; card.draggable = true; let actionBtn = '';
+                if (stage === 'Hired') actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
+                card.innerHTML = `<div class="ats-name">${cand.full_name}</div><div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div><div class="ats-actions">${actionBtn}<i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i></div>`;
+                cardContainer.appendChild(card);
+            }); board.appendChild(col);
+        });
+    }
+
+    // 5. WFM (Restored)
+    async function renderWFMUI(container) { 
+        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
+        initWFMChart(); loadWFMRoster(); 
+    }
+
+    // 6. PERFORMANCE (Restored)
+    async function renderPerformanceUI(container) {
+        container.innerHTML = `
+            <div class="page-title">
+                <div>Performance AI <div class="cycle-switch" style="display:inline-flex; margin-left:15px; vertical-align:middle;"><button class="cycle-btn ${state.perfCycle==='Monthly'?'active':''}" onclick="changePerfCycle('Monthly')">Monthly</button></div></div>
+                <button class="btn-primary" onclick="openPerformanceModal()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Data</button>
+            </div>
+            <div class="dashboard-grid" id="perf-stats">
+                <div class="card"><div class="card-title">Avg Quality</div><div class="score-val" style="color:var(--info)">--</div></div>
+                <div class="card"><div class="card-title">Avg Speed</div><div class="score-val" style="color:var(--warning)">--</div></div>
+                <div class="card"><div class="card-title">Team Efficiency</div><div class="score-val" style="color:var(--success)">--</div></div>
+            </div>
+            <div class="card" id="perf-content"><div style="padding:40px; text-align:center;">Loading Performance Data...</div></div>
+        `;
+        const { data: reviews, error } = await supabaseClient.from('performance_reviews').select(`*, profiles( full_name, email, role )`).eq('org_id', state.org.id).eq('review_period', state.perfCycle).order('score_final', { ascending: false });
+        if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data for this cycle (${state.perfCycle}).</div>`; return; }
+        const avgQ = (reviews.reduce((sum, r) => sum + (r.score_quality || 0), 0) / reviews.length).toFixed(1);
+        const avgS = (reviews.reduce((sum, r) => sum + (r.score_speed || 0), 0) / reviews.length).toFixed(1);
+        const avgE = (reviews.reduce((sum, r) => sum + (r.score_efficiency || 0), 0) / reviews.length).toFixed(1);
+        const statsDivs = document.querySelectorAll('#perf-stats .score-val'); statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
+        renderPerformanceTable(reviews);
+    }
+
+    // 7. REPORTS (Restored)
+    async function renderReportsUI(container) { 
+        container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsSummary()"><i class="fa-solid fa-download"></i> Export Summary</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; 
+        const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
+        if(error || !reports) { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="color:red">View not ready. Run SQL.</td></tr>'; return; }
+        
+        // SAFETY FIX: Wait for DOM
+        setTimeout(() => { initReportCharts(reports); }, 100);
+        renderROITable(reports); 
+    }
+
+    // 8. ATTENDANCE (Restored)
+    async function renderAttendanceUI(container) {
+        const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
+        const isClockedIn = !!activity;
+        const startTime = activity ? new Date(activity.clock_in_time) : null;
+        let durationHTML = '';
+        if (isClockedIn) {
+            const diffMs = new Date() - startTime; const hrs = Math.floor(diffMs / 3600000); const mins = Math.floor((diffMs % 3600000) / 60000);
+            durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:var(--success); text-shadow:0 0 20px rgba(46,204,113,0.4);">${hrs}h ${mins}m</div><div class="perf-badge" style="background:rgba(46,204,113,0.2); color:var(--success);">Active Session</div></div>`;
+        }
+        const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
+        let adminControls = '';
+        if(isAdmin) {
+            adminControls = `<div class="card" style="margin-top:25px; height:500px;"><div class="card-header"><div class="card-title">Live Organization Map (Last Known Locations)</div><button class="btn-outline" onclick="handleExportAttendance()"><i class="fa-solid fa-download"></i> Export CSV Dump</button></div><div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div></div>`;
+        }
+        container.innerHTML = `<div class="page-title">Smart Attendance Workspace ${isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy</button>` : ''}</div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">${durationHTML}<div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>${!isClockedIn ? `<button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button><div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>` : `<button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>`}</div><div class="card" style="overflow-y:auto"><div class="card-title">My Recent Activity</div><div id="attendance-history" style="margin-top:15px;">Loading...</div></div></div>${adminControls}`;
+        loadAttendanceHistory();
+        if(isAdmin) setTimeout(initLiveMap, 500); 
     }
 
     // --- NEW: ORG PROFILE (CEO ONLY) ---
@@ -836,17 +921,13 @@
     }
 
     async function loadAuditLogs() {
-        // Safe 2-step fetch for logs
         const { data: logs } = await supabaseClient.from('audit_logs').select('actor_id, action_type, target_record, created_at').eq('org_id', state.org.id).order('created_at', {ascending:false}).limit(10);
-        
         let html = `<table style="font-size:0.9rem;"><thead><tr><th>Actor</th><th>Action</th><th>Target</th><th>Time</th></tr></thead><tbody>`;
         if(logs && logs.length > 0) {
-            // Fetch actor names
             const actorIds = logs.map(l => l.actor_id);
             const { data: actors } = await supabaseClient.from('profiles').select('user_id, full_name').in('user_id', actorIds);
             const actorMap = {};
             if(actors) actors.forEach(a => actorMap[a.user_id] = a.full_name);
-
             logs.forEach(l => {
                 const name = actorMap[l.actor_id] || 'System';
                 html += `<tr><td>${name}</td><td>${l.action_type}</td><td>${l.target_record || '-'}</td><td>${new Date(l.created_at).toLocaleString()}</td></tr>`;
@@ -861,13 +942,8 @@
         const newName = document.getElementById('set-org-name').value;
         const { error } = await supabaseClient.from('organizations').update({ name: newName }).eq('id', state.org.id);
         if(error) return showToast("Update Failed: " + error.message, true);
-        
         await logSystemAction('UPDATE_ORG_IDENTITY', state.org.id, { old: state.org.name, new: newName });
         state.org.name = newName;
-        
-        // REMOVED: document.getElementById('org-name-display').innerText = newName; 
-        // We removed this line because the element no longer exists (replaced by logo image).
-        
         showToast("Organization Updated");
         loadAuditLogs();
     }
@@ -883,10 +959,8 @@
                 logs_months: parseInt(document.getElementById('set-ret-logs').value)
             }
         };
-        
         const { error } = await supabaseClient.from('organizations').update(settings).eq('id', state.org.id);
         if(error) return showToast("Security Update Failed", true);
-        
         await logSystemAction('UPDATE_SECURITY_POLICY', state.org.id, settings);
         showToast("Compliance Rules Saved");
         loadAuditLogs();
