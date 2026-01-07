@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DIGITIVIA - Operations Platform</title>
+    <title>DIGITIVIA - Enterprise Operations</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -23,7 +23,7 @@
             --glass-border: rgba(255, 255, 255, 0.1);
             --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             --blur-amount: 20px;
-            --sidebar-bg: rgba(13, 27, 42, 0.85); 
+            --sidebar-bg: rgba(13, 27, 42, 0.90); 
             --sidebar-active: rgba(52, 152, 219, 0.4); 
             --text-main: #e0e6ed;
             --text-muted: #94a3b8;
@@ -44,7 +44,9 @@
         #auth-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body-gradient); z-index: 9999; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         .auth-card { background: rgba(13, 27, 42, 0.6); backdrop-filter: blur(30px); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; animation: fadeIn 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .auth-logo { height: 60px; margin-bottom: 20px; filter: drop-shadow(0 0 10px rgba(52,152,219,0.5)); }
+        /* Logo Update */
+        .auth-logo { height: 80px; margin-bottom: 20px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(52,152,219,0.3)); }
+        
         .auth-title { font-size: 1.8rem; font-weight: 700; color: white; margin-bottom: 10px; }
         .auth-subtitle { color: var(--text-muted); margin-bottom: 30px; }
         .form-group { margin-bottom: 20px; text-align: left; }
@@ -64,9 +66,10 @@
         #app-container.loaded { opacity: 1; }
         .sidebar { width: 270px; background: var(--sidebar-bg); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: all 0.3s; flex-shrink: 0; height: 100vh; z-index: 1000; }
         html[dir="rtl"] .sidebar { border-right: none; border-left: 1px solid var(--glass-border); }
-        .logo-area { height: 80px; display: flex; align-items: center; padding: 0 25px; font-size: 1.4rem; font-weight: 700; border-bottom: 1px solid var(--glass-border); color: var(--text-header); letter-spacing: 1px; }
-        .logo-area img { height: 45px; margin-right: 12px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(52, 152, 219, 0.6)); }
-        html[dir="rtl"] .logo-area img { margin-right: 0; margin-left: 12px; }
+        /* Logo Area Update */
+        .logo-area { height: 100px; display: flex; align-items: center; padding: 0 25px; border-bottom: 1px solid var(--glass-border); }
+        .logo-area img { width: 100%; height: 60px; object-fit: contain; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
+        
         #nav-container { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; padding-top: 15px; }
         .nav-header { padding: 20px 30px 10px 30px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
         .nav-links { list-style: none; padding: 0 15px; margin-bottom: 15px; }
@@ -108,7 +111,13 @@
         .table-input:focus { border-color: var(--primary); background: rgba(0,0,0,0.4); outline: none; }
         .toast { position: fixed; bottom: 30px; right: 30px; background: rgba(46, 204, 113, 0.9); color: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; transform: translateY(100px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; backdrop-filter: blur(5px); }
         .toast.show { transform: translateY(0); }
-        @media (max-width: 1200px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
+        
+        /* New: Enterprise Settings Styles */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .settings-section { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 12px; border: 1px solid var(--glass-border); margin-bottom: 20px; }
+        .settings-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+
+        @media (max-width: 1200px) { .dashboard-grid, .settings-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } .sidebar { position: absolute; left: -270px; height: 100%; z-index: 2000; background: rgba(13, 27, 42, 0.98); } .sidebar.active { left: 0; box-shadow: 50px 0 100px rgba(0,0,0,0.5); } html[dir="rtl"] .sidebar { left: auto; right: -270px; } html[dir="rtl"] .sidebar.active { right: 0; } .branding-logos { display: none; } }
 
         /* PAYROLL LAYOUT */
@@ -168,9 +177,9 @@
 
     <div id="auth-container">
         <div class="auth-card" id="login-card">
-            <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
-            <div class="auth-title">Welcome Back</div>
-            <div class="auth-subtitle">Login to Digitivia Operations</div>
+            <img src="https://i.ibb.co/yBNZMC83/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
+            <div class="auth-title">Enterprise Access</div>
+            <div class="auth-subtitle">Secure Login to Digitivia Operations</div>
             <div class="form-group"><label>Email Address</label><input type="email" id="login-email" class="form-input" placeholder="name@company.com"></div>
             <div class="form-group"><label>Password</label><input type="password" id="login-pass" class="form-input" placeholder="••••••••"></div>
             <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Login</button>
@@ -183,7 +192,7 @@
             <div class="toggle-link" onclick="toggleAuthMode('register')">Register New Organization</div>
         </div>
         <div class="auth-card hidden" id="register-card">
-            <img src="https://img.icons8.com/fluency/96/diamond.png" alt="Logo" class="auth-logo">
+            <img src="https://i.ibb.co/yBNZMC83/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
             <div class="auth-title">Start Your Business</div>
             <div class="auth-subtitle">Create Organization & CEO Account</div>
             <div class="form-group"><label>Organization Name</label><input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp"></div>
@@ -198,8 +207,7 @@
     <div id="app-container" class="hidden">
         <nav class="sidebar" id="sidebar">
             <div class="logo-area">
-                <img src="https://img.icons8.com/fluency/96/diamond.png" alt="DIGITIVIA Logo">
-                <span id="org-name-display">Digitivia Ops</span>
+                <img src="https://i.ibb.co/yBNZMC83/cropped-solid-logo-1.png" alt="DIGITIVIA Logo">
             </div>
             <div id="nav-container"></div>
         </nav>
@@ -219,9 +227,6 @@
                             <span id="user-name">Loading...</span>
                             <i class="fa-solid fa-right-from-bracket" style="font-size:0.8rem; margin-left:5px; color:var(--danger)"></i>
                         </div>
-                    </div>
-                    <div class="branding-logos">
-                        <span style="font-weight:700; color:white; opacity:0.5;">POWERED BY DIGITIVIA</span>
                     </div>
                 </div>
             </header>
@@ -366,13 +371,35 @@
 
     // Translations
     const i18n = {
-        en: { welcome: "Welcome back,", dashboard: "Dashboard", payroll: "Payroll Automation", employees: "Employees", attendance: "Time & Attendance", ats: "ATS Recruitment", performance: "Performance", reports: "Reports", wfm: "Workforce WFM", viewAll: "View All", create: "Create New" },
-        ar: { welcome: "مرحباً بعودتك،", dashboard: "لوحة التحكم", payroll: "أتمتة الرواتب", employees: "الموظفين", attendance: "الحضور والانصراف", ats: "نظام التوظيف", performance: "الأداء", reports: "التقارير", wfm: "إدارة القوى العاملة", viewAll: "عرض الكل", create: "إنشاء جديد" }
+        en: { welcome: "Welcome back,", dashboard: "Dashboard", org_profile: "Org Profile", payroll: "Payroll Automation", employees: "Employees", attendance: "Time & Attendance", ats: "ATS Recruitment", performance: "Performance", reports: "Reports", wfm: "Workforce WFM", viewAll: "View All", create: "Create New" },
+        ar: { welcome: "مرحباً بعودتك،", dashboard: "لوحة التحكم", org_profile: "ملف المؤسسة", payroll: "أتمتة الرواتب", employees: "الموظفين", attendance: "الحضور والانصراف", ats: "نظام التوظيف", performance: "الأداء", reports: "التقارير", wfm: "إدارة القوى العاملة", viewAll: "عرض الكل", create: "إنشاء جديد" }
     };
 
     /* -------------------------------------------------------------------------
        CRITICAL: ALL HELPER FUNCTIONS DEFINED FIRST TO AVOID "NOT DEFINED" ERRORS
        ------------------------------------------------------------------------- */
+
+    // --- NEW: AUDIT & SECURITY HELPERS ---
+    async function logSystemAction(action, target, details = {}) {
+        try {
+            await supabaseClient.from('audit_logs').insert({
+                org_id: state.org.id,
+                actor_id: state.user.id,
+                action_type: action,
+                target_record: target,
+                details: details,
+                ip_address: 'client-side'
+            });
+        } catch(e) { console.warn("Audit Log Failed:", e); }
+    }
+
+    async function checkRoleAccess(requiredRoles) {
+        if (!requiredRoles.includes(state.profile.role)) {
+            document.getElementById('main-view').innerHTML = `<div class="card" style="text-align:center; padding:50px;"><i class="fa-solid fa-lock" style="font-size:3rem; color:var(--danger)"></i><h2 style="margin-top:20px;">Access Denied</h2><p>You need ${requiredRoles.join(' or ')} privileges.</p></div>`;
+            return false;
+        }
+        return true;
+    }
 
     // --- HELPER: LEAFLET MAP ---
     async function initLiveMap() {
@@ -734,112 +761,135 @@
         document.getElementById('dash-activity').innerHTML = feedHTML;
     }
 
-    // EMPLOYEES
-    async function loadEmployeesView(container) { 
-        container.innerHTML = `<div class="page-title">${i18n[state.lang].employees} <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button></div><div class="card">Loading...</div>`; 
-        const { data, error } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
-        if (error) { container.innerHTML = `<div class="card">Error: ${error.message}</div>`; return; }
-        let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead><tbody>`;
-        data.forEach(emp => { const meta = emp.meta_data || {}; html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span><div class="details-json">${JSON.stringify(meta, null, 2)}</div></td></tr>`; }); 
-        container.innerHTML = html + `</tbody></table></div>`; 
-    }
+    // --- NEW: ORG PROFILE (CEO ONLY) ---
+    async function renderOrgProfile(container) {
+        if(!await checkRoleAccess(['ceo'])) return;
 
-    // PAYROLL
-    async function renderPayrollUI(container) { 
-        container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; 
-        const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); 
-        const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = ''; 
-        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } 
-        history.forEach((batch, index) => { 
-            const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
-            const div = document.createElement('div'); div.className = 'history-item'; 
-            div.innerHTML = `<div class="history-date">${date} <span style="font-weight:400; font-size:0.8em; color:#aaa">${time}</span></div><div class="history-meta" style="margin-bottom:5px;"><span><i class="fa-solid fa-user"></i> ${batch.uploader_name || 'Unknown'}</span><span class="history-badge">AI Verified</span></div><div style="display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-main);"><span>Employees: ${batch.employee_count}</span><span style="color:var(--success); font-weight:bold">$${batch.total_net_pay}</span></div>`; 
-            div.onclick = () => loadBatchData(batch.id, div); historyList.appendChild(div); if(index === 0) loadBatchData(batch.id, div); 
-        }); 
-    }
+        container.innerHTML = `<div style="text-align:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Enterprise Settings...</div>`;
+        
+        // Fetch fresh org data
+        const { data: org, error } = await supabaseClient.from('organizations').select('*').eq('id', state.org.id).single();
+        if(error) return showToast("Failed to load org data", true);
 
-    // ATS
-    async function loadATSView(container) {
-        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
-        const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
-        if (error) { container.innerHTML = `<div class="card">Error loading pipeline</div>`; return; }
-        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; const board = document.getElementById('ats-board'); board.innerHTML = '';
-        stages.forEach(stage => {
-            const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
-            col.innerHTML = `<div class="ats-col-header">${stage} <span class="ats-count">${stageCandidates.length}</span></div><div class="ats-cards" id="stage-${stage}"></div>`;
-            const cardContainer = col.querySelector('.ats-cards');
-            stageCandidates.forEach(cand => {
-                const card = document.createElement('div'); card.className = 'ats-card'; card.draggable = true; let actionBtn = '';
-                if (stage === 'Hired') actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
-                card.innerHTML = `<div class="ats-name">${cand.full_name}</div><div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div><div class="ats-actions">${actionBtn}<i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i></div>`;
-                cardContainer.appendChild(card);
-            }); board.appendChild(col);
-        });
-    }
+        // Parse JSON settings safely
+        const security = org.security_settings || { mfa_enforced: false, session_timeout: 30 };
+        const retention = org.retention_policy || { cv_months: 12, logs_months: 24 };
 
-    // PERFORMANCE
-    async function renderPerformanceUI(container) {
         container.innerHTML = `
-            <div class="page-title">
-                <div>Performance AI <div class="cycle-switch" style="display:inline-flex; margin-left:15px; vertical-align:middle;"><button class="cycle-btn ${state.perfCycle==='Monthly'?'active':''}" onclick="changePerfCycle('Monthly')">Monthly</button></div></div>
-                <button class="btn-primary" onclick="openPerformanceModal()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Data</button>
+            <div class="page-title">Organization Settings <span class="badge" style="position:static; font-size:0.9rem; background:var(--info)">Enterprise Tier</span></div>
+            <div class="settings-grid">
+                <div class="card">
+                    <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> Identity</div></div>
+                    <div class="form-group">
+                        <label>Organization Name</label>
+                        <input type="text" id="set-org-name" class="form-input" value="${org.name}">
+                    </div>
+                    <div class="form-group">
+                        <label>CEO / Owner</label>
+                        <input type="text" class="form-input" value="${state.profile.full_name}" disabled style="opacity:0.5">
+                    </div>
+                    <button class="btn-primary" onclick="saveOrgIdentity()">Save Changes</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><div class="card-title"><i class="fa-solid fa-shield-halved"></i> Security & Compliance</div></div>
+                    
+                    <div class="settings-section">
+                        <div class="settings-header"><i class="fa-solid fa-user-lock"></i> Access Control</div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                            <span>Enforce 2FA (MFA)</span>
+                            <input type="checkbox" id="set-mfa" ${security.mfa_enforced ? 'checked' : ''}>
+                        </div>
+                        <div class="form-group">
+                            <label>Session Timeout (Minutes)</label>
+                            <input type="number" id="set-timeout" class="form-input" value="${security.session_timeout}">
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-header"><i class="fa-solid fa-database"></i> Data Retention (GDPR)</div>
+                        <div class="form-group">
+                            <label>Delete CVs after (Months)</label>
+                            <input type="number" id="set-ret-cv" class="form-input" value="${retention.cv_months}">
+                        </div>
+                        <div class="form-group">
+                            <label>Delete Audit Logs after (Months)</label>
+                            <input type="number" id="set-ret-logs" class="form-input" value="${retention.logs_months}">
+                        </div>
+                    </div>
+                    
+                    <button class="btn-outline" style="width:100%; border-color:var(--success); color:var(--success)" onclick="saveSecuritySettings()">Update Compliance Rules</button>
+                </div>
             </div>
-            <div class="dashboard-grid" id="perf-stats">
-                <div class="card"><div class="card-title">Avg Quality</div><div class="score-val" style="color:var(--info)">--</div></div>
-                <div class="card"><div class="card-title">Avg Speed</div><div class="score-val" style="color:var(--warning)">--</div></div>
-                <div class="card"><div class="card-title">Team Efficiency</div><div class="score-val" style="color:var(--success)">--</div></div>
+            
+            <div class="card" style="margin-top:20px;">
+                <div class="card-header"><div class="card-title">Audit Trail (Recent Sensitive Actions)</div></div>
+                <div id="audit-list">Loading logs...</div>
             </div>
-            <div class="card" id="perf-content"><div style="padding:40px; text-align:center;">Loading Performance Data...</div></div>
         `;
-        // Explicit Join for Performance
-        const { data: reviews, error } = await supabaseClient.from('performance_reviews').select(`*, profiles ( full_name, email, role )`).eq('org_id', state.org.id).eq('review_period', state.perfCycle).order('score_final', { ascending: false });
-        if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data for this cycle (${state.perfCycle}).</div>`; return; }
-        const avgQ = (reviews.reduce((sum, r) => sum + (r.score_quality || 0), 0) / reviews.length).toFixed(1);
-        const avgS = (reviews.reduce((sum, r) => sum + (r.score_speed || 0), 0) / reviews.length).toFixed(1);
-        const avgE = (reviews.reduce((sum, r) => sum + (r.score_efficiency || 0), 0) / reviews.length).toFixed(1);
-        const statsDivs = document.querySelectorAll('#perf-stats .score-val'); statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
-        renderPerformanceTable(reviews);
+        
+        loadAuditLogs();
     }
 
-    // ATTENDANCE
-    async function renderAttendanceUI(container) {
-        const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
-        const isClockedIn = !!activity;
-        const startTime = activity ? new Date(activity.clock_in_time) : null;
-        let durationHTML = '';
-        if (isClockedIn) {
-            const diffMs = new Date() - startTime; const hrs = Math.floor(diffMs / 3600000); const mins = Math.floor((diffMs % 3600000) / 60000);
-            durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:var(--success); text-shadow:0 0 20px rgba(46,204,113,0.4);">${hrs}h ${mins}m</div><div class="perf-badge" style="background:rgba(46,204,113,0.2); color:var(--success);">Active Session</div></div>`;
-        }
-        const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
-        let adminControls = '';
-        if(isAdmin) {
-            adminControls = `<div class="card" style="margin-top:25px; height:500px;"><div class="card-header"><div class="card-title">Live Organization Map (Last Known Locations)</div><button class="btn-outline" onclick="handleExportAttendance()"><i class="fa-solid fa-download"></i> Export CSV Dump</button></div><div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div></div>`;
-        }
-        container.innerHTML = `<div class="page-title">Smart Attendance Workspace ${isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy</button>` : ''}</div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">${durationHTML}<div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>${!isClockedIn ? `<button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button><div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>` : `<button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>`}</div><div class="card" style="overflow-y:auto"><div class="card-title">My Recent Activity</div><div id="attendance-history" style="margin-top:15px;">Loading...</div></div></div>${adminControls}`;
-        loadAttendanceHistory();
-        if(isAdmin) setTimeout(initLiveMap, 500); 
+    async function loadAuditLogs() {
+        // Safe 2-step fetch for logs
+        const { data: logs } = await supabaseClient.from('audit_logs').select('actor_id, action_type, target_record, created_at').eq('org_id', state.org.id).order('created_at', {ascending:false}).limit(10);
+        
+        let html = `<table style="font-size:0.9rem;"><thead><tr><th>Actor</th><th>Action</th><th>Target</th><th>Time</th></tr></thead><tbody>`;
+        if(logs && logs.length > 0) {
+            // Fetch actor names
+            const actorIds = logs.map(l => l.actor_id);
+            const { data: actors } = await supabaseClient.from('profiles').select('user_id, full_name').in('user_id', actorIds);
+            const actorMap = {};
+            if(actors) actors.forEach(a => actorMap[a.user_id] = a.full_name);
+
+            logs.forEach(l => {
+                const name = actorMap[l.actor_id] || 'System';
+                html += `<tr><td>${name}</td><td>${l.action_type}</td><td>${l.target_record || '-'}</td><td>${new Date(l.created_at).toLocaleString()}</td></tr>`;
+            });
+        } else { html += `<tr><td colspan="4" style="text-align:center">No logs found</td></tr>`; }
+        html += `</tbody></table>`;
+        document.getElementById('audit-list').innerHTML = html;
     }
 
-    // WFM
-    async function renderWFMUI(container) { 
-        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
-        initWFMChart(); loadWFMRoster(); 
+    // --- SAVE FUNCTIONS (CEO ONLY) ---
+    window.saveOrgIdentity = async function() {
+        const newName = document.getElementById('set-org-name').value;
+        const { error } = await supabaseClient.from('organizations').update({ name: newName }).eq('id', state.org.id);
+        if(error) return showToast("Update Failed: " + error.message, true);
+        
+        await logSystemAction('UPDATE_ORG_IDENTITY', state.org.id, { old: state.org.name, new: newName });
+        state.org.name = newName;
+        document.getElementById('org-name-display').innerText = newName;
+        showToast("Organization Updated");
+        loadAuditLogs();
     }
 
-    // REPORTS
-    async function renderReportsUI(container) { 
-        container.innerHTML = `<div class="page-title">Strategic Reports <button class="btn-outline" onclick="exportReportsSummary()"><i class="fa-solid fa-download"></i> Export Summary</button></div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card"><div class="card-title">Burnout Risk (Hours Worked vs Scheduled)</div><canvas id="burnoutChart" height="200"></canvas></div><div class="card"><div class="card-title">Department Efficiency</div><canvas id="efficiencyChart" height="200"></canvas></div></div><div class="card"><div class="card-header"><div class="card-title">Labor ROI Analysis</div><span class="badge" style="position:static; background:var(--info)">Live Data</span></div><div style="overflow-x:auto;"><table id="roi-table"><thead><tr><th>Employee</th><th>Role</th><th>Monthly Cost</th><th>Productivity</th><th>ROI Factor</th><th>Risk Status</th></tr></thead><tbody><tr><td colspan="6" style="text-align:center;">Loading...</td></tr></tbody></table></div></div>`; 
-        const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
-        if(error || !reports) { document.querySelector('#roi-table tbody').innerHTML = '<tr><td colspan="6" style="color:red">View not ready. Run SQL.</td></tr>'; return; }
-        setTimeout(() => { initReportCharts(reports); }, 100);
-        renderROITable(reports); 
+    window.saveSecuritySettings = async function() {
+        const settings = {
+            security_settings: {
+                mfa_enforced: document.getElementById('set-mfa').checked,
+                session_timeout: parseInt(document.getElementById('set-timeout').value)
+            },
+            retention_policy: {
+                cv_months: parseInt(document.getElementById('set-ret-cv').value),
+                logs_months: parseInt(document.getElementById('set-ret-logs').value)
+            }
+        };
+        
+        const { error } = await supabaseClient.from('organizations').update(settings).eq('id', state.org.id);
+        if(error) return showToast("Security Update Failed", true);
+        
+        await logSystemAction('UPDATE_SECURITY_POLICY', state.org.id, settings);
+        showToast("Compliance Rules Saved");
+        loadAuditLogs();
     }
 
     // --- MAIN ROUTER ---
     function renderMainContent() {
         const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
         if(view === 'dashboard') loadDashboardView(main);
+        else if(view === 'org_profile') renderOrgProfile(main); // CEO ONLY VIEW
         else if(view === 'employees') { if(['ceo','hr_manager','manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
@@ -850,17 +900,59 @@
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
+    // --- RBAC HIERARCHY SIDEBAR ---
     function renderSidebar() {
-        const t = i18n[state.lang]; const role = state.profile.role; const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
-        let sections = [];
-        if (role === 'ceo' || role === 'admin') { sections.push({ title: "Executive Overview", items: [ { icon: 'fa-chart-pie', label: t.dashboard, key: 'dashboard' }, { icon: 'fa-money-bill-wave', label: t.payroll, key: 'payroll' }, { icon: 'fa-timeline', label: t.wfm, key: 'wfm' }, { icon: 'fa-file-alt', label: t.reports, key: 'reports' } ] }); }
-        if (role === 'ceo' || role === 'hr_manager') { sections.push({ title: "HR Management", items: [ { icon: 'fa-users', label: t.employees, key: 'employees' }, { icon: 'fa-briefcase', label: t.ats, key: 'ats' }, { icon: 'fa-star', label: t.performance, key: 'performance' } ] }); }
-        sections.push({ title: "My Workspace", items: [ { icon: 'fa-clock', label: t.attendance, key: 'attendance' } ] });
-        sections.forEach(sec => {
-            const header = document.createElement('div'); header.className = 'nav-header'; header.innerText = sec.title; container.appendChild(header);
+        const t = i18n[state.lang]; const role = state.profile.role; 
+        const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
+        
+        // 1. CEO / ADMIN (Full Access)
+        if (role === 'ceo' || role === 'admin') {
+            const sec = document.createElement('div');
+            sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
-            sec.items.forEach(item => { const li = document.createElement('li'); li.className = `nav-item ${state.activeView === item.key ? 'active' : ''}`; li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>${item.label}</span>`; li.onclick = () => { state.activeView = item.key; renderSidebar(); renderMainContent(); if(window.innerWidth <= 768) toggleSidebar(); }; ul.appendChild(li); }); container.appendChild(ul);
-        });
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="state.activeView='dashboard';renderSidebar();renderMainContent()"><i class="fa-solid fa-chart-pie"></i> <span>${t.dashboard}</span></li>`;
+            
+            // CEO Only: Org Settings
+            if (role === 'ceo') {
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
+            }
+            
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+            sec.appendChild(ul); container.appendChild(sec);
+        }
+
+        // 2. HR OPS (CEO + HR Manager)
+        if (['ceo', 'admin', 'hr_manager'].includes(role)) {
+            const sec = document.createElement('div');
+            sec.innerHTML = `<div class="nav-header">HR Operations</div>`;
+            const ul = document.createElement('ul'); ul.className = 'nav-links';
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='employees'?'active':''}" onclick="state.activeView='employees';renderSidebar();renderMainContent()"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
+            
+            // Payroll restricted to CEO/HR
+            if(['ceo','hr_manager'].includes(role)) {
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='payroll'?'active':''}" onclick="state.activeView='payroll';renderSidebar();renderMainContent()"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
+            }
+            
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
+            sec.appendChild(ul); container.appendChild(sec);
+        }
+
+        // 3. TEAM OPS (CEO + HR + Manager)
+        if (['ceo', 'admin', 'hr_manager', 'manager'].includes(role)) {
+            const sec = document.createElement('div');
+            sec.innerHTML = `<div class="nav-header">Team Management</div>`;
+            const ul = document.createElement('ul'); ul.className = 'nav-links';
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="state.activeView='wfm';renderSidebar();renderMainContent()"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='performance'?'active':''}" onclick="state.activeView='performance';renderSidebar();renderMainContent()"><i class="fa-solid fa-star"></i> <span>${t.performance}</span></li>`;
+            sec.appendChild(ul); container.appendChild(sec);
+        }
+
+        // 4. WORKSPACE (Everyone)
+        const sec = document.createElement('div');
+        sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
+        const ul = document.createElement('ul'); ul.className = 'nav-links';
+        ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
+        sec.appendChild(ul); container.appendChild(sec);
     }
 
     function exportDashboardPDF() {
