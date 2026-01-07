@@ -779,13 +779,27 @@
         if(activityDiv) activityDiv.innerHTML = feedHTML;
     }
 
-    // 2. EMPLOYEES (Restored)
+    // 2. EMPLOYEES (Restored & Fixed Button Bug)
     async function loadEmployeesView(container) { 
-        container.innerHTML = `<div class="page-title">${i18n[state.lang].employees} <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button></div><div class="card">Loading...</div>`; 
+        // FIX: Store the Header HTML in a variable first
+        const header = `<div class="page-title">${i18n[state.lang].employees} <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button></div>`;
+        
+        container.innerHTML = `${header}<div class="card">Loading...</div>`; 
+        
         const { data, error } = await supabaseClient.from('profiles').select('*').eq('org_id', state.org.id); 
-        if (error) { container.innerHTML = `<div class="card">Error: ${error.message}</div>`; return; }
-        let html = `<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead><tbody>`;
-        data.forEach(emp => { const meta = emp.meta_data || {}; html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span><div class="details-json">${JSON.stringify(meta, null, 2)}</div></td></tr>`; }); 
+        if (error) { 
+            container.innerHTML = `${header}<div class="card">Error: ${error.message}</div>`; 
+            return; 
+        }
+        
+        // FIX: Start the HTML string with the Header again, so it doesn't get wiped out
+        let html = `${header}<div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Details</th></tr></thead><tbody>`;
+        
+        data.forEach(emp => { 
+            const meta = emp.meta_data || {}; 
+            html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span><div class="details-json">${JSON.stringify(meta, null, 2)}</div></td></tr>`; 
+        }); 
+        
         container.innerHTML = html + `</tbody></table></div>`; 
     }
 
@@ -1019,6 +1033,10 @@
     }
 
     async function loadAuditLogs() {
+        // FIX 1: Safety Check - Ensure element exists before loading
+        const listContainer = document.getElementById('audit-list');
+        if(!listContainer) return; 
+
         const { data: logs } = await supabaseClient.from('audit_logs').select('actor_id, action_type, target_record, created_at').eq('org_id', state.org.id).order('created_at', {ascending:false}).limit(10);
         let html = `<table style="font-size:0.9rem;"><thead><tr><th>Actor</th><th>Action</th><th>Target</th><th>Time</th></tr></thead><tbody>`;
         if(logs && logs.length > 0) {
@@ -1032,7 +1050,9 @@
             });
         } else { html += `<tr><td colspan="4" style="text-align:center">No logs found</td></tr>`; }
         html += `</tbody></table>`;
-        document.getElementById('audit-list').innerHTML = html;
+        
+        // FIX 1: Use variable, don't query DOM again
+        listContainer.innerHTML = html;
     }
 
     // --- SAVE FUNCTIONS (CEO ONLY) ---
@@ -1084,9 +1104,8 @@
         const t = i18n[state.lang]; const role = state.profile.role; 
         const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
         
-        // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER now included for Dashboard)
-        // MODIFICATION 1: Expanded access here so HR Manager sees Dashboard
-        if (['ceo', 'admin', 'hr_manager'].includes(role)) {
+        // 1. CEO / ADMIN (Full Access)
+        if (role === 'ceo' || role === 'admin') {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
@@ -1097,10 +1116,7 @@
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
             }
             
-            // Reports for CEO/Admin only (kept strictly private)
-            if (['ceo', 'admin'].includes(role)) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
-            }
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
             sec.appendChild(ul); container.appendChild(sec);
         }
 
