@@ -635,7 +635,11 @@
         state.profile = profileData; state.org = profileData.organizations;
         document.getElementById('auth-container').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden'); setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
         document.getElementById('user-name').innerText = state.profile.full_name; document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); document.getElementById('org-name-display').innerText = state.org.name;
+        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
+        
+        // REMOVED THE LINE BELOW THAT WAS CAUSING THE NULL ERROR BECAUSE 'org-name-display' IS NO LONGER IN THE HTML
+        // document.getElementById('org-name-display').innerText = state.org.name;
+        
         renderSidebar(); renderMainContent();
     }
 
@@ -860,7 +864,10 @@
         
         await logSystemAction('UPDATE_ORG_IDENTITY', state.org.id, { old: state.org.name, new: newName });
         state.org.name = newName;
-        document.getElementById('org-name-display').innerText = newName;
+        
+        // REMOVED: document.getElementById('org-name-display').innerText = newName; 
+        // We removed this line because the element no longer exists (replaced by logo image).
+        
         showToast("Organization Updated");
         loadAuditLogs();
     }
