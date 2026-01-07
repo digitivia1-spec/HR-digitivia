@@ -511,10 +511,23 @@
     }
 
     // --- HELPER: GLOBAL FUNCTIONS FOR HTML BUTTONS ---
-    async function handleClockOut(activityId) {
-        await supabaseClient.from('wfm_activity').update({ clock_out_time: new Date(), current_status: 'Offline' }).eq('id', activityId);
-        showToast("Shift Ended. Have a great evening!");
-        renderAttendanceUI(document.getElementById('main-view'));
+    // FIXED: Added error checking and robust Date formatting
+    window.handleClockOut = async function(activityId) {
+        try {
+            const { error } = await supabaseClient
+                .from('wfm_activity')
+                .update({ clock_out_time: new Date().toISOString(), current_status: 'Offline' })
+                .eq('id', activityId);
+            
+            if (error) throw error;
+            
+            showToast("Shift Ended. Have a great evening!");
+            // Force immediate UI refresh
+            renderAttendanceUI(document.getElementById('main-view'));
+        } catch (err) {
+            console.error("Clock Out Error:", err);
+            showToast("Failed to end shift. Try again.", true);
+        }
     }
     
     async function startClockInFlow() {
@@ -606,21 +619,37 @@
         if (state.profile.role === 'manager') { jobQuery = jobQuery.eq('department', state.profile.department); }
         const { count: openJobs } = await jobQuery;
 
-        // Corrected Join Syntax to avoid 400 Bad Request
+        // FIXED QUERY: No Join
         let schedQuery = supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
         const { data: schedules } = await schedQuery;
         let lateCount = 0; let lateListHTML = '';
         
         if (schedules && schedules.length > 0) {
             const todayStr = new Date().toISOString().split('T')[0];
-            // FIXED QUERY: using standard join syntax "profiles" instead of "profiles:user_id" which often breaks if not alias defined
-            const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, user_id, profiles(full_name, department)').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
+            
+            // FIXED: Two-step fetch to avoid 400 Bad Request on foreign key join
+            // Step 1: Get activity logs
+            const { data: logs } = await supabaseClient.from('wfm_activity')
+                .select('clock_in_time, user_id')
+                .eq('org_id', state.org.id)
+                .gte('clock_in_time', todayStr);
             
             if(logs && logs.length > 0) {
+                // Step 2: Get profiles for these users
+                const userIds = logs.map(l => l.user_id);
+                const { data: logProfiles } = await supabaseClient.from('profiles')
+                    .select('user_id, full_name, department')
+                    .in('user_id', userIds);
+                
+                // Map profiles for easy lookup
+                const profileMap = {};
+                if(logProfiles) logProfiles.forEach(p => profileMap[p.user_id] = p);
+
                 logs.forEach(log => {
-                    // Safety check for profile
-                    if(!log.profiles) return;
-                    const rule = schedules.find(s => s.department === log.profiles.department) || schedules[0]; 
+                    const profile = profileMap[log.user_id];
+                    if(!profile) return;
+
+                    const rule = schedules.find(s => s.department === profile.department) || schedules[0]; 
                     if (rule) {
                         const ruleHour = parseInt(rule.shift_start.split(':')[0]);
                         const ruleMin = parseInt(rule.shift_start.split(':')[1]);
@@ -630,7 +659,7 @@
                         if (clockTime > ruleTime) {
                             lateCount++;
                             const diff = Math.round((clockTime - ruleTime) / 60000);
-                            lateListHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between;"><span>${log.profiles.full_name}</span> <span style="color:var(--danger)">+${diff} min</span></div>`;
+                            lateListHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); display:flex; justify-content:space-between;"><span>${profile.full_name}</span> <span style="color:var(--danger)">+${diff} min</span></div>`;
                         }
                     }
                 });
@@ -662,12 +691,27 @@
             new Chart(document.getElementById('dashPie'), { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
         }
 
-        // Corrected Join for Activity Feed
-        const { data: feed } = await supabaseClient.from('wfm_activity').select('*, profiles(full_name)').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
+        // FIXED: Two-step fetch for Activity Feed to avoid Join Error
+        const { data: feed } = await supabaseClient.from('wfm_activity')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .order('clock_in_time', {ascending:false})
+            .limit(5);
+
         let feedHTML = '';
         if(feed && feed.length > 0) {
+            // Fetch profiles for these feed items
+            const feedUserIds = feed.map(f => f.user_id);
+            const { data: feedProfiles } = await supabaseClient.from('profiles')
+                .select('user_id, full_name')
+                .in('user_id', feedUserIds);
+            
+            const feedProfileMap = {};
+            if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
+
             feed.forEach(f => {
-                feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${f.profiles?.full_name || 'Unknown'}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
+                const name = feedProfileMap[f.user_id] || 'Unknown User';
+                feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
             });
         } else {
             feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
