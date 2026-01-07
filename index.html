@@ -713,64 +713,56 @@
         }
         if (lateListHTML === '') lateListHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No late arrivals today.</div>';
 
-        // Check if container exists before setting innerHTML (Fix for null error)
-        if(container) {
-            container.innerHTML = `
-                ${header}
-                <div id="dash-content">
-                    <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
-                        <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
-                        <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
-                        <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
-                        <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
-                    </div>
-                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
-                        <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
-                        <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
-                    </div>
-                    <div class="card"><div class="card-title">Recent Activity (Organization Wide)</div><div id="dash-activity">Loading...</div></div>
+        container.innerHTML = `
+            ${header}
+            <div id="dash-content">
+                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
+                    <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
+                    <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
+                    <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
                 </div>
-            `;
-            
-            // Only init charts if container existed
-            const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
-            if(allProfs) {
-                const deptCounts = {};
-                allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
-                const chartCanvas = document.getElementById('dashPie');
-                if (chartCanvas) {
-                     new Chart(chartCanvas, { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
-                }
-            }
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
+                    <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
+                </div>
+                <div class="card"><div class="card-title">Recent Activity (Organization Wide)</div><div id="dash-activity">Loading...</div></div>
+            </div>
+        `;
 
-            // FIXED: Two-step fetch for Activity Feed to avoid Join Error
-            const { data: feed } = await supabaseClient.from('wfm_activity')
-                .select('*')
-                .eq('org_id', state.org.id)
-                .order('clock_in_time', {ascending:false})
-                .limit(5);
-
-            let feedHTML = '';
-            if(feed && feed.length > 0) {
-                // Fetch profiles for these feed items
-                const feedUserIds = feed.map(f => f.user_id);
-                const { data: feedProfiles } = await supabaseClient.from('profiles')
-                    .select('user_id, full_name')
-                    .in('user_id', feedUserIds);
-                
-                const feedProfileMap = {};
-                if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
-
-                feed.forEach(f => {
-                    const name = feedProfileMap[f.user_id] || 'Unknown User';
-                    feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
-                });
-            } else {
-                feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
-            }
-            const activityContainer = document.getElementById('dash-activity');
-            if (activityContainer) activityContainer.innerHTML = feedHTML;
+        const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
+        if(allProfs) {
+            const deptCounts = {};
+            allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+            new Chart(document.getElementById('dashPie'), { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
         }
+
+        // FIXED: Two-step fetch for Activity Feed to avoid Join Error
+        const { data: feed } = await supabaseClient.from('wfm_activity')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .order('clock_in_time', {ascending:false})
+            .limit(5);
+
+        let feedHTML = '';
+        if(feed && feed.length > 0) {
+            // Fetch profiles for these feed items
+            const feedUserIds = feed.map(f => f.user_id);
+            const { data: feedProfiles } = await supabaseClient.from('profiles')
+                .select('user_id, full_name')
+                .in('user_id', feedUserIds);
+            
+            const feedProfileMap = {};
+            if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
+
+            feed.forEach(f => {
+                const name = feedProfileMap[f.user_id] || 'Unknown User';
+                feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
+            });
+        } else {
+            feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
+        }
+        document.getElementById('dash-activity').innerHTML = feedHTML;
     }
 
     // --- NEW: ORG PROFILE (CEO ONLY) ---
