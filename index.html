@@ -235,6 +235,38 @@
         </div>
     </div>
 
+    <div id="job-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-title">
+                Smart Job Wizard
+                <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('job-modal').classList.add('hidden')"></i>
+            </div>
+            <div class="form-group">
+                <label>Job Title</label>
+                <input type="text" id="job-title" class="form-input" placeholder="e.g. Senior Backend Engineer">
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="job-dept" class="form-input" placeholder="e.g. Engineering">
+            </div>
+            <div class="form-group">
+                <label>Salary Range</label>
+                <input type="text" id="job-salary" class="form-input" placeholder="e.g. $80k - $120k">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="job-status" class="form-input" style="background:rgba(255,255,255,0.05);">
+                    <option value="Open">Open</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Closed">Closed</option>
+                </select>
+            </div>
+            <button class="btn-primary" style="width:100%; justify-content:center" onclick="saveNewJob()">
+                <i class="fa-solid fa-rocket"></i> Publish Job
+            </button>
+        </div>
+    </div>
+
     <div id="onboard-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
@@ -355,7 +387,7 @@
     const SUPABASE_URL = 'https://neepgsppcemzwapcexys.supabase.co'; 
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
     const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
-    const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_perf'; 
+    const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_performance'; 
     
     // --- TESLA-GRADE ATTENDANCE CONFIG ---
     const OFFICE_COORDS = { lat: 30.0444, lng: 31.2357 }; // Change to your HQ
@@ -771,9 +803,9 @@
         }); 
     }
 
-    // 4. ATS (Restored)
+    // 4. ATS (UPGRADED: With Job Wizard)
     async function loadATSView(container) {
-        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="showToast('Feature Coming Soon: Add Job')"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
+        container.innerHTML = `<div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Post New Job</button></div><div class="ats-layout" id="ats-board"><div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div></div>`;
         const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
         if (error) { container.innerHTML = `<div class="card">Error loading pipeline</div>`; return; }
         const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; const board = document.getElementById('ats-board'); board.innerHTML = '';
@@ -790,17 +822,56 @@
         });
     }
 
+    // New ATS Helper Functions
+    function openJobModal() {
+        document.getElementById('job-title').value = '';
+        document.getElementById('job-dept').value = '';
+        document.getElementById('job-salary').value = '';
+        document.getElementById('job-status').value = 'Open';
+        document.getElementById('job-modal').classList.remove('hidden');
+    }
+
+    async function saveNewJob() {
+        const title = document.getElementById('job-title').value;
+        const dept = document.getElementById('job-dept').value;
+        const salary = document.getElementById('job-salary').value;
+        const status = document.getElementById('job-status').value;
+
+        if(!title || !dept) return showToast("Title and Department are required", true);
+
+        const { error } = await supabaseClient.from('ats_jobs').insert({
+            org_id: state.org.id,
+            title: title,
+            department: dept,
+            salary_range: salary,
+            status: status
+        });
+
+        if(error) return showToast("Failed to post job: " + error.message, true);
+        
+        showToast("Job Posted Successfully!");
+        document.getElementById('job-modal').classList.add('hidden');
+        loadATSView(document.getElementById('main-view')); // Refresh view
+    }
+
     // 5. WFM (Restored)
     async function renderWFMUI(container) { 
         container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
         initWFMChart(); loadWFMRoster(); 
     }
 
-    // 6. PERFORMANCE (Restored)
+    // 6. PERFORMANCE (UPGRADED: With Time Filters)
     async function renderPerformanceUI(container) {
         container.innerHTML = `
             <div class="page-title">
-                <div>Performance AI <div class="cycle-switch" style="display:inline-flex; margin-left:15px; vertical-align:middle;"><button class="cycle-btn ${state.perfCycle==='Monthly'?'active':''}" onclick="changePerfCycle('Monthly')">Monthly</button></div></div>
+                <div>Performance AI 
+                    <div class="cycle-switch" style="display:inline-flex; margin-left:15px; vertical-align:middle;">
+                        <button class="cycle-btn ${state.perfCycle==='Daily'?'active':''}" onclick="changePerfCycle('Daily')">Day</button>
+                        <button class="cycle-btn ${state.perfCycle==='Weekly'?'active':''}" onclick="changePerfCycle('Weekly')">Week</button>
+                        <button class="cycle-btn ${state.perfCycle==='Monthly'?'active':''}" onclick="changePerfCycle('Monthly')">Month</button>
+                        <button class="cycle-btn ${state.perfCycle==='Quarterly'?'active':''}" onclick="changePerfCycle('Quarterly')">Qtr</button>
+                    </div>
+                </div>
                 <button class="btn-primary" onclick="openPerformanceModal()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Data</button>
             </div>
             <div class="dashboard-grid" id="perf-stats">
@@ -810,12 +881,39 @@
             </div>
             <div class="card" id="perf-content"><div style="padding:40px; text-align:center;">Loading Performance Data...</div></div>
         `;
-        const { data: reviews, error } = await supabaseClient.from('performance_reviews').select(`*, profiles( full_name, email, role )`).eq('org_id', state.org.id).eq('review_period', state.perfCycle).order('score_final', { ascending: false });
-        if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data for this cycle (${state.perfCycle}).</div>`; return; }
+        
+        // Calculate Date Range based on selection
+        let timeFilter = new Date();
+        timeFilter.setHours(0,0,0,0); // Start of today default
+
+        if(state.perfCycle === 'Daily') {
+            // Already today
+        } else if (state.perfCycle === 'Weekly') {
+            timeFilter.setDate(timeFilter.getDate() - 7);
+        } else if (state.perfCycle === 'Monthly') {
+            timeFilter.setDate(timeFilter.getDate() - 30);
+        } else if (state.perfCycle === 'Quarterly') {
+            timeFilter.setDate(timeFilter.getDate() - 90);
+        }
+
+        const { data: reviews, error } = await supabaseClient
+            .from('performance_reviews')
+            .select(`*, profiles( full_name, email, role )`)
+            .eq('org_id', state.org.id)
+            // Filter by date range instead of strict text match
+            .gte('period_start', timeFilter.toISOString())
+            .order('score_final', { ascending: false });
+
+        if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data found for this period (${state.perfCycle}).</div>`; return; }
+        
         const avgQ = (reviews.reduce((sum, r) => sum + (r.score_quality || 0), 0) / reviews.length).toFixed(1);
         const avgS = (reviews.reduce((sum, r) => sum + (r.score_speed || 0), 0) / reviews.length).toFixed(1);
         const avgE = (reviews.reduce((sum, r) => sum + (r.score_efficiency || 0), 0) / reviews.length).toFixed(1);
-        const statsDivs = document.querySelectorAll('#perf-stats .score-val'); statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
+        
+        const statsDivs = document.querySelectorAll('#perf-stats .score-val'); 
+        if(statsDivs.length >= 3) {
+            statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
+        }
         renderPerformanceTable(reviews);
     }
 
@@ -986,8 +1084,9 @@
         const t = i18n[state.lang]; const role = state.profile.role; 
         const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
         
-        // 1. CEO / ADMIN (Full Access)
-        if (role === 'ceo' || role === 'admin') {
+        // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER now included for Dashboard)
+        // MODIFICATION 1: Expanded access here so HR Manager sees Dashboard
+        if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
@@ -998,7 +1097,10 @@
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
             }
             
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+            // Reports for CEO/Admin only (kept strictly private)
+            if (['ceo', 'admin'].includes(role)) {
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+            }
             sec.appendChild(ul); container.appendChild(sec);
         }
 
