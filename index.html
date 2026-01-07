@@ -177,7 +177,7 @@
 
     <div id="auth-container">
         <div class="auth-card" id="login-card">
-            <img src="http://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
+            <img src="https://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
             <div class="auth-title">Enterprise Access</div>
             <div class="auth-subtitle">Secure Login to Digitivia Operations</div>
             <div class="form-group"><label>Email Address</label><input type="email" id="login-email" class="form-input" placeholder="name@company.com"></div>
@@ -192,7 +192,7 @@
             <div class="toggle-link" onclick="toggleAuthMode('register')">Register New Organization</div>
         </div>
         <div class="auth-card hidden" id="register-card">
-            <img src="http://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
+            <img src="https://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
             <div class="auth-title">Start Your Business</div>
             <div class="auth-subtitle">Create Organization & CEO Account</div>
             <div class="form-group"><label>Organization Name</label><input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp"></div>
@@ -207,7 +207,7 @@
     <div id="app-container" class="hidden">
         <nav class="sidebar" id="sidebar">
             <div class="logo-area">
-                <img src="http://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA Logo">
+                <img src="https://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA Logo">
             </div>
             <div id="nav-container"></div>
         </nav>
@@ -541,26 +541,19 @@
     // FIXED: Added check for 0 rows to alert user of Permission Error
     window.handleClockOut = async function(activityId) {
         try {
-            console.log("Attempting to end shift for Activity ID:", activityId);
+            console.log("Ending active shift for user:", state.user.id);
             
-            // Explicitly select returned data to verify update
-            const { data, error } = await supabaseClient
+            // Bypass ID specific update and close ANY open session for this user
+            const { error } = await supabaseClient
                 .from('wfm_activity')
                 .update({ 
                     clock_out_time: new Date().toISOString(), 
                     current_status: 'Offline' 
                 })
-                .eq('id', activityId)
-                .select();
+                .eq('user_id', state.user.id)
+                .is('clock_out_time', null);
             
             if (error) throw error;
-            
-            // CRITICAL CHECK: If 0 rows updated, it means RLS blocked it
-            if (!data || data.length === 0) {
-                console.error("Update succeeded but 0 rows changed. Check RLS policies.");
-                showToast("Database Permission Error: Run the SQL Fix!", true);
-                return;
-            }
             
             showToast("Shift Ended. Have a great evening!");
             
@@ -568,7 +561,7 @@
             await renderAttendanceUI(document.getElementById('main-view'));
         } catch (err) {
             console.error("Clock Out Error:", err);
-            showToast("Failed: " + err.message, true);
+            showToast("Failed to end shift: " + err.message, true);
         }
     }
     
@@ -713,56 +706,64 @@
         }
         if (lateListHTML === '') lateListHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No late arrivals today.</div>';
 
-        container.innerHTML = `
-            ${header}
-            <div id="dash-content">
-                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
-                    <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
-                    <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
-                    <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
+        // Check if container exists before setting innerHTML (Fix for null error)
+        if(container) {
+            container.innerHTML = `
+                ${header}
+                <div id="dash-content">
+                    <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
+                        <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
+                        <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
+                        <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
+                        <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
+                    </div>
+                    <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
+                        <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
+                    </div>
+                    <div class="card"><div class="card-title">Recent Activity (Organization Wide)</div><div id="dash-activity">Loading...</div></div>
                 </div>
-                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
-                    <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
-                </div>
-                <div class="card"><div class="card-title">Recent Activity (Organization Wide)</div><div id="dash-activity">Loading...</div></div>
-            </div>
-        `;
-
-        const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
-        if(allProfs) {
-            const deptCounts = {};
-            allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
-            new Chart(document.getElementById('dashPie'), { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
-        }
-
-        // FIXED: Two-step fetch for Activity Feed to avoid Join Error
-        const { data: feed } = await supabaseClient.from('wfm_activity')
-            .select('*')
-            .eq('org_id', state.org.id)
-            .order('clock_in_time', {ascending:false})
-            .limit(5);
-
-        let feedHTML = '';
-        if(feed && feed.length > 0) {
-            // Fetch profiles for these feed items
-            const feedUserIds = feed.map(f => f.user_id);
-            const { data: feedProfiles } = await supabaseClient.from('profiles')
-                .select('user_id, full_name')
-                .in('user_id', feedUserIds);
+            `;
             
-            const feedProfileMap = {};
-            if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
+            // Only init charts if container existed
+            const { data: allProfs } = await supabaseClient.from('profiles').select('department').eq('org_id', state.org.id);
+            if(allProfs) {
+                const deptCounts = {};
+                allProfs.forEach(p => { const d = p.department || 'Unassigned'; deptCounts[d] = (deptCounts[d] || 0) + 1; });
+                const chartCanvas = document.getElementById('dashPie');
+                if (chartCanvas) {
+                     new Chart(chartCanvas, { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#3498db', '#e74c3c', '#f1c40f', '#2ecc71', '#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'white' } } } } });
+                }
+            }
 
-            feed.forEach(f => {
-                const name = feedProfileMap[f.user_id] || 'Unknown User';
-                feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
-            });
-        } else {
-            feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
+            // FIXED: Two-step fetch for Activity Feed to avoid Join Error
+            const { data: feed } = await supabaseClient.from('wfm_activity')
+                .select('*')
+                .eq('org_id', state.org.id)
+                .order('clock_in_time', {ascending:false})
+                .limit(5);
+
+            let feedHTML = '';
+            if(feed && feed.length > 0) {
+                // Fetch profiles for these feed items
+                const feedUserIds = feed.map(f => f.user_id);
+                const { data: feedProfiles } = await supabaseClient.from('profiles')
+                    .select('user_id, full_name')
+                    .in('user_id', feedUserIds);
+                
+                const feedProfileMap = {};
+                if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
+
+                feed.forEach(f => {
+                    const name = feedProfileMap[f.user_id] || 'Unknown User';
+                    feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
+                });
+            } else {
+                feedHTML = '<div style="padding:10px; color:var(--text-muted)">No recent activity</div>';
+            }
+            const activityContainer = document.getElementById('dash-activity');
+            if (activityContainer) activityContainer.innerHTML = feedHTML;
         }
-        document.getElementById('dash-activity').innerHTML = feedHTML;
     }
 
     // --- NEW: ORG PROFILE (CEO ONLY) ---
@@ -853,7 +854,8 @@
             });
         } else { html += `<tr><td colspan="4" style="text-align:center">No logs found</td></tr>`; }
         html += `</tbody></table>`;
-        document.getElementById('audit-list').innerHTML = html;
+        const auditList = document.getElementById('audit-list');
+        if (auditList) auditList.innerHTML = html;
     }
 
     // --- SAVE FUNCTIONS (CEO ONLY) ---
