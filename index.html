@@ -699,16 +699,35 @@
     }
 
     // --- INIT & AUTH ---
-    window.addEventListener('DOMContentLoaded', async () => {
-        if (window.location.hash.includes('access_token')) {
-            window.history.replaceState(null, null, window.location.pathname);
-        }
+   window.addEventListener('DOMContentLoaded', async () => {
+        // 1. REMOVED the code that deletes the hash here.
 
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // 2. LISTEN for the redirect event to catch the Google login
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                // Now it is safe to clean the URL
+                window.history.replaceState(null, null, window.location.pathname);
+                
+                // Prevent double-loading if getSession already worked
+                if (!state.user) {
+                    loadAppData(session.user);
+                }
+            }
+        });
+
+        // 3. CHECK for existing session (for normal page loads)
         const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) loadAppData(session.user);
-        else showAuthScreen();
+        if (session) {
+            loadAppData(session.user);
+        } else {
+            // Only show login screen if we are NOT currently processing a redirect
+            if (!window.location.hash.includes('access_token')) {
+                showAuthScreen();
+            }
+        }
     });
 
     function toggleAuthMode(mode) { if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); } }
