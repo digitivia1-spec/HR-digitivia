@@ -939,8 +939,9 @@ if (!profileData) {
     async function renderPayrollUI(container) { 
         container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; 
         const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); 
-        const historyList = document.getElementById('payroll-history-list'); historyList.innerHTML = ''; 
-        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } 
+        const historyList = document.getElementById('payroll-history-list'); 
+        if (!historyList) return; // <--- THIS IS THE SAFETY CHECK YOU MUST ADD
+        historyList.innerHTML = '';        if(error || !history || history.length === 0) { historyList.innerHTML = `<div class="card" style="padding:15px; text-align:center; color:var(--text-muted)">No upload history</div>`; return; } 
         history.forEach((batch, index) => { 
             const date = new Date(batch.created_at).toLocaleDateString(); const time = new Date(batch.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); 
             const div = document.createElement('div'); div.className = 'history-item'; 
@@ -1352,6 +1353,59 @@ if (!profileData) {
         html2pdf().set(opt).from(element).save();
     }
 
+    // --- ADD THIS FUNCTION TO FIX REPORTS EXPORT ---
+    window.exportReportsSummary = async function() {
+        const { data: reports, error } = await supabaseClient.from('view_live_reports').select('*').eq('org_id', state.org.id);
+        if(error || !reports) return showToast("No data found to export", true);
+        
+        let csvContent = "data:text/csv;charset=utf-8,Employee,Role,Productivity Score,Total Cost,ROI Status\n";
+        
+        reports.forEach(r => {
+            const row = `${r.full_name},${r.role},${r.productivity_score},${r.total_cost},Healthy`;
+            csvContent += row + "\n";
+        });
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Strategy_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- ADD THIS FUNCTION TO FIX ATTENDANCE EXPORT ---
+    window.handleExportAttendance = async function() {
+        showToast("Generating CSV...");
+        // Fetch logs with user names
+        const { data: logs, error } = await supabaseClient
+            .from('wfm_activity')
+            .select('*, profiles(full_name)')
+            .eq('org_id', state.org.id)
+            .order('clock_in_time', { ascending: false });
+
+        if(error || !logs) return showToast("Export Failed", true);
+
+        let csv = "data:text/csv;charset=utf-8,Employee,Date,Time In,Time Out,Status,Source\n";
+        
+        logs.forEach(l => {
+            const name = l.profiles ? l.profiles.full_name : 'Unknown User';
+            const date = new Date(l.clock_in_time).toLocaleDateString();
+            const timeIn = new Date(l.clock_in_time).toLocaleTimeString();
+            const timeOut = l.clock_out_time ? new Date(l.clock_out_time).toLocaleTimeString() : 'Active';
+            
+            csv += `${name},${date},${timeIn},${timeOut},${l.current_status},${l.record_source}\n`;
+        });
+
+        const encodedUri = encodeURI(csv);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Attendance_Log_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // --- OTHER HELPERS ---
     async function loadBatchData(batchId, element) { document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active'); const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`; const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true }); if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; } renderPayrollTable(data, false); }
     async function handlePayrollUpload(input) { 
@@ -1414,6 +1468,10 @@ if (!profileData) {
             renderPayrollUI(document.getElementById('main-view')); 
         } 
     }
+
+    
+
+    
     async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
     function changePerfCycle(cycle) { state.perfCycle = cycle; renderPerformanceUI(document.getElementById('main-view')); }
     function openPerformanceModal() { document.getElementById('perf-modal').classList.remove('hidden'); }
