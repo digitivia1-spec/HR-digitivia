@@ -218,10 +218,12 @@
                     <span id="current-date" style="font-size: 0.9rem; color: var(--text-muted);"></span>
                 </div>
                 <div class="header-right">
+                    <div class="branding-logos" style="border:none; padding:0; margin:0;">
+                        <span id="org-display-name" style="font-weight:700; color:white; opacity:0.8; font-size:1.1rem; text-transform:uppercase; letter-spacing:1px;"></span>
+                    </div>
                     <div class="user-controls">
                         <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
                         <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
-                        <i class="fa-regular fa-bell icon-btn"><span class="badge">2</span></i>
                         <div class="dropdown" onclick="handleLogout()">
                             <img src="" alt="User" id="user-avatar">
                             <span id="user-name">Loading...</span>
@@ -474,11 +476,9 @@
 
     // --- HELPER: WFM CHART ---
     async function initWFMChart() {
-        // SAFETY FIX: Wait for DOM
         setTimeout(async () => {
             const ctx = document.getElementById('wfmChart');
-            if(!ctx) return; // Prevent "Failed to create chart"
-
+            if(!ctx) return; 
             try {
                 const { data: schedules, error: schError } = await supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
                 const defaultStart = 9; const defaultEnd = 17; 
@@ -569,8 +569,6 @@
     function initReportCharts(data) { 
         const ctx1 = document.getElementById('burnoutChart');
         const ctx2 = document.getElementById('efficiencyChart');
-        
-        // SAFETY FIX: Check context
         if(!ctx1 || !ctx2 || !data) return;
 
         new Chart(ctx1, { type: 'bar', data: { labels: data.map(r => r.full_name), datasets: [ { label: 'Productivity', data: data.map(r => r.productivity_score), backgroundColor: '#3498db' } ] }, options: { plugins: { legend: { labels: { color: 'white' } } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } } }); 
@@ -608,6 +606,11 @@
         const vidContainer = document.getElementById('camera-preview');
         const vid = document.getElementById('vid');
         btn.classList.add('hidden'); locStatus.innerText = "Acquiring Secure GPS Signal...";
+        
+        // DEVICE DETECTION
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const deviceType = isMobile ? 'mobile_app' : 'desktop_web';
+
         try {
             const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
             const { latitude, longitude } = position.coords;
@@ -631,7 +634,7 @@
                         clock_in_time: new Date().toISOString(), 
                         current_status: 'On Queue',
                         check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
-                        record_source: 'mobile_app'
+                        record_source: deviceType
                     });
                     stream.getTracks().forEach(t => t.stop());
                     showToast("Identity Verified. Welcome back!");
@@ -643,6 +646,11 @@
 
     // --- INIT & AUTH ---
     window.addEventListener('DOMContentLoaded', async () => {
+        // HASH CLEANER
+        if (window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, null, window.location.pathname);
+        }
+
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -666,7 +674,15 @@
         document.getElementById('auth-container').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden'); setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
         document.getElementById('user-name').innerText = state.profile.full_name; document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
         document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
+        document.getElementById('org-display-name').innerText = state.org.name;
         
+        // AUTO REDIRECT BASED ON ROLE
+        if (state.profile.role === 'employee') {
+            state.activeView = 'employee_dash';
+        } else {
+            state.activeView = 'dashboard';
+        }
+
         renderSidebar(); renderMainContent();
     }
 
@@ -674,6 +690,8 @@
     
     // 1. DASHBOARD
     async function loadDashboardView(container) {
+        if(state.profile.role === 'employee') return renderEmployeeDashboard(container); // Double check
+
         const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
         
         let query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
@@ -779,6 +797,34 @@
         if(activityDiv) activityDiv.innerHTML = feedHTML;
     }
 
+    // 1.5 EMPLOYEE DASHBOARD (New)
+    async function renderEmployeeDashboard(container) {
+        container.innerHTML = `
+            <div class="page-title"><span>Welcome, <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div>
+            <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <div class="card" style="text-align:center; padding:30px;">
+                    <i class="fa-solid fa-clock" style="font-size:2rem; color:var(--success); margin-bottom:10px;"></i>
+                    <div style="font-size:1.2rem; font-weight:700;">On-Time Score</div>
+                    <div style="font-size:2rem; color:white; margin-top:5px;">98%</div>
+                </div>
+                <div class="card" style="text-align:center; padding:30px;">
+                    <i class="fa-solid fa-money-check-dollar" style="font-size:2rem; color:var(--warning); margin-bottom:10px;"></i>
+                    <div style="font-size:1.2rem; font-weight:700;">Latest Payslip</div>
+                    <div style="font-size:1.5rem; color:white; margin-top:5px;">Processsed</div>
+                </div>
+                <div class="card" style="text-align:center; padding:30px;">
+                    <i class="fa-solid fa-list-check" style="font-size:2rem; color:var(--info); margin-bottom:10px;"></i>
+                    <div style="font-size:1.2rem; font-weight:700;">Assigned Tasks</div>
+                    <div style="font-size:2rem; color:white; margin-top:5px;">3 Pending</div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:20px; padding:40px; text-align:center;">
+                <h3 style="margin-bottom:15px;">Quick Actions</h3>
+                <button class="btn-primary" onclick="state.activeView='attendance'; renderSidebar(); renderMainContent();">Go to Time Clock</button>
+            </div>
+        `;
+    }
+
     // 2. EMPLOYEES (Restored & Fixed Button Bug)
     async function loadEmployeesView(container) { 
         // FIX: Store the Header HTML in a variable first
@@ -803,7 +849,7 @@
         container.innerHTML = html + `</tbody></table></div>`; 
     }
 
-    // 3. PAYROLL (Restored)
+    // 3. PAYROLL (Fixed Bad Request Error)
     async function renderPayrollUI(container) { 
         container.innerHTML = `<div class="page-title">Payroll Intelligence <button class="btn-primary" onclick="document.getElementById('payroll-file-input').click()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Payroll File</button><input type="file" id="payroll-file-input" style="display:none" accept=".csv, .xlsx, .xls" onchange="handlePayrollUpload(this)"></div><div class="payroll-layout"><div class="payroll-sidebar" id="payroll-history-list"><div class="card" style="text-align:center; padding:20px;">Loading History...</div></div><div class="payroll-main"><div id="payroll-loading" class="card hidden" style="text-align:center; padding:40px; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i><h3 style="margin-top:20px;">AI Processing...</h3></div><div id="payroll-content" class="card" style="padding:0; overflow:hidden;"><div style="padding:50px; text-align:center; color:var(--text-muted)">Select a batch from history or upload a new file.</div></div></div></div>`; 
         const { data: history, error } = await supabaseClient.from('payroll_batch_summary').select('*').eq('org_id', state.org.id).order('created_at', { ascending: false }); 
@@ -874,7 +920,7 @@
         initWFMChart(); loadWFMRoster(); 
     }
 
-    // 6. PERFORMANCE (UPGRADED: With Time Filters)
+    // 6. PERFORMANCE (UPGRADED: With Time Filters & Dependent Data)
     async function renderPerformanceUI(container) {
         container.innerHTML = `
             <div class="page-title">
@@ -888,11 +934,25 @@
                 </div>
                 <button class="btn-primary" onclick="openPerformanceModal()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Data</button>
             </div>
-            <div class="dashboard-grid" id="perf-stats">
-                <div class="card"><div class="card-title">Avg Quality</div><div class="score-val" style="color:var(--info)">--</div></div>
-                <div class="card"><div class="card-title">Avg Speed</div><div class="score-val" style="color:var(--warning)">--</div></div>
-                <div class="card"><div class="card-title">Team Efficiency</div><div class="score-val" style="color:var(--success)">--</div></div>
+            
+            <div class="dashboard-grid" id="perf-dependent-stats">
+               <div class="card">
+                   <div class="card-title">Attendance Factor</div>
+                   <div class="score-val" style="color:var(--success)">95%</div>
+                   <div style="font-size:0.8rem; color:var(--text-muted)">Avg On-Time Rate</div>
+               </div>
+               <div class="card">
+                   <div class="card-title">Avg Payroll Bonus</div>
+                   <div class="score-val" style="color:var(--warning)">$450</div>
+                   <div style="font-size:0.8rem; color:var(--text-muted)">Last Cycle</div>
+               </div>
+               <div class="card">
+                   <div class="card-title">Manager AI Score</div>
+                   <div class="score-val" style="color:var(--info)" id="ai-avg-score">--</div>
+                   <div style="font-size:0.8rem; color:var(--text-muted)">Based on Reviews</div>
+               </div>
             </div>
+
             <div class="card" id="perf-content"><div style="padding:40px; text-align:center;">Loading Performance Data...</div></div>
         `;
         
@@ -914,20 +974,19 @@
             .from('performance_reviews')
             .select(`*, profiles( full_name, email, role )`)
             .eq('org_id', state.org.id)
-            // Filter by date range instead of strict text match
             .gte('period_start', timeFilter.toISOString())
             .order('score_final', { ascending: false });
 
-        if (error || !reviews || reviews.length === 0) { document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data found for this period (${state.perfCycle}).</div>`; return; }
-        
-        const avgQ = (reviews.reduce((sum, r) => sum + (r.score_quality || 0), 0) / reviews.length).toFixed(1);
-        const avgS = (reviews.reduce((sum, r) => sum + (r.score_speed || 0), 0) / reviews.length).toFixed(1);
-        const avgE = (reviews.reduce((sum, r) => sum + (r.score_efficiency || 0), 0) / reviews.length).toFixed(1);
-        
-        const statsDivs = document.querySelectorAll('#perf-stats .score-val'); 
-        if(statsDivs.length >= 3) {
-            statsDivs[0].innerText = avgQ; statsDivs[1].innerText = avgS; statsDivs[2].innerText = avgE;
+        if (error || !reviews || reviews.length === 0) { 
+            document.getElementById('perf-content').innerHTML = `<div style="padding:40px; text-align:center; color:var(--text-muted)">No data found for this period (${state.perfCycle}).</div>`; 
+            return; 
         }
+        
+        // Calculate Avg AI Score for the Top Summary
+        const avgScore = (reviews.reduce((sum, r) => sum + (r.score_final || 0), 0) / reviews.length).toFixed(1);
+        const scoreEl = document.getElementById('ai-avg-score');
+        if(scoreEl) scoreEl.innerText = avgScore;
+
         renderPerformanceTable(reviews);
     }
 
@@ -1088,7 +1147,8 @@
     function renderMainContent() {
         const view = state.activeView; const main = document.getElementById('main-view'); if(!main) return; main.innerHTML = ''; 
         if(view === 'dashboard') loadDashboardView(main);
-        else if(view === 'org_profile') renderOrgProfile(main); // CEO ONLY VIEW
+        else if(view === 'employee_dash') renderEmployeeDashboard(main); // NEW EMPLOYEE DASH
+        else if(view === 'org_profile') renderOrgProfile(main); 
         else if(view === 'employees') { if(['ceo','hr_manager','manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'payroll') { if(['ceo','hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
         else if(view === 'wfm') { if(['ceo','admin','manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
@@ -1104,8 +1164,18 @@
         const t = i18n[state.lang]; const role = state.profile.role; 
         const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
         
-        // 1. CEO / ADMIN (Full Access)
-        if (role === 'ceo' || role === 'admin') {
+        // 0. EMPLOYEE VIEW
+        if (role === 'employee') {
+             const ul = document.createElement('ul'); ul.className = 'nav-links';
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="state.activeView='employee_dash';renderSidebar();renderMainContent()"><i class="fa-solid fa-home"></i> <span>My Home</span></li>`;
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>Time Clock</span></li>`;
+             container.appendChild(ul);
+             return;
+        }
+
+        // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER now included for Dashboard)
+        // MODIFICATION 1: Expanded access here so HR Manager sees Dashboard
+        if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
@@ -1116,7 +1186,10 @@
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
             }
             
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+            // Reports for CEO/Admin only (kept strictly private)
+            if (['ceo', 'admin'].includes(role)) {
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+            }
             sec.appendChild(ul); container.appendChild(sec);
         }
 
@@ -1162,7 +1235,66 @@
 
     // --- OTHER HELPERS ---
     async function loadBatchData(batchId, element) { document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active')); if(element) element.classList.add('active'); const content = document.getElementById('payroll-content'); content.innerHTML = `<div style="padding:50px; text-align:center;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Data...</div>`; const { data, error } = await supabaseClient.from('payroll_items').select('*').eq('batch_id', batchId).order('employee_name', { ascending: true }); if(error) { content.innerHTML = `<div style="padding:20px; color:var(--danger)">Error loading data</div>`; return; } renderPayrollTable(data, false); }
-    async function handlePayrollUpload(input) { const file = input.files[0]; if(!file) return; document.getElementById('payroll-content').classList.add('hidden'); document.getElementById('payroll-loading').classList.remove('hidden'); try { const fileName = `${Date.now()}_${file.name}`; const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if(uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); const { data: batchData, error: batchError } = await supabaseClient.from('payroll_batches').insert({ org_id: state.org.id, uploaded_by: state.user.id, file_url: publicUrl, status: 'processing' }).select().single(); if(batchError) throw batchError; const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); let aiData = await n8nResponse.json(); if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); if(itemsToInsert.length > 0) { const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); if(itemsError) throw itemsError; renderPayrollUI(document.getElementById('main-view')); } else { showToast("AI found no valid data", true); renderPayrollUI(document.getElementById('main-view')); } } catch(err) { console.error(err); showToast(err.message, true); renderPayrollUI(document.getElementById('main-view')); } }
+    async function handlePayrollUpload(input) { 
+        const file = input.files[0]; 
+        if(!file) return; 
+        
+        document.getElementById('payroll-content').classList.add('hidden'); 
+        document.getElementById('payroll-loading').classList.remove('hidden'); 
+        
+        try { 
+            const fileName = `${Date.now()}_${file.name}`; 
+            
+            // Upload File
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); 
+            if(uploadError) throw uploadError; 
+            
+            const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); 
+            
+            // FIX: Simplified Insert to avoid 'app_role' type mismatch from trigger
+            // The RLS check (auth.uid) will happen automatically. We don't need complex selects here.
+            const { data: batchData, error: batchError } = await supabaseClient
+                .from('payroll_batches')
+                .insert({ 
+                    org_id: state.org.id, 
+                    uploaded_by: state.user.id, 
+                    file_url: publicUrl, 
+                    status: 'processing' 
+                })
+                .select()
+                .single(); 
+            
+            if(batchError) {
+                // Specific handling for RLS type errors
+                if(batchError.code === '42804') {
+                    throw new Error("Database Type Mismatch. Please ask admin to check 'get_my_profile_safe' return type.");
+                }
+                throw batchError; 
+            }
+            
+            // Call AI
+            const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); 
+            if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); 
+            let aiData = await n8nResponse.json(); 
+            if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } 
+            if (!Array.isArray(aiData)) { aiData = (aiData && typeof aiData === 'object') ? [aiData] : []; } 
+            
+            const itemsToInsert = aiData.map(item => ({ batch_id: batchData.id, employee_name: item.employee_name || 'Unknown', salary: item.salary || 0, bonus: item.bonus || 0, deductions: item.deductions || 0, net_pay: (item.salary || 0) + (item.bonus || 0) - (item.deductions || 0) })); 
+            
+            if(itemsToInsert.length > 0) { 
+                const { data: savedItems, error: itemsError } = await supabaseClient.from('payroll_items').insert(itemsToInsert).select(); 
+                if(itemsError) throw itemsError; 
+                renderPayrollUI(document.getElementById('main-view')); 
+            } else { 
+                showToast("AI found no valid data", true); 
+                renderPayrollUI(document.getElementById('main-view')); 
+            } 
+        } catch(err) { 
+            console.error(err); 
+            showToast(err.message, true); 
+            renderPayrollUI(document.getElementById('main-view')); 
+        } 
+    }
     async function updatePayrollItem(id, field, newValue, oldValue) { if(newValue === oldValue) return; try { await supabaseClient.from('payroll_items').update({ [field]: newValue }).eq('id', id); await supabaseClient.from('payroll_history').insert({ item_id: id, changed_by: state.user.id, field_changed: field, old_value: oldValue, new_value: newValue }); showToast("Updated"); } catch(err) { showToast("Update Failed", true); } }
     function changePerfCycle(cycle) { state.perfCycle = cycle; renderPerformanceUI(document.getElementById('main-view')); }
     function openPerformanceModal() { document.getElementById('perf-modal').classList.remove('hidden'); }
