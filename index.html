@@ -1375,26 +1375,48 @@ if (!profileData) {
     }
 
     // --- ADD THIS FUNCTION TO FIX ATTENDANCE EXPORT ---
+   // --- UPDATED FIX FOR ATTENDANCE EXPORT (Safe Mode) ---
     window.handleExportAttendance = async function() {
         showToast("Generating CSV...");
-        // Fetch logs with user names
+        
+        // Step 1: Fetch the raw logs WITHOUT trying to join tables
         const { data: logs, error } = await supabaseClient
             .from('wfm_activity')
-            .select('*, profiles(full_name)')
+            .select('*') 
             .eq('org_id', state.org.id)
             .order('clock_in_time', { ascending: false });
 
-        if(error || !logs) return showToast("Export Failed", true);
+        if(error || !logs) {
+            console.error("Export Error:", error);
+            return showToast("Export Failed: " + (error?.message || "Unknown"), true);
+        }
 
+        // Step 2: Fetch the user names manually (prevents 400 Error)
+        const userIds = [...new Set(logs.map(l => l.user_id))]; // Get unique User IDs
+        const { data: profiles } = await supabaseClient
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', userIds);
+
+        // Create a fast lookup map: ID -> Name
+        const profileMap = {};
+        if (profiles) {
+            profiles.forEach(p => profileMap[p.user_id] = p.full_name);
+        }
+
+        // Step 3: Build the CSV using the map
         let csv = "data:text/csv;charset=utf-8,Employee,Date,Time In,Time Out,Status,Source\n";
         
         logs.forEach(l => {
-            const name = l.profiles ? l.profiles.full_name : 'Unknown User';
+            const name = profileMap[l.user_id] || 'Unknown User';
             const date = new Date(l.clock_in_time).toLocaleDateString();
             const timeIn = new Date(l.clock_in_time).toLocaleTimeString();
             const timeOut = l.clock_out_time ? new Date(l.clock_out_time).toLocaleTimeString() : 'Active';
             
-            csv += `${name},${date},${timeIn},${timeOut},${l.current_status},${l.record_source}\n`;
+            // Clean comma from names to avoid breaking CSV format
+            const cleanName = name.replace(/,/g, " ");
+            
+            csv += `${cleanName},${date},${timeIn},${timeOut},${l.current_status},${l.record_source}\n`;
         });
 
         const encodedUri = encodeURI(csv);
