@@ -541,15 +541,33 @@
         }
     }
 
-    // --- HELPER: PERFORMANCE TABLE ---
-    function renderPerformanceTable(reviews) {
-        let html = `<table><thead><tr><th>Employee</th><th>Role</th><th>Quality</th><th>Speed</th><th>Score</th><th>AI Insight</th></tr></thead><tbody>`;
-        if(reviews) {
-            reviews.forEach(r => {
-                const scoreClass = r.score_final >= 90 ? 'perf-high' : (r.score_final >= 75 ? 'perf-mid' : 'perf-low');
-                html += `<tr><td><div style="font-weight:600">${r.profiles?.full_name || 'Unknown'}</div><div style="font-size:0.8rem; color:var(--text-muted)">${r.profiles?.email}</div></td><td>${r.profiles?.role || '-'}</td><td>${r.score_quality}</td><td>${r.score_speed}</td><td><span class="perf-badge ${scoreClass}">${r.score_final}</span></td><td><button class="btn-outline" style="font-size:0.75rem;" onclick="showToast('${(r.ai_feedback || "").replace(/'/g, "\\'")}')">View Analysis</button></td></tr>`;
-            });
+    // --- HELPER: PERFORMANCE TABLE (SHOWS ALL) ---
+    async function renderPerformanceTable(filteredReviews) {
+        // Step 1: Get ALL employees
+        const { data: allEmployees } = await supabaseClient.from('profiles').select('user_id, full_name, email, role').eq('org_id', state.org.id);
+        if(!allEmployees) return;
+
+        // Step 2: Create a map of Review Data if available
+        const reviewMap = {};
+        if (filteredReviews) {
+            filteredReviews.forEach(r => reviewMap[r.user_id] = r);
         }
+
+        let html = `<table><thead><tr><th>Employee</th><th>Role</th><th>Quality</th><th>Speed</th><th>Score</th><th>AI Insight</th></tr></thead><tbody>`;
+        
+        allEmployees.forEach(emp => {
+            const r = reviewMap[emp.user_id];
+            
+            if (r) {
+                // Has Review
+                const scoreClass = r.score_final >= 90 ? 'perf-high' : (r.score_final >= 75 ? 'perf-mid' : 'perf-low');
+                html += `<tr><td><div style="font-weight:600">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted)">${emp.email}</div></td><td>${emp.role}</td><td>${r.score_quality}</td><td>${r.score_speed}</td><td><span class="perf-badge ${scoreClass}">${r.score_final}</span></td><td><button class="btn-outline" style="font-size:0.75rem;" onclick="showToast('${(r.ai_feedback || "").replace(/'/g, "\\'")}')">View Analysis</button></td></tr>`;
+            } else {
+                // No Review (Show N/A or Pending)
+                html += `<tr><td><div style="font-weight:600">${emp.full_name}</div><div style="font-size:0.8rem; color:var(--text-muted)">${emp.email}</div></td><td>${emp.role}</td><td>-</td><td>-</td><td><span class="perf-badge" style="background:rgba(255,255,255,0.1); color:#aaa;">Pending</span></td><td><span style="font-size:0.8rem; color:#666;">No data</span></td></tr>`;
+            }
+        });
+
         html += `</tbody></table>`;
         const perfContent = document.getElementById('perf-content');
         if (perfContent) perfContent.innerHTML = html;
@@ -644,6 +662,38 @@
         } catch (err) { console.error(err); showToast("Access Denied: " + err.message, true); btn.classList.remove('hidden'); if(stream) stream.getTracks().forEach(t => t.stop()); }
     }
 
+    // --- NEW: MISSING FUNCTION: Save Dept Schedule ---
+    window.saveDepartmentSchedule = async function() {
+        const dept = document.getElementById('set-dept').value;
+        const start = document.getElementById('set-start').value;
+        const end = document.getElementById('set-end').value;
+        
+        // Collect checked days
+        const days = [];
+        for(let i=0; i<=6; i++) {
+            if(document.getElementById(`d${i}`).checked) days.push(i);
+        }
+
+        if(!dept) return showToast("Department name required", true);
+
+        // UPSERT LOGIC (Create or Update)
+        const { error } = await supabaseClient
+            .from('wfm_schedules')
+            .upsert({
+                org_id: state.org.id,
+                department: dept,
+                shift_start: start,
+                shift_end: end,
+                work_days: days
+            }, { onConflict: 'org_id, department' }); // Use the unique constraint
+
+        if(error) return showToast("Save Failed: " + error.message, true);
+        
+        showToast(`Schedule saved for ${dept}`);
+        document.getElementById('settings-modal').classList.add('hidden');
+        renderWFMUI(document.getElementById('main-view')); // Refresh WFM view
+    }
+
     // --- INIT & AUTH ---
     window.addEventListener('DOMContentLoaded', async () => {
         // HASH CLEANER
@@ -690,7 +740,7 @@
     
     // 1. DASHBOARD
     async function loadDashboardView(container) {
-        if(state.profile.role === 'employee') return renderEmployeeDashboard(container); // Double check
+        if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
 
         const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
         
