@@ -740,7 +740,21 @@
     // --- MAIN DATA LOADER ---
     async function loadAppData(user) {
         state.user = user;
-        const { data: profileData, error: profileError } = await supabaseClient.from('profiles').select('*, organizations(*)').eq('user_id', user.id).single();
+       // NEW FIXED CODE
+const { data: profileData, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('*, organizations(*)')
+    .eq('user_id', user.id)
+    .maybeSingle(); // <--- SAFELY HANDLES MISSING PROFILES
+
+// Add this check to handle the "Ghost User" case
+if (!profileData) {
+    console.warn("User exists in Auth but has no Profile. Logging out...");
+    await supabaseClient.auth.signOut();
+    showToast("Account setup incomplete. Please register again.", true);
+    setTimeout(() => window.location.reload(), 2000);
+    return;
+}
         if (profileError || !profileData) { showToast("Profile not found. Please contact support.", true); return; }
         state.profile = profileData; state.org = profileData.organizations;
         document.getElementById('auth-container').classList.add('hidden'); document.getElementById('app-container').classList.remove('hidden'); setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
