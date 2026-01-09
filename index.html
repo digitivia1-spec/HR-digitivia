@@ -698,37 +698,51 @@
     }
 
     // --- INIT & AUTH ---
-   window.addEventListener('DOMContentLoaded', async () => {
-        // 1. REMOVED the code that deletes the hash here.
-
+  // --- INIT & AUTH ---
+    window.addEventListener('DOMContentLoaded', async () => {
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        // 2. LISTEN for the redirect event to catch the Google login
+        // 1. LISTEN for Auth State Changes (Handles both Redirects and Normal Session)
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
             if (event === 'SIGNED_IN' && session) {
-                // Now it is safe to clean the URL
-                window.history.replaceState(null, null, window.location.pathname);
+                // Clear URL junk (hashes and query params) for a clean look
+                if (window.location.hash || window.location.search) {
+                    window.history.replaceState(null, null, window.location.pathname);
+                }
                 
-                // Prevent double-loading if getSession already worked
+                // Load App if not already loaded
                 if (!state.user) {
                     loadAppData(session.user);
                 }
+            } else if (event === 'SIGNED_OUT') {
+                showAuthScreen();
             }
         });
 
-        // 3. CHECK for existing session (for normal page loads)
+        // 2. CHECK for Initial Session
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             loadAppData(session.user);
         } else {
-            // Only show login screen if we are NOT currently processing a redirect
-            if (!window.location.hash.includes('access_token')) {
+            // 3. SMART REDIRECT CHECK (The Fix)
+            // We only show the login screen if we are SURE this isn't a Google/LinkedIn redirect.
+            // We check for both '#access_token' (Implicit) and '?code=' (PKCE).
+            const isRedirect = window.location.hash.includes('access_token') || 
+                               window.location.search.includes('code=');
+
+            if (isRedirect) {
+                // Show a loading spinner instead of the Login Form while Supabase processes the token
+                document.getElementById('auth-container').innerHTML = `
+                    <div class="auth-card" style="text-align:center;">
+                        <i class="fa-solid fa-circle-notch fa-spin" style="font-size:3rem; color:var(--primary)"></i>
+                        <h3 style="margin-top:20px; color:white;">Finishing Login...</h3>
+                    </div>`;
+            } else {
                 showAuthScreen();
             }
         }
     });
-
     function toggleAuthMode(mode) { if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); } }
     async function handleLogin() { const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value; try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); } }
     async function handleRegister() { const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value; if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } }); if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false); } catch (err) { showToast(err.message || "Server Error", true); } }
