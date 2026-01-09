@@ -764,6 +764,7 @@
 
     // --- MAIN DATA LOADER ---
     // --- MAIN DATA LOADER (Fixed for Corporate Logins) ---
+  // --- MAIN DATA LOADER (CEO Edition) ---
     async function loadAppData(user) {
         state.user = user;
         
@@ -774,38 +775,64 @@
             .eq('user_id', user.id)
             .maybeSingle();
 
-        // 2. If profile is missing (Common for new Google/LinkedIn logins), create it on the fly!
+        // 2. IF USER IS NEW: Auto-Create Organization & Make them CEO
         if (!profileData) {
-            console.log("Profile missing for OAuth user. Creating one now...");
+            console.log("New Executive User Detected. Initializing Workspace...");
             
-            // Extract metadata from Google/LinkedIn
             const meta = user.user_metadata || {};
             const fullName = meta.full_name || meta.name || user.email.split('@')[0];
             const avatarUrl = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${fullName}&background=random`;
             
-            // Insert new profile
-            const { data: newProfile, error: createError } = await supabaseClient
-                .from('profiles')
-                .insert({
-                    user_id: user.id,
-                    email: user.email,
-                    full_name: fullName,
-                    role: 'employee', // Default role for new social logins
-                    org_id: state.org?.id || null, // Will need admin assignment later if null
-                    avatar_url: avatarUrl
-                })
-                .select('*, organizations(*)')
-                .single();
+            // --- SMART NAMING LOGIC ---
+            // If email is 'boss@apple.com', Org becomes 'Apple HQ'
+            // If email is 'john@gmail.com', Org becomes 'John's Company'
+            const emailDomain = user.email.split('@')[1];
+            let orgName = `${fullName}'s Company`; // Fallback for Gmail/Outlook
+            
+            // Check if it's a business domain (not free email)
+            const freeDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
+            if (emailDomain && !freeDomains.includes(emailDomain)) {
+                const companyName = emailDomain.split('.')[0];
+                // Capitalize first letter (e.g., digitivia -> Digitivia)
+                orgName = companyName.charAt(0).toUpperCase() + companyName.slice(1);
+            }
 
-            if (createError) {
-                console.error("Failed to auto-create profile:", createError);
-                showToast("Account Error: Contact Admin.", true);
+            try {
+                // A. Create the New Organization first
+                const { data: newOrg, error: orgError } = await supabaseClient
+                    .from('organizations')
+                    .insert({ name: orgName })
+                    .select()
+                    .single();
+                
+                if (orgError) throw orgError;
+
+                // B. Create the Profile as CEO linked to that Org
+                const { data: newProfile, error: createError } = await supabaseClient
+                    .from('profiles')
+                    .insert({
+                        user_id: user.id,
+                        email: user.email,
+                        full_name: fullName,
+                        role: 'ceo',        // <--- SETS ROLE TO CEO
+                        org_id: newOrg.id,  // <--- LINKS TO NEW ORG
+                        avatar_url: avatarUrl
+                    })
+                    .select('*, organizations(*)')
+                    .single();
+
+                if (createError) throw createError;
+                
+                profileData = newProfile;
+                showToast(`Welcome, CEO of ${orgName}!`);
+
+            } catch (err) {
+                console.error("Auto-setup failed:", err);
+                showToast("Setup Failed: " + err.message, true);
+                // If it fails, sign out so they can try again or contact support
                 await supabaseClient.auth.signOut();
                 return;
             }
-            
-            profileData = newProfile;
-            showToast("Account created successfully!");
         }
 
         // 3. Load App State
@@ -816,13 +843,14 @@
         document.getElementById('app-container').classList.remove('hidden'); 
         setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
         
-        // Update UI
+        // Update Header UI
         document.getElementById('user-name').innerText = state.profile.full_name; 
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        document.getElementById('role-display').innerText = state.profile.role ? state.profile.role.toUpperCase().replace('_', ' ') : 'GUEST'; 
-        document.getElementById('org-display-name').innerText = state.org ? state.org.name : 'No Organization';
+        // Display Role nicely
+        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
+        document.getElementById('org-display-name').innerText = state.org ? state.org.name : 'No Org';
         
-        // Route to correct view
+        // 4. Route to Dashboard (CEOs always go to Dashboard)
         if (state.profile.role === 'employee') {
             state.activeView = 'employee_dash';
         } else {
@@ -831,9 +859,7 @@
 
         renderSidebar(); 
         renderMainContent();
-    }
-    // --- VIEW RENDERERS ---
-    
+    }    
     // 1. DASHBOARD
     async function loadDashboardView(container) {
         if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
