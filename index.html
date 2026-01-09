@@ -765,73 +765,104 @@
     // --- MAIN DATA LOADER ---
     // --- MAIN DATA LOADER (Fixed for Corporate Logins) ---
   // --- MAIN DATA LOADER (CEO Edition) ---
+  // --- MAIN DATA LOADER (Auto-Fix Edition) ---
     async function loadAppData(user) {
         state.user = user;
         
-        // 1. Try to fetch existing profile
+        // 1. Try to fetch existing profile normally
         let { data: profileData, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*, organizations(*)')
             .eq('user_id', user.id)
             .maybeSingle();
 
-        // 2. IF USER IS NEW: Auto-Create Organization & Make them CEO
+        // 2. IF PROFILE MISSING: Create or Recover it
         if (!profileData) {
-            console.log("New Executive User Detected. Initializing Workspace...");
+            console.log("New User or Orphaned Profile Detected...");
             
             const meta = user.user_metadata || {};
             const fullName = meta.full_name || meta.name || user.email.split('@')[0];
             const avatarUrl = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${fullName}&background=random`;
             
-            // --- SMART NAMING LOGIC ---
-            // If email is 'boss@apple.com', Org becomes 'Apple HQ'
-            // If email is 'john@gmail.com', Org becomes 'John's Company'
+            // Smart Naming Logic
             const emailDomain = user.email.split('@')[1];
-            let orgName = `${fullName}'s Company`; // Fallback for Gmail/Outlook
-            
-            // Check if it's a business domain (not free email)
+            let orgName = `${fullName}'s Company`;
             const freeDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
             if (emailDomain && !freeDomains.includes(emailDomain)) {
                 const companyName = emailDomain.split('.')[0];
-                // Capitalize first letter (e.g., digitivia -> Digitivia)
                 orgName = companyName.charAt(0).toUpperCase() + companyName.slice(1);
             }
 
             try {
-                // A. Create the New Organization first
+                // A. Create Organization (This usually succeeds)
                 const { data: newOrg, error: orgError } = await supabaseClient
                     .from('organizations')
                     .insert({ name: orgName })
                     .select()
                     .single();
                 
-                if (orgError) throw orgError;
+                // Note: If org creation fails, we might just need to attach to an existing one, 
+                // but for CEO flow we assume new.
+                if (orgError) console.warn("Org creation note:", orgError.message);
 
-                // B. Create the Profile as CEO linked to that Org
+                const targetOrgId = newOrg ? newOrg.id : (state.org?.id || null);
+
+                // B. Try to INSERT the new profile
                 const { data: newProfile, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert({
                         user_id: user.id,
                         email: user.email,
                         full_name: fullName,
-                        role: 'ceo',        // <--- SETS ROLE TO CEO
-                        org_id: newOrg.id,  // <--- LINKS TO NEW ORG
+                        role: 'ceo',        
+                        org_id: targetOrgId,
                         avatar_url: avatarUrl
                     })
                     .select('*, organizations(*)')
                     .single();
 
-                if (createError) throw createError;
-                
-                profileData = newProfile;
-                showToast(`Welcome, CEO of ${orgName}!`);
+                // --- THE FIX: HANDLE DUPLICATE EMAIL ERROR ---
+                if (createError) {
+                    if (createError.code === '23505') { // Duplicate Email Code
+                        console.warn("Found duplicate profile (Zombie Profile). Attempting to claim...");
+                        
+                        // Try to UPDATE the old profile to link to THIS new user
+                        const { data: claimedProfile, error: claimError } = await supabaseClient
+                            .from('profiles')
+                            .update({ user_id: user.id, role: 'ceo', avatar_url: avatarUrl })
+                            .eq('email', user.email)
+                            .select('*, organizations(*)')
+                            .single();
+                        
+                        if (claimError) {
+                            // If we can't claim it (RLS blocked), we MUST stop the loop and warn the user
+                            document.getElementById('auth-container').innerHTML = `
+                                <div class="auth-card" style="border-color:var(--danger)">
+                                    <h2 style="color:var(--danger)">Database Conflict</h2>
+                                    <p style="color:#ccc; margin:15px 0;">This email (${user.email}) is already in the 'profiles' database table, but linked to an old deleted account.</p>
+                                    <div style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px; font-family:monospace; text-align:left; margin-bottom:15px;">
+                                        <strong>Fix:</strong><br>
+                                        1. Go to Supabase > Table Editor > <strong>profiles</strong><br>
+                                        2. Delete the row with email: <strong>${user.email}</strong>
+                                    </div>
+                                    <button class="btn-outline" onclick="location.reload()">I have deleted it, Try Again</button>
+                                </div>`;
+                            return; // STOP HERE. Do not logout, do not crash.
+                        }
+                        profileData = claimedProfile;
+                        showToast("Account recovered successfully!");
+                    } else {
+                        throw createError; // Throw other errors normally
+                    }
+                } else {
+                    profileData = newProfile;
+                    showToast(`Welcome, CEO of ${orgName}!`);
+                }
 
             } catch (err) {
                 console.error("Auto-setup failed:", err);
-                showToast("Setup Failed: " + err.message, true);
-                // If it fails, sign out so they can try again or contact support
-                await supabaseClient.auth.signOut();
-                return;
+                showToast("Setup Error: " + err.message, true);
+                return; // Stop execution, don't logout loop
             }
         }
 
@@ -843,14 +874,11 @@
         document.getElementById('app-container').classList.remove('hidden'); 
         setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
         
-        // Update Header UI
         document.getElementById('user-name').innerText = state.profile.full_name; 
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        // Display Role nicely
         document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
         document.getElementById('org-display-name').innerText = state.org ? state.org.name : 'No Org';
         
-        // 4. Route to Dashboard (CEOs always go to Dashboard)
         if (state.profile.role === 'employee') {
             state.activeView = 'employee_dash';
         } else {
@@ -859,7 +887,7 @@
 
         renderSidebar(); 
         renderMainContent();
-    }    
+    }
     // 1. DASHBOARD
     async function loadDashboardView(container) {
         if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
