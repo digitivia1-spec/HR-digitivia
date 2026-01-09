@@ -766,25 +766,24 @@
     // --- MAIN DATA LOADER (Fixed for Corporate Logins) ---
   // --- MAIN DATA LOADER (CEO Edition) ---
   // --- MAIN DATA LOADER (Auto-Fix Edition) ---
+// --- MAIN DATA LOADER (Safety Edition) ---
     async function loadAppData(user) {
         state.user = user;
         
-        // 1. Try to fetch existing profile normally
         let { data: profileData, error: profileError } = await supabaseClient
             .from('profiles')
             .select('*, organizations(*)')
             .eq('user_id', user.id)
             .maybeSingle();
 
-        // 2. IF PROFILE MISSING: Create or Recover it
+        // --- NEW USER SETUP FLOW ---
         if (!profileData) {
             console.log("New User or Orphaned Profile Detected...");
-            
             const meta = user.user_metadata || {};
             const fullName = meta.full_name || meta.name || user.email.split('@')[0];
             const avatarUrl = meta.avatar_url || meta.picture || `https://ui-avatars.com/api/?name=${fullName}&background=random`;
             
-            // Smart Naming Logic
+            // Determine Org Name
             const emailDomain = user.email.split('@')[1];
             let orgName = `${fullName}'s Company`;
             const freeDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'icloud.com'];
@@ -794,39 +793,39 @@
             }
 
             try {
-                // A. Create Organization (This usually succeeds)
+                // 1. Create Organization
                 const { data: newOrg, error: orgError } = await supabaseClient
                     .from('organizations')
                     .insert({ name: orgName })
                     .select()
                     .single();
                 
-                // Note: If org creation fails, we might just need to attach to an existing one, 
-                // but for CEO flow we assume new.
-                if (orgError) console.warn("Org creation note:", orgError.message);
+                // CRITICAL FIX: Handle RLS Error here
+                if (orgError) {
+                    console.error("Org Creation Blocked:", orgError);
+                    if (orgError.code === '42501') {
+                        showToast("Database Error: Run SQL Policy!", true);
+                        document.getElementById('auth-container').innerHTML = `<div class="auth-card"><h3 style="color:var(--danger)">Setup Failed</h3><p>You need to run the SQL Policy to allow Organization Creation.</p><button class="btn-primary" onclick="location.reload()">Try Again</button></div>`;
+                        return; // Stop execution to prevent crash
+                    }
+                }
 
                 const targetOrgId = newOrg ? newOrg.id : (state.org?.id || null);
 
-                // B. Try to INSERT the new profile
+                // 2. Create/Recover Profile
                 const { data: newProfile, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert({
-                        user_id: user.id,
-                        email: user.email,
-                        full_name: fullName,
-                        role: 'ceo',        
-                        org_id: targetOrgId,
-                        avatar_url: avatarUrl
+                        user_id: user.id, email: user.email, full_name: fullName,
+                        role: 'ceo', org_id: targetOrgId, avatar_url: avatarUrl
                     })
                     .select('*, organizations(*)')
                     .single();
 
-                // --- THE FIX: HANDLE DUPLICATE EMAIL ERROR ---
                 if (createError) {
-                    if (createError.code === '23505') { // Duplicate Email Code
-                        console.warn("Found duplicate profile (Zombie Profile). Attempting to claim...");
-                        
-                        // Try to UPDATE the old profile to link to THIS new user
+                    // Handle Duplicate Email (Zombie Profile)
+                    if (createError.code === '23505') { 
+                        console.warn("Claiming zombie profile...");
                         const { data: claimedProfile, error: claimError } = await supabaseClient
                             .from('profiles')
                             .update({ user_id: user.id, role: 'ceo', avatar_url: avatarUrl })
@@ -834,42 +833,43 @@
                             .select('*, organizations(*)')
                             .single();
                         
-                        if (claimError) {
-                            // If we can't claim it (RLS blocked), we MUST stop the loop and warn the user
-                            document.getElementById('auth-container').innerHTML = `
-                                <div class="auth-card" style="border-color:var(--danger)">
-                                    <h2 style="color:var(--danger)">Database Conflict</h2>
-                                    <p style="color:#ccc; margin:15px 0;">This email (${user.email}) is already in the 'profiles' database table, but linked to an old deleted account.</p>
-                                    <div style="background:rgba(255,255,255,0.1); padding:10px; border-radius:5px; font-family:monospace; text-align:left; margin-bottom:15px;">
-                                        <strong>Fix:</strong><br>
-                                        1. Go to Supabase > Table Editor > <strong>profiles</strong><br>
-                                        2. Delete the row with email: <strong>${user.email}</strong>
-                                    </div>
-                                    <button class="btn-outline" onclick="location.reload()">I have deleted it, Try Again</button>
-                                </div>`;
-                            return; // STOP HERE. Do not logout, do not crash.
-                        }
+                        if (claimError) throw claimError;
                         profileData = claimedProfile;
-                        showToast("Account recovered successfully!");
                     } else {
-                        throw createError; // Throw other errors normally
+                        throw createError;
                     }
                 } else {
                     profileData = newProfile;
-                    showToast(`Welcome, CEO of ${orgName}!`);
                 }
+                showToast(`Welcome, CEO of ${orgName}!`);
 
             } catch (err) {
-                console.error("Auto-setup failed:", err);
-                showToast("Setup Error: " + err.message, true);
-                return; // Stop execution, don't logout loop
+                console.error("Setup Fatal Error:", err);
+                showToast("Login Failed: " + err.message, true);
+                return;
             }
         }
 
-        // 3. Load App State
-        state.profile = profileData; 
-        state.org = profileData.organizations;
-        
+        // --- LOAD APPLICATION ---
+        // Final Safety Check: Ensure we actually have data before rendering
+        if (!profileData || !profileData.organizations) {
+            console.error("Critical: Profile loaded but Organization data is missing.");
+            // If we have a profile but no org, try to fetch org separately as fallback
+            if (profileData && profileData.org_id) {
+                 const { data: refetchOrg } = await supabaseClient.from('organizations').select('*').eq('id', profileData.org_id).single();
+                 state.org = refetchOrg;
+            }
+            if (!state.org && profileData?.organizations) state.org = profileData.organizations;
+            
+            if (!state.org) {
+                 showToast("Error: Account has no Organization linked.", true);
+                 return; 
+            }
+        } else {
+            state.profile = profileData; 
+            state.org = profileData.organizations;
+        }
+
         document.getElementById('auth-container').classList.add('hidden'); 
         document.getElementById('app-container').classList.remove('hidden'); 
         setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
@@ -877,13 +877,10 @@
         document.getElementById('user-name').innerText = state.profile.full_name; 
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
         document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
-        document.getElementById('org-display-name').innerText = state.org ? state.org.name : 'No Org';
+        document.getElementById('org-display-name').innerText = state.org.name;
         
-        if (state.profile.role === 'employee') {
-            state.activeView = 'employee_dash';
-        } else {
-            state.activeView = 'dashboard';
-        }
+        if (state.profile.role === 'employee') state.activeView = 'employee_dash';
+        else state.activeView = 'dashboard';
 
         renderSidebar(); 
         renderMainContent();
