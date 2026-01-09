@@ -732,7 +732,19 @@
     function toggleAuthMode(mode) { if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); } }
     async function handleLogin() { const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value; try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); } }
     async function handleRegister() { const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value; if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } }); if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false); } catch (err) { showToast(err.message || "Server Error", true); } }
-    async function socialLogin(provider) { await supabaseClient.auth.signInWithOAuth({ provider: provider, options: { redirectTo: window.location.href } }); }
+    async function socialLogin(provider) { 
+        // FIX: Always use origin + pathname to strip existing hashes and prevent "Double Hash" errors
+        const cleanRedirect = window.location.origin + window.location.pathname;
+        
+        await supabaseClient.auth.signInWithOAuth({ 
+            provider: provider, 
+            options: { 
+                redirectTo: cleanRedirect,
+                // Add scopes if needed for specific providers
+                scopes: provider === 'azure' ? 'email profile openid' : undefined
+            } 
+        }); 
+    }
     async function handleLogout() { await supabaseClient.auth.signOut(); window.location.reload(); }
     function showAuthScreen() { document.getElementById('auth-container').classList.remove('hidden'); document.getElementById('app-container').classList.add('hidden'); }
 
