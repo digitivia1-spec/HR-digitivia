@@ -1337,11 +1337,45 @@
     }
 
     // 5. WFM (Restored)
+   // 5. WFM (UPGRADED: With Map & Real-Time Status)
     async function renderWFMUI(container) { 
-        container.innerHTML = `<div class="page-title">Workforce Management <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')"><i class="fa-solid fa-gear"></i> Schedule Rules</button></div><div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;"><div class="card"><div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div><div style="position: relative; height: 200px; width: 100%;"><canvas id="wfmChart"></canvas></div></div><div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;"><div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">Live Roster</div><div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;"><div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div></div></div></div>`; 
-        initWFMChart(); loadWFMRoster(); 
-    }
+        container.innerHTML = `
+            <div class="page-title">
+                Workforce Management 
+                <button class="btn-outline" onclick="document.getElementById('settings-modal').classList.remove('hidden')">
+                    <i class="fa-solid fa-gear"></i> Schedule Rules
+                </button>
+            </div>
 
+            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+                <div class="card">
+                    <div class="card-title" style="margin-bottom:20px;">Intraday Adherence (Actual vs Scheduled)</div>
+                    <div style="position: relative; height: 200px; width: 100%;">
+                        <canvas id="wfmChart"></canvas>
+                    </div>
+                </div>
+                <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column;">
+                    <div style="padding:20px; border-bottom:1px solid var(--glass-border); font-weight:bold; background:rgba(0,0,0,0.2);">
+                        Live Roster
+                    </div>
+                    <div id="wfm-roster-list" style="overflow-y:auto; flex-grow:1; padding:10px;">
+                        <div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:20px; height:500px;">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-map-location-dot"></i> Real-Time Workforce Locations</div>
+                    <span class="badge" style="position:static; background:var(--success)">Live GPS</span>
+                </div>
+                <div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div>
+            </div>`;
+        
+        initWFMChart(); 
+        loadWFMRoster(); 
+        setTimeout(initLiveMap, 500); // Initialize Map
+    }
     // 6. PERFORMANCE (UPGRADED: With Time Filters & Dependent Data)
     async function renderPerformanceUI(container) {
         container.innerHTML = `
@@ -1425,45 +1459,67 @@
         renderROITable(reports); 
     }
 
-    // 8. ATTENDANCE (Restored)
+// 8. ATTENDANCE (Personal View Only)
     async function renderAttendanceUI(container) {
         const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
         const isClockedIn = !!activity;
         const startTime = activity ? new Date(activity.clock_in_time) : null;
         let durationHTML = '';
+        
         if (isClockedIn) {
-            const diffMs = new Date() - startTime; const hrs = Math.floor(diffMs / 3600000); const mins = Math.floor((diffMs % 3600000) / 60000);
+            const diffMs = new Date() - startTime; 
+            const hrs = Math.floor(diffMs / 3600000); 
+            const mins = Math.floor((diffMs % 3600000) / 60000);
             durationHTML = `<div style="text-align:center; margin-bottom:20px;"><div style="font-size:3rem; font-weight:700; color:var(--success); text-shadow:0 0 20px rgba(46,204,113,0.4);">${hrs}h ${mins}m</div><div class="perf-badge" style="background:rgba(46,204,113,0.2); color:var(--success);">Active Session</div></div>`;
         }
+        
         const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
-        let adminControls = '';
-        if(isAdmin) {
-            adminControls = `<div class="card" style="margin-top:25px; height:500px;"><div class="card-header"><div class="card-title">Live Organization Map (Last Known Locations)</div><button class="btn-outline" onclick="handleExportAttendance()"><i class="fa-solid fa-download"></i> Export CSV Dump</button></div><div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div></div>`;
-        }
-        container.innerHTML = `<div class="page-title">Smart Attendance Workspace ${isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy</button>` : ''}</div><div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;"><div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">${durationHTML}<div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);"><video id="vid" autoplay style="width:100%; border-radius:10px;"></video></div>${!isClockedIn ? `<button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button><div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>` : `<button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>`}</div><div class="card" style="overflow-y:auto"><div class="card-title">My Recent Activity</div><div id="attendance-history" style="margin-top:15px;">Loading...</div></div></div>${adminControls}`;
+        // Map removed from here -> Moved to WFM Tab
+
+        container.innerHTML = `
+            <div class="page-title">
+                My Attendance Workspace 
+                ${isAdmin ? `<button class="btn-outline" onclick="document.getElementById('import-modal').classList.remove('hidden')"><i class="fa-solid fa-file-import"></i> Import Legacy</button>` : ''}
+            </div>
+            
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="card" style="align-items:center; justify-content:center; position:relative; overflow:hidden;">
+                    ${durationHTML}
+                    <div id="camera-preview" class="hidden" style="width:100%; max-width:300px; border-radius:12px; margin-bottom:15px; border:2px solid var(--primary);">
+                        <video id="vid" autoplay style="width:100%; border-radius:10px;"></video>
+                    </div>
+                    ${!isClockedIn ? 
+                        `<button id="btn-scan" class="btn-primary" style="padding:15px 40px; font-size:1.2rem;" onclick="startClockInFlow()"><i class="fa-solid fa-fingerprint"></i> Biometric Clock In</button><div id="loc-status" style="margin-top:10px; color:var(--text-muted); font-size:0.8rem;"><i class="fa-solid fa-location-dot"></i> Waiting for GPS...</div>` : 
+                        `<button class="btn-outline" style="border-color:var(--danger); color:var(--danger); padding:15px 40px;" onclick="handleClockOut('${activity.id}')"><i class="fa-solid fa-power-off"></i> End Shift</button>`
+                    }
+                </div>
+                
+                <div class="card" style="overflow-y:auto">
+                    <div class="card-title">My Recent Activity</div>
+                    <div id="attendance-history" style="margin-top:15px;">Loading...</div>
+                </div>
+            </div>`;
+            
         loadAttendanceHistory();
-        if(isAdmin) setTimeout(initLiveMap, 500); 
     }
 
     // --- NEW: ORG PROFILE (CEO ONLY) ---
+   // --- NEW: ORG PROFILE (CEO ONLY) - CLEANED ---
     async function renderOrgProfile(container) {
         if(!await checkRoleAccess(['ceo'])) return;
 
-        container.innerHTML = `<div style="text-align:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Enterprise Settings...</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Settings...</div>`;
         
         // Fetch fresh org data
         const { data: org, error } = await supabaseClient.from('organizations').select('*').eq('id', state.org.id).single();
         if(error) return showToast("Failed to load org data", true);
 
-        // Parse JSON settings safely
-        const security = org.security_settings || { mfa_enforced: false, session_timeout: 30 };
-        const retention = org.retention_policy || { cv_months: 12, logs_months: 24 };
-
         container.innerHTML = `
             <div class="page-title">Organization Settings <span class="badge" style="position:static; font-size:0.9rem; background:var(--info)">Enterprise Tier</span></div>
-            <div class="settings-grid">
+            
+            <div class="dashboard-grid" style="grid-template-columns: 1fr;">
                 <div class="card">
-                    <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> Identity</div></div>
+                    <div class="card-header"><div class="card-title"><i class="fa-solid fa-building"></i> Corporate Identity</div></div>
                     <div class="form-group">
                         <label>Organization Name</label>
                         <input type="text" id="set-org-name" class="form-input" value="${org.name}">
@@ -1473,36 +1529,6 @@
                         <input type="text" class="form-input" value="${state.profile.full_name}" disabled style="opacity:0.5">
                     </div>
                     <button class="btn-primary" onclick="saveOrgIdentity()">Save Changes</button>
-                </div>
-
-                <div class="card">
-                    <div class="card-header"><div class="card-title"><i class="fa-solid fa-shield-halved"></i> Security & Compliance</div></div>
-                    
-                    <div class="settings-section">
-                        <div class="settings-header"><i class="fa-solid fa-user-lock"></i> Access Control</div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-                            <span>Enforce 2FA (MFA)</span>
-                            <input type="checkbox" id="set-mfa" ${security.mfa_enforced ? 'checked' : ''}>
-                        </div>
-                        <div class="form-group">
-                            <label>Session Timeout (Minutes)</label>
-                            <input type="number" id="set-timeout" class="form-input" value="${security.session_timeout}">
-                        </div>
-                    </div>
-
-                    <div class="settings-section">
-                        <div class="settings-header"><i class="fa-solid fa-database"></i> Data Retention (GDPR)</div>
-                        <div class="form-group">
-                            <label>Delete CVs after (Months)</label>
-                            <input type="number" id="set-ret-cv" class="form-input" value="${retention.cv_months}">
-                        </div>
-                        <div class="form-group">
-                            <label>Delete Audit Logs after (Months)</label>
-                            <input type="number" id="set-ret-logs" class="form-input" value="${retention.logs_months}">
-                        </div>
-                    </div>
-                    
-                    <button class="btn-outline" style="width:100%; border-color:var(--success); color:var(--success)" onclick="saveSecuritySettings()">Update Compliance Rules</button>
                 </div>
             </div>
             
