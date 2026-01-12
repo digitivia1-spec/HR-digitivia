@@ -955,6 +955,7 @@
         // --- 3. PASTE INSIDE loadDashboardView() AT THE TOP ---
 
     // 1. Fetch Latest Broadcast
+        
     const { data: broadcast } = await supabaseClient
         .from('broadcast_messages')
         .select('*')
@@ -974,6 +975,42 @@
             </div>
             <div style="margin-top:5px; font-size:1rem;">${broadcast.content}</div>
         </div>`;
+    }
+
+        // --- NEW: FETCH EXPIRED DOCUMENTS ---
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data: expiredDocs } = await supabaseClient
+        .from('employee_documents')
+        .select('*')
+        .eq('org_id', state.org.id)
+        .lt('expiry_date', todayStr) // Less than today = Expired
+        .order('expiry_date', { ascending: true });
+
+    let expiredHTML = '<div style="padding:15px; text-align:center; color:var(--text-muted)">No expired documents. All good!</div>';
+    
+    if (expiredDocs && expiredDocs.length > 0) {
+        // Fetch profile names for these docs
+        const userIds = [...new Set(expiredDocs.map(d => d.profile_id))];
+        const { data: owners } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
+        const nameMap = {};
+        if(owners) owners.forEach(o => nameMap[o.id] = o.full_name);
+
+        expiredHTML = '<div style="max-height: 200px; overflow-y: auto;">';
+        expiredDocs.forEach(doc => {
+            const ownerName = nameMap[doc.profile_id] || 'Unknown';
+            expiredHTML += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid rgba(231, 76, 60, 0.3); background:rgba(231, 76, 60, 0.05); margin-bottom:5px; border-radius:6px;">
+                <div>
+                    <div style="font-weight:600; font-size:0.9rem; color:var(--text-header)">${doc.document_type}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted)"><i class="fa-solid fa-user"></i> ${ownerName}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.85rem; color:var(--danger); font-weight:bold;">${new Date(doc.expiry_date).toLocaleDateString()}</div>
+                    <div style="font-size:0.7rem; color:var(--danger); opacity:0.8">Expired</div>
+                </div>
+            </div>`;
+        });
+        expiredHTML += '</div>';
     }
 
     // 2. Add "Send Alert" Button (Only for Admins)
@@ -1062,7 +1099,17 @@
                     <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
                     <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
                 </div>
-                <div class="card"><div class="card-title">Recent Activity (Organization Wide)</div><div id="dash-activity">Loading...</div></div>
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top:25px;">
+    <div class="card">
+        <div class="card-title">Recent Activity</div>
+        <div id="dash-activity">Loading...</div>
+    </div>
+    
+    <div class="card" style="border-top: 4px solid var(--danger);">
+        <div class="card-title" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> Expired Documents</div>
+        ${expiredHTML}
+    </div>
+</div>
             </div>
         `;
 
