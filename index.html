@@ -1067,11 +1067,74 @@ const i18n = {
         checkPricingPopup(); // <--- ADD THIS LINE
     }
     // 1. DASHBOARD
-    async function loadDashboardView(container) {
-        const t = i18n[state.lang]; // Get current language dictionary
+  async function loadDashboardView(container) {
+        const t = i18n[state.lang]; // Get translations
 
-        // --- 3. PASTE INSIDE loadDashboardView() AT THE TOP ---
-const header = `<div class="page-title">
+        // 1. Fetch Latest Broadcast
+        const { data: broadcast } = await supabaseClient
+            .from('broadcast_messages')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .order('sent_at', {ascending:false})
+            .limit(1)
+            .maybeSingle();
+
+        let broadcastHTML = '';
+        if (broadcast) {
+            const severityColor = broadcast.severity === 'urgent' ? 'var(--danger)' : 'var(--primary)';
+            broadcastHTML = `
+            <div class="card" style="border-left: 4px solid ${severityColor}; background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%); margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between;">
+                    <div style="font-weight:700; color:${severityColor};"><i class="fa-solid fa-bullhorn"></i> ${broadcast.subject || 'Announcement'}</div>
+                    <div style="font-size:0.8rem; opacity:0.7">${new Date(broadcast.sent_at).toLocaleDateString()}</div>
+                </div>
+                <div style="margin-top:5px; font-size:1rem;">${broadcast.content}</div>
+            </div>`;
+        }
+
+        // 2. Fetch Expired Docs
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data: expiredDocs } = await supabaseClient
+            .from('employee_documents')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .lt('expiry_date', todayStr)
+            .order('expiry_date', { ascending: true });
+
+        let expiredHTML = '<div style="padding:15px; text-align:center; color:var(--text-muted)">No expired documents. All good!</div>';
+        
+        if (expiredDocs && expiredDocs.length > 0) {
+            const userIds = [...new Set(expiredDocs.map(d => d.profile_id))];
+            const { data: owners } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
+            const nameMap = {};
+            if(owners) owners.forEach(o => nameMap[o.id] = o.full_name);
+
+            expiredHTML = '<div style="max-height: 200px; overflow-y: auto;">';
+            expiredDocs.forEach(doc => {
+                const ownerName = nameMap[doc.profile_id] || 'Unknown';
+                expiredHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid rgba(231, 76, 60, 0.3); background:rgba(231, 76, 60, 0.05); margin-bottom:5px; border-radius:6px;">
+                    <div>
+                        <div style="font-weight:600; font-size:0.9rem; color:var(--text-header)">${doc.document_type}</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted)"><i class="fa-solid fa-user"></i> ${ownerName}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.85rem; color:var(--danger); font-weight:bold;">${new Date(doc.expiry_date).toLocaleDateString()}</div>
+                        <div style="font-size:0.7rem; color:var(--danger); opacity:0.8">Expired</div>
+                    </div>
+                </div>`;
+            });
+            expiredHTML += '</div>';
+        }
+
+        // 3. Send Alert Button
+        let sendAlertBtn = '';
+        if (['ceo', 'hr_manager'].includes(state.profile.role) && hasAccess('broadcast')) {
+            sendAlertBtn = `<button class="btn-outline" onclick="document.getElementById('broadcast-modal').classList.remove('hidden')"><i class="fa-solid fa-paper-plane"></i> Send Alert</button>`;
+        }
+
+        // 4. HEADER DEFINITION (Only Once)
+        const header = `<div class="page-title">
             <span>${t.welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> 
             <div style="display:flex; gap:10px;">
                 ${sendAlertBtn}
@@ -1079,107 +1142,8 @@ const header = `<div class="page-title">
             </div>
         </div>
         ${broadcastHTML}`;
-    // 1. Fetch Latest Broadcast
-        
-    const { data: broadcast } = await supabaseClient
-        .from('broadcast_messages')
-        .select('*')
-        .eq('org_id', state.org.id)
-        .order('sent_at', {ascending:false})
-        .limit(1)
-        .maybeSingle();
 
-    let broadcastHTML = '';
-    if (broadcast) {
-        const severityColor = broadcast.severity === 'urgent' ? 'var(--danger)' : 'var(--primary)';
-        broadcastHTML = `
-        <div class="card" style="border-left: 4px solid ${severityColor}; background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%); margin-bottom:20px;">
-            <div style="display:flex; justify-content:space-between;">
-                <div style="font-weight:700; color:${severityColor};"><i class="fa-solid fa-bullhorn"></i> ${broadcast.subject || 'Announcement'}</div>
-                <div style="font-size:0.8rem; opacity:0.7">${new Date(broadcast.sent_at).toLocaleDateString()}</div>
-            </div>
-            <div style="margin-top:5px; font-size:1rem;">${broadcast.content}</div>
-        </div>`;
-    }
-
-
-        container.innerHTML = `
-            ${header}
-            <div id="dash-content">
-                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="card"><div class="card-title">${t.total_staff}</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
-                    <div class="card"><div class="card-title">${t.online_now}</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
-                    <div class="card"><div class="card-title">${t.open_jobs}</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
-                    <div class="card"><div class="card-title">${t.late_today}</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
-                </div>
-                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top:25px;">
-                    <div class="card">
-                        <div class="card-title">${t.recent_activity}</div>
-                        <div id="dash-activity">Loading...</div>
-                    </div>
-                    <div class="card" style="border-top: 4px solid var(--danger);">
-                        <div class="card-title" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> ${t.expired_docs}</div>
-                        ${expiredHTML}
-                    </div>
-                </div>
-            </div>`;
-        
-        // --- NEW: FETCH EXPIRED DOCUMENTS ---
-    const todayStr = new Date().toISOString().split('T')[0];
-    const { data: expiredDocs } = await supabaseClient
-        .from('employee_documents')
-        .select('*')
-        .eq('org_id', state.org.id)
-        .lt('expiry_date', todayStr) // Less than today = Expired
-        .order('expiry_date', { ascending: true });
-
-    let expiredHTML = '<div style="padding:15px; text-align:center; color:var(--text-muted)">No expired documents. All good!</div>';
-    
-    if (expiredDocs && expiredDocs.length > 0) {
-        // Fetch profile names for these docs
-        const userIds = [...new Set(expiredDocs.map(d => d.profile_id))];
-        const { data: owners } = await supabaseClient.from('profiles').select('id, full_name').in('id', userIds);
-        const nameMap = {};
-        if(owners) owners.forEach(o => nameMap[o.id] = o.full_name);
-
-        expiredHTML = '<div style="max-height: 200px; overflow-y: auto;">';
-        expiredDocs.forEach(doc => {
-            const ownerName = nameMap[doc.profile_id] || 'Unknown';
-            expiredHTML += `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid rgba(231, 76, 60, 0.3); background:rgba(231, 76, 60, 0.05); margin-bottom:5px; border-radius:6px;">
-                <div>
-                    <div style="font-weight:600; font-size:0.9rem; color:var(--text-header)">${doc.document_type}</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted)"><i class="fa-solid fa-user"></i> ${ownerName}</div>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.85rem; color:var(--danger); font-weight:bold;">${new Date(doc.expiry_date).toLocaleDateString()}</div>
-                    <div style="font-size:0.7rem; color:var(--danger); opacity:0.8">Expired</div>
-                </div>
-            </div>`;
-        });
-        expiredHTML += '</div>';
-    }
-
-    // 2. Add "Send Alert" Button (Only for Admins)
-    let sendAlertBtn = '';
-    if (['ceo', 'hr_manager'].includes(state.profile.role) && hasAccess('broadcast')) {
-        sendAlertBtn = `<button class="btn-outline" onclick="document.getElementById('broadcast-modal').classList.remove('hidden')"><i class="fa-solid fa-paper-plane"></i> Send Alert</button>`;
-    }
-
-    // --- NOW UPDATE YOUR HEADER STRING TO INCLUDE THESE ---
-    // Change your existing 'const header = ...' line to:
-    const header = `<div class="page-title">
-        <span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> 
-        <div style="display:flex; gap:10px;">
-            ${sendAlertBtn}
-            <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export</button>
-        </div>
-    </div>
-    ${broadcastHTML}`; // Inject the alert here
-
-        
-        if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
-        
+        // 5. Fetch Stats
         let query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
         if (state.profile.role === 'manager') query = query.eq('department', state.profile.department);
         const { count: totalStaff } = await query;
@@ -1196,7 +1160,6 @@ const header = `<div class="page-title">
         if (state.profile.role === 'manager') { jobQuery = jobQuery.eq('department', state.profile.department); }
         const { count: openJobs } = await jobQuery;
 
-        // FIXED QUERY: No Join
         let schedQuery = supabaseClient.from('wfm_schedules').select('*').eq('org_id', state.org.id);
         const { data: schedules } = await schedQuery;
         let lateCount = 0; let lateListHTML = '';
@@ -1204,14 +1167,11 @@ const header = `<div class="page-title">
         if (schedules && schedules.length > 0) {
             const todayStr = new Date().toISOString().split('T')[0];
             const { data: logs } = await supabaseClient.from('wfm_activity').select('clock_in_time, user_id').eq('org_id', state.org.id).gte('clock_in_time', todayStr);
-            
             if(logs && logs.length > 0) {
                 const userIds = logs.map(l => l.user_id);
                 const { data: logProfiles } = await supabaseClient.from('profiles').select('user_id, full_name, department').in('user_id', userIds);
-                
                 const profileMap = {};
                 if(logProfiles) logProfiles.forEach(p => profileMap[p.user_id] = p);
-
                 logs.forEach(log => {
                     const profile = profileMap[log.user_id];
                     if(!profile) return;
@@ -1233,34 +1193,34 @@ const header = `<div class="page-title">
         }
         if (lateListHTML === '') lateListHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No late arrivals today.</div>';
 
+        // 6. RENDER DASHBOARD
         container.innerHTML = `
             ${header}
             <div id="dash-content">
                 <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
-                    <div class="card"><div class="card-title">Total Staff</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
-                    <div class="card"><div class="card-title">Online Now</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
-                    <div class="card"><div class="card-title">Open Jobs</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
-                    <div class="card"><div class="card-title">Late Today</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
+                    <div class="card"><div class="card-title">${t.total_staff}</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
+                    <div class="card"><div class="card-title">${t.online_now}</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
+                    <div class="card"><div class="card-title">${t.open_jobs}</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
+                    <div class="card"><div class="card-title">${t.late_today}</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
                 </div>
                 <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">Late Arrival Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
+                    <div class="card"><div class="card-title" style="margin-bottom:15px; color:var(--danger)">${t.late_today} Ticker</div><div style="overflow-y:auto; max-height:200px;">${lateListHTML}</div></div>
                     <div class="card"><div class="card-title">Staff Distribution</div><div style="height:200px; position:relative;"><canvas id="dashPie"></canvas></div></div>
                 </div>
                 <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top:25px;">
-    <div class="card">
-        <div class="card-title">Recent Activity</div>
-        <div id="dash-activity">Loading...</div>
-    </div>
-    
-    <div class="card" style="border-top: 4px solid var(--danger);">
-        <div class="card-title" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> Expired Documents</div>
-        ${expiredHTML}
-    </div>
-</div>
+                    <div class="card">
+                        <div class="card-title">${t.recent_activity}</div>
+                        <div id="dash-activity">Loading...</div>
+                    </div>
+                    <div class="card" style="border-top: 4px solid var(--danger);">
+                        <div class="card-title" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> ${t.expired_docs}</div>
+                        ${expiredHTML}
+                    </div>
+                </div>
             </div>
         `;
 
-        // SAFETY FIX: Chart Creation
+        // 7. Charts & Feeds
         setTimeout(async () => {
             const chartCanvas = document.getElementById('dashPie');
             if (chartCanvas) {
@@ -1273,7 +1233,6 @@ const header = `<div class="page-title">
             }
         }, 100);
 
-        // Activity Feed
         const { data: feed } = await supabaseClient.from('wfm_activity').select('*').eq('org_id', state.org.id).order('clock_in_time', {ascending:false}).limit(5);
         let feedHTML = '';
         if(feed && feed.length > 0) {
@@ -1281,7 +1240,6 @@ const header = `<div class="page-title">
             const { data: feedProfiles } = await supabaseClient.from('profiles').select('user_id, full_name').in('user_id', feedUserIds);
             const feedProfileMap = {};
             if(feedProfiles) feedProfiles.forEach(p => feedProfileMap[p.user_id] = p.full_name);
-
             feed.forEach(f => {
                 const name = feedProfileMap[f.user_id] || 'Unknown User';
                 feedHTML += `<div style="padding:10px; border-bottom:1px solid var(--glass-border); font-size:0.9rem;"><span style="font-weight:600; color:var(--primary)">${name}</span> clocked in via ${f.record_source} at ${new Date(f.clock_in_time).toLocaleTimeString()}</div>`;
@@ -1292,7 +1250,6 @@ const header = `<div class="page-title">
         const activityDiv = document.getElementById('dash-activity');
         if(activityDiv) activityDiv.innerHTML = feedHTML;
     }
-
     // 1.5 EMPLOYEE DASHBOARD (New)
     async function renderEmployeeDashboard(container) {
         container.innerHTML = `
