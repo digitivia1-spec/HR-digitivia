@@ -1155,7 +1155,7 @@
                 <td>${emp.role}</td>
                 <td>${emp.email}</td>
                 <td>
-                    <button class="btn-outline" style="font-size:0.75rem; padding:5px 10px; margin-right:5px;" onclick="openDocsModal('${emp.user_id}', '${emp.full_name}')"><i class="fa-solid fa-folder-open"></i> Docs</button>
+                    <button class="btn-outline" style="font-size:0.75rem; padding:5px 10px; margin-right:5px;" onclick="openDocsModal('${emp.id}', '${emp.full_name}')"><i class="fa-solid fa-folder-open"></i> Docs</button>
                     <span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">Meta</span>
                     <div class="details-json">${JSON.stringify(meta, null, 2)}</div>
                 </td>
@@ -1798,84 +1798,80 @@ body: JSON.stringify({
 
         btn.innerText = "Creating Profile...";
 
-        try {
-            // C. CREATE AUTH USER
-            // We use a temporary client to create the user without logging out the admin
-            const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
-            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { 
-                auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } 
-            });
+try {
+        // 1. Create Auth User
+        const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { 
+            auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } 
+        });
+        
+        const { data: authData, error: authError } = await tempClient.auth.signUp({ 
+            email: email, password: password, options: { data: { full_name: fullName } } 
+        });
+
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("Auth Creation Failed");
+
+        // 2. Create Profile (RPC)
+        const metaData = { phone: phone, department: dept };
+        const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { 
+            target_user_id: authData.user.id, user_email: email, full_name: fullName, 
+            user_role: role, target_org_id: state.org.id, user_meta: metaData, 
+            avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` 
+        });
+
+        if (profileError) throw profileError;
+
+        // 3. CRITICAL FIX: Fetch the new Profile ID to use for Documents
+        const { data: newProfile, error: fetchError } = await supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('user_id', authData.user.id)
+            .single();
+
+        if (fetchError || !newProfile) throw new Error("Could not retrieve new profile ID");
+
+        // 4. Save Documents (Using the correct Profile ID)
+        const docRows = document.querySelectorAll('#onboard-docs-list > div');
+        if (docRows.length > 0) {
+            btn.innerText = "Saving Docs...";
+            const docsToInsert = [];
             
-            const { data: authData, error: authError } = await tempClient.auth.signUp({ 
-                email: email, 
-                password: password, 
-                options: { data: { full_name: fullName } } 
-            });
-
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Auth Creation Failed");
-
-            // D. SAVE TO DATABASE (PROFILES)
-            const metaData = { phone: phone, department: dept };
-            
-            const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { 
-                target_user_id: authData.user.id, 
-                user_email: email, 
-                full_name: fullName, 
-                user_role: role, 
-                target_org_id: state.org.id, 
-                user_meta: metaData, 
-                avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` 
-            });
-
-            if (profileError) throw profileError;
-
-            // E. SAVE DOCUMENTS (If any)
-            const docRows = document.querySelectorAll('#onboard-docs-list > div');
-            if (docRows.length > 0) {
-                btn.innerText = "Saving Docs...";
-                const docsToInsert = [];
+            docRows.forEach(row => {
+                const title = row.querySelector('.doc-title').value;
+                const date = row.querySelector('.doc-date').value;
+                const link = row.querySelector('.doc-link').value;
                 
-                docRows.forEach(row => {
-                    const title = row.querySelector('.doc-title').value;
-                    const date = row.querySelector('.doc-date').value;
-                    const link = row.querySelector('.doc-link').value;
-                    
-                    if(title && date) {
-                        docsToInsert.push({
-                            org_id: state.org.id,
-                            profile_id: authData.user.id, // Use the new user's ID
-                            document_type: title,
-                            expiry_date: date,
-                            external_link: link || null,
-                            is_checklist_only: false 
-                        });
-                    }
-                });
+                if(title && date) {
+                    docsToInsert.push({
+                        org_id: state.org.id,
+                        profile_id: newProfile.id, // <--- USING CORRECT ID HERE
+                        document_type: title,
+                        expiry_date: date,
+                        external_link: link || null,
+                        is_checklist_only: false 
+                    });
+                }
+            });
 
-                if(docsToInsert.length > 0) {
-                    const { error: docError } = await supabaseClient
-                        .from('employee_documents')
-                        .insert(docsToInsert);
-                    
-                    if(docError) {
-                        console.error("Doc Error:", docError);
-                        showToast("User created, but docs failed: " + docError.message, true);
-                    }
+            if(docsToInsert.length > 0) {
+                const { error: docError } = await supabaseClient.from('employee_documents').insert(docsToInsert);
+                if(docError) {
+                    console.error("Doc Error:", docError);
+                    showToast("User created, but docs failed: " + docError.message, true);
                 }
             }
-
-            showToast(`Success! ${fullName} onboarded.`);
-            closeOnboardModal();
-            // Refresh the employee list to show the new person
-            if(state.activeView === 'employees') loadEmployeesView(document.getElementById('main-view'));
-
-        } catch (err) {
-            console.error(err);
-            showToast(err.message, true);
-        } finally {
-            btn.innerText = oldText;
         }
+
+        showToast(`Success! ${fullName} onboarded.`);
+        closeOnboardModal();
+        if(state.activeView === 'employees') loadEmployeesView(document.getElementById('main-view'));
+
+    } catch (err) {
+        console.error(err);
+        showToast(err.message, true);
+    } finally {
+        btn.innerText = oldText;
     }
     async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Use Attendance Tab to Clock In')">Go to Attendance</button></div>`; }
     function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = deg2rad(lat2 - lat1); var dLon = deg2rad(lon2 - lon1); var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); var d = R * c; return d * 1000; }
