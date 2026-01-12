@@ -1230,23 +1230,19 @@
 
     // 4. ATS (UPGRADED: With Active Jobs Sidebar)
     async function loadATSView(container) {
-     container.innerHTML = `
+    container.innerHTML = `
         <div class="page-title">
             ATS Recruitment Pipeline 
             <div style="display:flex; gap:10px;">
+                <button class="btn-outline" onclick="openEmailConnectModal()">
+                    <i class="fa-solid fa-envelope"></i> Connect Email
+                </button>
                 <button class="btn-outline" onclick="openCandidateModal()"><i class="fa-solid fa-user-plus"></i> Add Candidate</button>
                 <button class="btn-primary" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Post Job</button>
             </div>
         </div>
         <div class="ats-layout">
-            <div class="ats-sidebar">
-                <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Active Jobs</div>
-                <div id="ats-jobs-list">Loading Jobs...</div>
-            </div>
-            <div class="ats-main-board" id="ats-board" style="flex-grow:1; display:flex; gap:20px; overflow-x:auto;">
-                <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
-            </div>
-        </div>`;
+            </div>`;
 
         // 1. Load Jobs Sidebar
         const { data: jobs } = await supabaseClient.from('ats_jobs').select('*').eq('org_id', state.org.id).order('created_at', {ascending:false});
@@ -2113,6 +2109,42 @@ try {
             loadATSView(document.getElementById('main-view'));
         }
     }
+
+    // --- EMAIL INTEGRATION LOGIC ---
+function openEmailConnectModal() { document.getElementById('email-connect-modal').classList.remove('hidden'); }
+
+function toggleImapFields() {
+    const type = document.getElementById('imap-provider').value;
+    const box = document.getElementById('custom-imap');
+    const host = document.getElementById('imap-host');
+    if(type === 'custom') { box.classList.remove('hidden'); host.value = ''; }
+    else { box.classList.add('hidden'); host.value = type === 'gmail' ? 'imap.gmail.com' : 'outlook.office365.com'; }
+}
+
+async function saveEmailIntegration() {
+    const email = document.getElementById('imap-email').value;
+    const pass = document.getElementById('imap-pass').value;
+    const host = document.getElementById('imap-host').value;
+    const port = document.getElementById('imap-port').value || 993;
+
+    if(!email || !pass) return showToast("Email and Password required", true);
+
+    const config = { email, password: pass, host, port, tls: true };
+
+    const { error } = await supabaseClient.from('org_integrations')
+        .upsert({ 
+            org_id: state.org.id, 
+            integration_type: 'imap_email', 
+            config: config, 
+            status: 'active' 
+        }, { onConflict: 'org_id, integration_type' });
+
+    if(error) showToast("Error: " + error.message, true);
+    else {
+        showToast("Connected! AI is now watching your inbox.");
+        document.getElementById('email-connect-modal').classList.add('hidden');
+    }
+}
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
@@ -2183,6 +2215,36 @@ try {
                 I'll explore on my own
             </button>
         </div>
+    </div>
+</div>
+    <div id="email-connect-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-title">Connect Recruitment Email <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('email-connect-modal').classList.add('hidden')"></i></div>
+        <div style="background:rgba(52, 152, 219, 0.1); padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-main);">
+            <i class="fa-solid fa-robot"></i> <b>AI Auto-Scan:</b> Connect your inbox (e.g., Gmail/Outlook). The AI will read emails with "Resume" or "CV" in the subject, analyze the PDF/Link, and add candidates automatically.
+        </div>
+        
+        <div class="form-group">
+            <label>Provider</label>
+            <select id="imap-provider" class="form-input" style="background:var(--sidebar-bg)" onchange="toggleImapFields()">
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook / Office 365</option>
+                <option value="custom">Custom IMAP</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Email Address</label><input type="email" id="imap-email" class="form-input" placeholder="hiring@company.com"></div>
+        <div class="form-group">
+            <label>App Password / Password</label>
+            <input type="password" id="imap-pass" class="form-input" placeholder="••••••••">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">For Gmail, use an <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--primary)">App Password</a>.</div>
+        </div>
+        
+        <div id="custom-imap" class="hidden">
+            <div class="form-group"><label>IMAP Host</label><input type="text" id="imap-host" class="form-input" value="imap.gmail.com"></div>
+            <div class="form-group"><label>IMAP Port</label><input type="number" id="imap-port" class="form-input" value="993"></div>
+        </div>
+
+        <button class="btn-primary" style="width:100%" onclick="saveEmailIntegration()">Connect & Start AI</button>
     </div>
 </div>
 </body>
