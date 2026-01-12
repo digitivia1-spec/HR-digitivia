@@ -279,35 +279,61 @@
         </div>
     </div>
 
-    <div id="onboard-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <div class="modal-title">
+<div id="onboard-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 600px;"> <div class="modal-title">
                 Onboard New Hire
                 <i class="fa-solid fa-xmark close-modal" onclick="closeOnboardModal()"></i>
             </div>
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="new-name" class="form-input" placeholder="Jane Doe">
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                <div>
+                    <h4 style="color:var(--primary); margin-bottom:10px;">1. Employee Details</h4>
+                    <div class="form-group">
+                        <label>Full Name <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-name" class="form-input" placeholder="Jane Doe">
+                    </div>
+                    <div class="form-group">
+                        <label>Company Email <span style="color:var(--danger)">*</span></label>
+                        <input type="email" id="new-email" class="form-input" placeholder="jane@company.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Temporary Password <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-pass" class="form-input" placeholder="Welcome123">
+                    </div>
+                    <div class="form-group">
+                        <label>Role <span style="color:var(--danger)">*</span></label>
+                        <select id="new-role" class="form-input" style="background:var(--sidebar-bg);">
+                            <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
+                            <option value="hr_manager">HR Manager</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-meta-phone" class="form-input" placeholder="+1 234 567 890">
+                    </div>
+                    <div class="form-group">
+                        <label>Department (Optional)</label>
+                        <input type="text" id="new-meta-dept" class="form-input" placeholder="Engineering">
+                    </div>
+                </div>
+
+                <div style="border-left:1px solid var(--glass-border); padding-left:15px;">
+                    <h4 style="color:var(--primary); margin-bottom:10px;">2. Starter Documents</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Add ID, Contract, or Passport now.</p>
+                    
+                    <div id="onboard-docs-list" style="max-height: 300px; overflow-y:auto; padding-right:5px;">
+                        </div>
+
+                    <button class="btn-outline" style="width:100%; font-size:0.8rem; margin-top:10px;" onclick="addObjDocRow()">
+                        <i class="fa-solid fa-plus"></i> Add Document Row
+                    </button>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Company Email</label>
-                <input type="email" id="new-email" class="form-input" placeholder="jane@company.com">
+
+            <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--glass-border);">
+                <button class="btn-primary" style="width:100%; justify-content:center" onclick="executeOnboard()">Create Employee & Save Docs</button>
             </div>
-            <div class="form-group">
-                <label>Temporary Password</label>
-                <input type="text" id="new-pass" class="form-input" placeholder="Welcome123">
-            </div>
-            <div class="form-group">
-                <label>Role</label>
-                <select id="new-role" class="form-input" style="background:rgba(255,255,255,0.05);">
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Extra Details (Optional)</label>
-                <input type="text" id="new-meta-phone" class="form-input" placeholder="Phone Number" style="margin-bottom:10px;">
-                <input type="text" id="new-meta-dept" class="form-input" placeholder="Department">
-            </div>
-            <button class="btn-primary" style="width:100%; justify-content:center" onclick="executeOnboard()">Create Account</button>
         </div>
     </div>
 
@@ -1731,7 +1757,118 @@ body: JSON.stringify({
     async function promoteCandidateToEmployee(candidateId) { const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single(); if (error) { showToast("Error fetching details", true); return; } openOnboardModal(); document.getElementById('new-name').value = candidate.full_name; document.getElementById('new-email').value = candidate.email; document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || ''; showToast("Candidate data pre-filled. Please set a password."); }
     function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
     function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
-    async function executeOnboard() { const fullName = document.getElementById('new-name').value; const email = document.getElementById('new-email').value; const password = document.getElementById('new-pass').value; const role = document.getElementById('new-role').value; const phone = document.getElementById('new-meta-phone').value; const dept = document.getElementById('new-meta-dept').value; if(!fullName || !email || !password) { showToast("Fields Required", true); return; } const metaData = {}; if(phone) metaData.phone = phone; if(dept) metaData.department = dept; const btn = document.querySelector('#onboard-modal .btn-primary'); const oldText = btn.innerText; btn.innerText = "Creating..."; try { const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }; const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } }); const { data: authData, error: authError } = await tempClient.auth.signUp({ email: email, password: password, options: { data: { full_name: fullName } } }); if (authError) throw authError; if (!authData.user) throw new Error("Auth Failed"); const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { target_user_id: authData.user.id, user_email: email, full_name: fullName, user_role: role, target_org_id: state.org.id, user_meta: metaData, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` }); if (profileError) throw profileError; showToast(`Success! User created: ${email}`); closeOnboardModal(); loadEmployeesView(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerText = oldText; } }
+// --- UPDATED ONBOARDING LOGIC ---
+
+    // 1. Helper to add document rows in the modal
+    function addObjDocRow() {
+        const container = document.getElementById('onboard-docs-list');
+        const id = Date.now(); // unique ID for this row
+        const html = `
+        <div id="doc-row-${id}" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; position:relative;">
+            <i class="fa-solid fa-trash" style="position:absolute; top:5px; right:5px; color:var(--danger); cursor:pointer; font-size:0.8rem;" onclick="document.getElementById('doc-row-${id}').remove()"></i>
+            
+            <input type="text" class="form-input doc-title" placeholder="Doc Name (e.g. Contract)" style="margin-bottom:5px; font-size:0.85rem;">
+            <div style="display:flex; gap:5px;">
+                <input type="date" class="form-input doc-date" style="font-size:0.85rem;">
+                <input type="text" class="form-input doc-link" placeholder="URL / Link" style="font-size:0.85rem;">
+            </div>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    // 2. Main Execute Function
+    async function executeOnboard() {
+        const btn = document.querySelector('#onboard-modal .btn-primary');
+        const oldText = btn.innerText;
+        
+        // --- VALIDATION ---
+        const fullName = document.getElementById('new-name').value;
+        const email = document.getElementById('new-email').value;
+        const password = document.getElementById('new-pass').value;
+        const role = document.getElementById('new-role').value;
+        const phone = document.getElementById('new-meta-phone').value; // Now Checked
+        const dept = document.getElementById('new-meta-dept').value; // Optional
+
+        if(!fullName || !email || !password || !phone) { 
+            return showToast("Name, Email, Password, and Phone are REQUIRED.", true); 
+        }
+
+        btn.innerText = "Creating Profile...";
+
+        try {
+            // 1. Create Auth User (Using temporary client to avoid logging out admin)
+            const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { 
+                auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } 
+            });
+            
+            const { data: authData, error: authError } = await tempClient.auth.signUp({ 
+                email: email, 
+                password: password, 
+                options: { data: { full_name: fullName } } 
+            });
+
+            if (authError) throw authError;
+            if (!authData.user) throw new Error("Auth Creation Failed");
+
+            // 2. Create Profile in Database
+            const metaData = { phone: phone, department: dept };
+            
+            const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { 
+                target_user_id: authData.user.id, 
+                user_email: email, 
+                full_name: fullName, 
+                user_role: role, 
+                target_org_id: state.org.id, 
+                user_meta: metaData, 
+                avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` 
+            });
+
+            if (profileError) throw profileError;
+
+            // 3. Process Documents (If any added)
+            const docRows = document.querySelectorAll('#onboard-docs-list > div');
+            if (docRows.length > 0) {
+                btn.innerText = "Saving Documents...";
+                const docsToInsert = [];
+                
+                docRows.forEach(row => {
+                    const title = row.querySelector('.doc-title').value;
+                    const date = row.querySelector('.doc-date').value;
+                    const link = row.querySelector('.doc-link').value;
+                    
+                    if(title && date) {
+                        docsToInsert.push({
+                            org_id: state.org.id,
+                            profile_id: authData.user.id, // Link to new user
+                            document_type: title,
+                            expiry_date: date,
+                            external_link: link || null,
+                            is_checklist_only: false // Default to false as requested
+                        });
+                    }
+                });
+
+                if(docsToInsert.length > 0) {
+                    const { error: docError } = await supabaseClient
+                        .from('employee_documents')
+                        .insert(docsToInsert);
+                    
+                    if(docError) console.error("Doc Error:", docError);
+                }
+            }
+
+            showToast(`Success! ${fullName} onboarded with ${docRows.length} docs.`);
+            closeOnboardModal();
+            loadEmployeesView(document.getElementById('main-view'));
+
+        } catch (err) {
+            console.error(err);
+            showToast(err.message, true);
+        } finally {
+            btn.innerText = oldText;
+        }
+    }
     async function renderEmployeeWFM(container) { container.innerHTML = `<div class="page-title">My Schedule</div><div class="card" style="text-align:center; padding:50px;"><h2>09:00 AM - 05:00 PM</h2><p style="color:var(--text-muted); margin-bottom:20px;">Today's Shift</p><button class="btn-primary" onclick="showToast('Use Attendance Tab to Clock In')">Go to Attendance</button></div>`; }
     function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = deg2rad(lat2 - lat1); var dLon = deg2rad(lon2 - lon1); var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2); var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); var d = R * c; return d * 1000; }
     function deg2rad(deg) { return deg * (Math.PI/180); }
