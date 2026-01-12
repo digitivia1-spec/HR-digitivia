@@ -280,14 +280,15 @@
     </div>
 
 <div id="onboard-modal" class="modal-overlay hidden">
-        <div class="modal-card" style="max-width: 600px;"> <div class="modal-title">
+        <div class="modal-card" style="max-width: 700px;"> <div class="modal-title">
                 Onboard New Hire
                 <i class="fa-solid fa-xmark close-modal" onclick="closeOnboardModal()"></i>
             </div>
             
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                 <div>
-                    <h4 style="color:var(--primary); margin-bottom:10px;">1. Employee Details</h4>
+                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;">1. Employee Details</h4>
+                    
                     <div class="form-group">
                         <label>Full Name <span style="color:var(--danger)">*</span></label>
                         <input type="text" id="new-name" class="form-input" placeholder="Jane Doe">
@@ -318,25 +319,27 @@
                     </div>
                 </div>
 
-                <div style="border-left:1px solid var(--glass-border); padding-left:15px;">
-                    <h4 style="color:var(--primary); margin-bottom:10px;">2. Starter Documents</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Add ID, Contract, or Passport now.</p>
+                <div style="border-left:1px solid var(--glass-border); padding-left:20px;">
+                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;">2. Starter Documents</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Add Contracts, IDs, or Passports immediately.</p>
                     
-                    <div id="onboard-docs-list" style="max-height: 300px; overflow-y:auto; padding-right:5px;">
+                    <div id="onboard-docs-list" style="max-height: 350px; overflow-y:auto; padding-right:5px; margin-bottom:10px;">
                         </div>
 
-                    <button class="btn-outline" style="width:100%; font-size:0.8rem; margin-top:10px;" onclick="addObjDocRow()">
+                    <button class="btn-outline" style="width:100%; font-size:0.85rem; padding:10px; border-style:dashed;" onclick="addObjDocRow()">
                         <i class="fa-solid fa-plus"></i> Add Document Row
                     </button>
                 </div>
             </div>
 
             <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--glass-border);">
-                <button class="btn-primary" style="width:100%; justify-content:center" onclick="executeOnboard()">Create Employee & Save Docs</button>
+                <button class="btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="executeOnboard()">
+                    <i class="fa-solid fa-check"></i> Create Employee & Save Docs
+                </button>
             </div>
         </div>
     </div>
-
+    
     <div id="import-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
@@ -1758,45 +1761,46 @@ body: JSON.stringify({
     function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
     function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
 // --- UPDATED ONBOARDING LOGIC ---
-
-    // 1. Helper to add document rows in the modal
+// --- 1. NEW HELPER: Adds a row to the document list inside the modal ---
     function addObjDocRow() {
         const container = document.getElementById('onboard-docs-list');
-        const id = Date.now(); // unique ID for this row
+        const id = Date.now(); // Unique ID for UI handling
         const html = `
-        <div id="doc-row-${id}" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; position:relative;">
-            <i class="fa-solid fa-trash" style="position:absolute; top:5px; right:5px; color:var(--danger); cursor:pointer; font-size:0.8rem;" onclick="document.getElementById('doc-row-${id}').remove()"></i>
-            
-            <input type="text" class="form-input doc-title" placeholder="Doc Name (e.g. Contract)" style="margin-bottom:5px; font-size:0.85rem;">
-            <div style="display:flex; gap:5px;">
-                <input type="date" class="form-input doc-date" style="font-size:0.85rem;">
-                <input type="text" class="form-input doc-link" placeholder="URL / Link" style="font-size:0.85rem;">
+        <div id="doc-row-${id}" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--glass-border);">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--text-muted);">New Document</span>
+                <i class="fa-solid fa-trash" style="color:var(--danger); cursor:pointer;" onclick="document.getElementById('doc-row-${id}').remove()"></i>
             </div>
+            <input type="text" class="form-input doc-title" placeholder="Type (e.g. Passport)" style="margin-bottom:5px;">
+            <input type="date" class="form-input doc-date" style="margin-bottom:5px;">
+            <input type="text" class="form-input doc-link" placeholder="Paste File URL / Drive Link">
         </div>`;
         container.insertAdjacentHTML('beforeend', html);
     }
 
-    // 2. Main Execute Function
+    // --- 2. UPDATED MAIN FUNCTION: Validates inputs & Saves Data ---
     async function executeOnboard() {
         const btn = document.querySelector('#onboard-modal .btn-primary');
         const oldText = btn.innerText;
         
-        // --- VALIDATION ---
+        // A. GET VALUES
         const fullName = document.getElementById('new-name').value;
         const email = document.getElementById('new-email').value;
         const password = document.getElementById('new-pass').value;
         const role = document.getElementById('new-role').value;
-        const phone = document.getElementById('new-meta-phone').value; // Now Checked
-        const dept = document.getElementById('new-meta-dept').value; // Optional
+        const phone = document.getElementById('new-meta-phone').value; 
+        const dept = document.getElementById('new-meta-dept').value;
 
+        // B. VALIDATION (Phone is now required)
         if(!fullName || !email || !password || !phone) { 
-            return showToast("Name, Email, Password, and Phone are REQUIRED.", true); 
+            return showToast("Error: Name, Email, Password, and Phone are REQUIRED.", true); 
         }
 
         btn.innerText = "Creating Profile...";
 
         try {
-            // 1. Create Auth User (Using temporary client to avoid logging out admin)
+            // C. CREATE AUTH USER
+            // We use a temporary client to create the user without logging out the admin
             const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
             const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { 
                 auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false } 
@@ -1811,7 +1815,7 @@ body: JSON.stringify({
             if (authError) throw authError;
             if (!authData.user) throw new Error("Auth Creation Failed");
 
-            // 2. Create Profile in Database
+            // D. SAVE TO DATABASE (PROFILES)
             const metaData = { phone: phone, department: dept };
             
             const { error: profileError } = await supabaseClient.rpc('admin_create_profile', { 
@@ -1826,10 +1830,10 @@ body: JSON.stringify({
 
             if (profileError) throw profileError;
 
-            // 3. Process Documents (If any added)
+            // E. SAVE DOCUMENTS (If any)
             const docRows = document.querySelectorAll('#onboard-docs-list > div');
             if (docRows.length > 0) {
-                btn.innerText = "Saving Documents...";
+                btn.innerText = "Saving Docs...";
                 const docsToInsert = [];
                 
                 docRows.forEach(row => {
@@ -1840,11 +1844,11 @@ body: JSON.stringify({
                     if(title && date) {
                         docsToInsert.push({
                             org_id: state.org.id,
-                            profile_id: authData.user.id, // Link to new user
+                            profile_id: authData.user.id, // Use the new user's ID
                             document_type: title,
                             expiry_date: date,
                             external_link: link || null,
-                            is_checklist_only: false // Default to false as requested
+                            is_checklist_only: false 
                         });
                     }
                 });
@@ -1854,13 +1858,17 @@ body: JSON.stringify({
                         .from('employee_documents')
                         .insert(docsToInsert);
                     
-                    if(docError) console.error("Doc Error:", docError);
+                    if(docError) {
+                        console.error("Doc Error:", docError);
+                        showToast("User created, but docs failed: " + docError.message, true);
+                    }
                 }
             }
 
-            showToast(`Success! ${fullName} onboarded with ${docRows.length} docs.`);
+            showToast(`Success! ${fullName} onboarded.`);
             closeOnboardModal();
-            loadEmployeesView(document.getElementById('main-view'));
+            // Refresh the employee list to show the new person
+            if(state.activeView === 'employees') loadEmployeesView(document.getElementById('main-view'));
 
         } catch (err) {
             console.error(err);
