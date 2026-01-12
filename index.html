@@ -1014,12 +1014,14 @@ const i18n = {
             state.profile = profileData; 
             state.org = profileData.organizations;
         }
-
-        document.getElementById('auth-container').classList.add('hidden'); 
+document.getElementById('auth-container').classList.add('hidden'); 
         document.getElementById('app-container').classList.remove('hidden'); 
         setTimeout(() => document.getElementById('app-container').classList.add('loaded'), 100);
         
-        document.getElementById('user-name').innerText = state.profile.full_name; 
+        // Fixed: Only update elements that exist
+        const userNameEl = document.getElementById('user-name');
+        if (userNameEl) userNameEl.innerText = state.profile.full_name;
+
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
         document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
         document.getElementById('org-display-name').innerText = state.org.name;
