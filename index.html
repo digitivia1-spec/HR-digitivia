@@ -1229,8 +1229,9 @@
     }
 
     // 4. ATS (UPGRADED: With Active Jobs Sidebar)
+  // 4. ATS (UPGRADED: With Safety Checks)
     async function loadATSView(container) {
-    container.innerHTML = `
+     container.innerHTML = `
         <div class="page-title">
             ATS Recruitment Pipeline 
             <div style="display:flex; gap:10px;">
@@ -1242,11 +1243,23 @@
             </div>
         </div>
         <div class="ats-layout">
-            </div>`;
+            <div class="ats-sidebar">
+                <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Active Jobs</div>
+                <div id="ats-jobs-list">Loading Jobs...</div>
+            </div>
+            <div class="ats-main-board" id="ats-board" style="flex-grow:1; display:flex; gap:20px; overflow-x:auto;">
+                <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
+            </div>
+        </div>`;
 
         // 1. Load Jobs Sidebar
         const { data: jobs } = await supabaseClient.from('ats_jobs').select('*').eq('org_id', state.org.id).order('created_at', {ascending:false});
+        
+        // --- 🛑 SAFETY CHECK 1: Ensure view didn't change ---
         const jobListEl = document.getElementById('ats-jobs-list');
+        if (!jobListEl) return; // Stop if the element is gone
+        // ----------------------------------------------------
+
         if(jobs && jobs.length > 0) {
             jobListEl.innerHTML = '';
             jobs.forEach(job => {
@@ -1261,11 +1274,21 @@
 
         // 2. Load Candidates Board
         const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
-        if (error) { container.innerHTML += `<div class="card">Error loading pipeline</div>`; return; }
+        
+        if (error) { 
+            // Check container existence before showing error
+            if(container) container.innerHTML += `<div class="card">Error loading pipeline</div>`; 
+            return; 
+        }
+        
+        // --- 🛑 SAFETY CHECK 2: Ensure board still exists ---
+        const board = document.getElementById('ats-board'); 
+        if (!board) return; // Stop if the element is gone
+        // ----------------------------------------------------
+
+        board.innerHTML = '';
         
         const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; 
-        const board = document.getElementById('ats-board'); 
-        board.innerHTML = '';
         
         stages.forEach(stage => {
             const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
