@@ -916,7 +916,7 @@ const i18n = {
   // --- MAIN DATA LOADER (CEO Edition) ---
   // --- MAIN DATA LOADER (Auto-Fix Edition) ---
 // --- MAIN DATA LOADER (Safety Edition) ---
-    async function loadAppData(user) {
+  async function loadAppData(user) {
         state.user = user;
         
         let { data: profileData, error: profileError } = await supabaseClient
@@ -949,13 +949,12 @@ const i18n = {
                     .select()
                     .single();
                 
-                // CRITICAL FIX: Handle RLS Error here
                 if (orgError) {
                     console.error("Org Creation Blocked:", orgError);
                     if (orgError.code === '42501') {
                         showToast("Database Error: Run SQL Policy!", true);
                         document.getElementById('auth-container').innerHTML = `<div class="auth-card"><h3 style="color:var(--danger)">Setup Failed</h3><p>You need to run the SQL Policy to allow Organization Creation.</p><button class="btn-primary" onclick="location.reload()">Try Again</button></div>`;
-                        return; // Stop execution to prevent crash
+                        return; 
                     }
                 }
 
@@ -972,7 +971,6 @@ const i18n = {
                     .single();
 
                 if (createError) {
-                    // Handle Duplicate Email (Zombie Profile)
                     if (createError.code === '23505') { 
                         console.warn("Claiming zombie profile...");
                         const { data: claimedProfile, error: claimError } = await supabaseClient
@@ -997,12 +995,11 @@ const i18n = {
                 showToast("Login Failed: " + err.message, true);
                 return;
             }
+        }
 
         // --- LOAD APPLICATION ---
-        // Final Safety Check: Ensure we actually have data before rendering
         if (!profileData || !profileData.organizations) {
             console.error("Critical: Profile loaded but Organization data is missing.");
-            // If we have a profile but no org, try to fetch org separately as fallback
             if (profileData && profileData.org_id) {
                  const { data: refetchOrg } = await supabaseClient.from('organizations').select('*').eq('id', profileData.org_id).single();
                  state.org = refetchOrg;
@@ -1031,27 +1028,21 @@ const i18n = {
         else state.activeView = 'dashboard';
 
         renderSidebar(); 
-        // Show Setup Modal if it's a brand new org (created less than 1 minute ago) 
-        // OR just check a local flag for the demo
-        const isNew = new Date() - new Date(state.org.created_at) < 60000; // 60 seconds
-        if (isNew) {
-            document.getElementById('setup-modal').classList.remove('hidden');
-        }
-        renderMainContent();
-
-            const tier = state.org.subscription_tier || 'free';
+        
+        // --- PLAN BADGE LOGIC ---
+        const tier = state.org.subscription_tier || 'free';
         let planName = 'Starter';
         let planColor = '#94a3b8'; // Grey
         let planBg = 'rgba(255,255,255,0.1)';
         let icon = 'fa-seedling';
 
         if (tier === 'bundle_2') {
-            planName = 'Growth Plus'; // "Feeling" name
+            planName = 'Growth Plus'; 
             planColor = '#f1c40f'; // Gold
             planBg = 'rgba(241, 196, 15, 0.2)';
             icon = 'fa-rocket';
         } else if (tier === 'bundle_3') {
-            planName = 'Enterprise Pro'; // "Feeling" name
+            planName = 'Enterprise Pro'; 
             planColor = '#9b59b6'; // Purple
             planBg = 'rgba(155, 89, 182, 0.2)';
             icon = 'fa-gem';
@@ -1064,7 +1055,15 @@ const i18n = {
             
         const badgeContainer = document.getElementById('plan-badge-container');
         if(badgeContainer) badgeContainer.innerHTML = badgeHtml;
-        checkPricingPopup(); // <--- ADD THIS LINE
+
+        // Show Setup Modal if new
+        const isNew = new Date() - new Date(state.org.created_at) < 60000; 
+        if (isNew) {
+            document.getElementById('setup-modal').classList.remove('hidden');
+        }
+        
+        renderMainContent();
+        checkPricingPopup(); // Trigger the pricing modal check
     }
     // 1. DASHBOARD
   async function loadDashboardView(container) {
