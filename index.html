@@ -912,6 +912,12 @@
         else state.activeView = 'dashboard';
 
         renderSidebar(); 
+        // Show Setup Modal if it's a brand new org (created less than 1 minute ago) 
+        // OR just check a local flag for the demo
+        const isNew = new Date() - new Date(state.org.created_at) < 60000; // 60 seconds
+        if (isNew) {
+            document.getElementById('setup-modal').classList.remove('hidden');
+        }
         renderMainContent();
     }
     // 1. DASHBOARD
@@ -960,8 +966,6 @@
 
         
         if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
-
-        const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
         
         let query = supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', state.org.id);
         if (state.profile.role === 'manager') query = query.eq('department', state.profile.department);
@@ -1811,6 +1815,47 @@
             loadDashboardView(document.getElementById('main-view')); // Refresh dash
         }
     }
+    // --- AI ASSISTANT LOGIC ---
+    function toggleAiWidget() {
+        const win = document.getElementById('ai-window');
+        win.classList.toggle('hidden');
+        if(!win.classList.contains('hidden')) updateAiCredits();
+    }
+
+    async function updateAiCredits() {
+        if(!state.org) return;
+        // Uses the column 'ai_credits_balance' we added to DB
+        const { data } = await supabaseClient.from('organizations').select('ai_credits_balance').eq('id', state.org.id).single();
+        if(data) document.getElementById('ai-credits').innerText = `${data.ai_credits_balance || 0} Credits`;
+    }
+
+    async function sendAiMessage() {
+        const input = document.getElementById('ai-input');
+        const text = input.value;
+        if(!text) return;
+
+        // UI: Add User Message
+        const body = document.getElementById('ai-chat-body');
+        body.innerHTML += `<div style="text-align:right; margin-bottom:10px;"><div style="background:var(--primary); color:white; padding:8px 12px; border-radius:10px; display:inline-block;">${text}</div></div>`;
+        input.value = '';
+        body.scrollTop = body.scrollHeight;
+
+        // Logic: Call N8N or Mock Response
+        // Note: You need to replace this URL with your actual AI Webhook if you have one separate from Payroll
+        try {
+            // Simulating API call...
+            body.innerHTML += `<div style="text-align:left; margin-bottom:10px;"><div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;"><i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...</div></div>`;
+            
+            // For now, simple mock response to prove it works. 
+            // Replace with fetch(N8N_WEBHOOK...) when ready.
+            setTimeout(() => {
+                body.lastElementChild.innerHTML = `<div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">I've received your request: "${text}". (Connect N8N to process real answers!)</div>`;
+            }, 1000);
+
+        } catch(e) {
+            console.error(e);
+        }
+    }
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
@@ -1845,5 +1890,43 @@
             <button class="btn-primary" style="width:100%" onclick="sendBroadcast()">Post Announcement</button>
         </div>
     </div>
+    <div id="ai-widget" style="position:fixed; bottom:30px; left:30px; z-index:9999; display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
+    <div id="ai-window" class="hidden card" style="width:300px; height:400px; padding:0; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+        <div style="background:var(--primary); padding:15px; color:white; font-weight:bold; display:flex; justify-content:space-between;">
+            <span><i class="fa-solid fa-robot"></i> HR Assistant</span>
+            <span style="font-size:0.8rem; opacity:0.8" id="ai-credits">0 Credits</span>
+        </div>
+        <div id="ai-chat-body" style="flex-grow:1; background:rgba(0,0,0,0.2); padding:15px; overflow-y:auto; font-size:0.9rem;">
+            <div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; margin-bottom:10px; display:inline-block;">
+                Hello! I can help you draft emails, check policies, or analyze data.
+            </div>
+        </div>
+        <div style="padding:10px; background:var(--glass-bg); display:flex; gap:5px; border-top:1px solid var(--glass-border);">
+            <input type="text" id="ai-input" class="table-input" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAiMessage()">
+            <button class="btn-primary" style="padding:8px 15px;" onclick="sendAiMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+    
+    <button onclick="toggleAiWidget()" style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, #8e44ad, #9b59b6); border:none; color:white; font-size:1.5rem; cursor:pointer; box-shadow:0 5px 20px rgba(142, 68, 173, 0.4); display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+    </button>
+</div>
+    <div id="setup-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="text-align:center;">
+        <i class="fa-solid fa-handshake" style="font-size:3rem; color:var(--success); margin-bottom:20px;"></i>
+        <div class="modal-title" style="border:none; justify-content:center;">Welcome to Digitivia!</div>
+        <p style="color:var(--text-muted); margin-bottom:25px; line-height:1.6;">
+            We are thrilled to have you. To ensure your HR data is migrated correctly, we offer <b>2 Free Setup Calls</b> (30 mins each).
+        </p>
+        <div style="display:grid; gap:10px;">
+            <a href="https://calendly.com" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+                <i class="fa-solid fa-calendar-check"></i> Book Integration Call
+            </a>
+            <button class="btn-outline" onclick="document.getElementById('setup-modal').classList.add('hidden')">
+                I'll explore on my own
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
