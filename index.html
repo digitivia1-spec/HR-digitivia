@@ -2264,36 +2264,65 @@ window.viewCandidateAI = async function(candidateId) {
         </div>
     </div>
 </div>
-    <div id="email-connect-modal" class="modal-overlay hidden">
-    <div class="modal-card">
-        <div class="modal-title">Connect Recruitment Email <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('email-connect-modal').classList.add('hidden')"></i></div>
-        <div style="background:rgba(52, 152, 219, 0.1); padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-main);">
-            <i class="fa-solid fa-robot"></i> <b>AI Auto-Scan:</b> Connect your inbox (e.g., Gmail/Outlook). The AI will read emails with "Resume" or "CV" in the subject, analyze the PDF/Link, and add candidates automatically.
-        </div>
-        
-        <div class="form-group">
-            <label>Provider</label>
-            <select id="imap-provider" class="form-input" style="background:var(--sidebar-bg)" onchange="toggleImapFields()">
-                <option value="gmail">Gmail</option>
-                <option value="outlook">Outlook / Office 365</option>
-                <option value="custom">Custom IMAP</option>
-            </select>
-        </div>
-        <div class="form-group"><label>Email Address</label><input type="email" id="imap-email" class="form-input" placeholder="hiring@company.com"></div>
-        <div class="form-group">
-            <label>App Password / Password</label>
-            <input type="password" id="imap-pass" class="form-input" placeholder="••••••••">
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">For Gmail, use an <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--primary)">App Password</a>.</div>
-        </div>
-        
-        <div id="custom-imap" class="hidden">
-            <div class="form-group"><label>IMAP Host</label><input type="text" id="imap-host" class="form-input" value="imap.gmail.com"></div>
-            <div class="form-group"><label>IMAP Port</label><input type="number" id="imap-port" class="form-input" value="993"></div>
-        </div>
+   <div id="email-connect-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-title">
+                Connect Recruitment Email
+                <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('email-connect-modal').classList.add('hidden')"></i>
+            </div>
+            
+            <div style="background:rgba(52, 152, 219, 0.1); padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-main); border-left: 3px solid var(--primary);">
+                <i class="fa-solid fa-robot"></i> <b>AI Auto-Scan:</b> The AI will connect via IMAP and scan this inbox every 10 minutes for emails with "Resume" or "CV" in the subject.
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    Email Provider 
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="Choose 'Custom' if you use Zoho, GoDaddy, or a private server."></i>
+                </label>
+                <select id="imap-provider" class="form-input" style="background:var(--sidebar-bg)" onchange="toggleImapFields()" title="Select your email service provider">
+                    <option value="gmail">Gmail</option>
+                    <option value="outlook">Outlook / Office 365</option>
+                    <option value="custom">Custom IMAP (Other)</option>
+                </select>
+            </div>
 
-        <button class="btn-primary" style="width:100%" onclick="saveEmailIntegration()">Connect & Start AI</button>
+            <div class="form-group">
+                <label>
+                    Email Address
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="The email address where you receive job applications."></i>
+                </label>
+                <input type="email" id="imap-email" class="form-input" placeholder="careers@company.com" title="Enter the email address to scan">
+            </div>
+
+            <div class="form-group">
+                <label>
+                    App Password
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="Do NOT use your login password. Generate a secure 'App Password' in your Google/Microsoft Account Security settings."></i>
+                </label>
+                <input type="password" id="imap-pass" class="form-input" placeholder="abcd xxxx yyyy zzzz" title="Paste your 16-character App Password here">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
+                    <i class="fa-solid fa-shield-halved"></i> <strong>Security Tip:</strong> Use an 
+                    <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--primary); text-decoration:underline;">App Password</a>, not your main password.
+                </div>
+            </div>
+            
+            <div id="custom-imap" class="hidden" style="padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:15px;">
+                <div class="form-group">
+                    <label>IMAP Host <i class="fa-solid fa-circle-question" title="e.g. imap.zoho.com or mail.yourdomain.com"></i></label>
+                    <input type="text" id="imap-host" class="form-input" value="imap.gmail.com" placeholder="imap.server.com">
+                </div>
+                <div class="form-group">
+                    <label>IMAP Port <i class="fa-solid fa-circle-question" title="Standard SSL port is 993"></i></label>
+                    <input type="number" id="imap-port" class="form-input" value="993">
+                </div>
+            </div>
+
+            <button class="btn-primary" style="width:100%" onclick="saveEmailIntegration()">
+                <i class="fa-solid fa-plug"></i> Connect & Start AI Scanning
+            </button>
+        </div>
     </div>
-</div>
     <div id="candidate-modal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width:800px; height:80vh; display:flex; flex-direction:column;">
         <div class="modal-title">
