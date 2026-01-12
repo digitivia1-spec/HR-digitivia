@@ -1634,6 +1634,7 @@
     }
 
     // --- RBAC HIERARCHY SIDEBAR ---
+   // --- RBAC HIERARCHY SIDEBAR ---
     function renderSidebar() {
         const t = i18n[state.lang]; const role = state.profile.role; 
         const container = document.getElementById('nav-container'); if(!container) return; container.innerHTML = '';
@@ -1647,8 +1648,7 @@
              return;
         }
 
-        // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER now included for Dashboard)
-        // MODIFICATION 1: Expanded access here so HR Manager sees Dashboard
+        // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER)
         if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
@@ -1659,35 +1659,38 @@
             if (role === 'ceo') {
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
             }
-            
-            // Reports for CEO/Admin only (kept strictly private)
+            // Reports
             if (['ceo', 'admin'].includes(role)) {
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
             }
             sec.appendChild(ul); container.appendChild(sec);
         }
 
-        // 2. HR OPS (CEO + HR Manager)
+        // 2. HR OPERATIONS (CEO + HR MANAGER)
         if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">HR Operations</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
+            
             ul.innerHTML += `<li class="nav-item ${state.activeView==='employees'?'active':''}" onclick="state.activeView='employees';renderSidebar();renderMainContent()"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
             
-            // Payroll restricted to CEO/HR
+            // Payroll
             if(['ceo','hr_manager'].includes(role)) {
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='payroll'?'active':''}" onclick="state.activeView='payroll';renderSidebar();renderMainContent()"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
             }
             
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
+            // --- ATS MOVED HERE WITH GATING LOGIC ---
+            if (hasAccess('ats')) { 
+                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
+            } else {
+                // LOCKED -> Opens Pricing Modal
+                ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.ats}</span></li>`;
+            }
+            
             sec.appendChild(ul); container.appendChild(sec);
         }
 
-        // 3. TEAM OPS (CEO + HR + Manager)
-       // --- 2. REPLACE THE 'TEAM OPS' SECTION IN renderSidebar() ---
-
-        // 3. TEAM OPS (Gated by Bundle)
-       // 3. TEAM OPS (Gated by Bundle)
+        // 3. TEAM MANAGEMENT (Managers + Admins)
         if (['ceo', 'admin', 'hr_manager', 'manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Team Management</div>`;
@@ -1697,28 +1700,23 @@
             if (hasAccess('wfm')) {
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="state.activeView='wfm';renderSidebar();renderMainContent()"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
             } else {
-                // LOCKED -> Opens Pricing Modal
                 ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.wfm}</span></li>`;
             }
 
-            // ATS Feature Gating
-            if (hasAccess('ats')) { 
-                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
-            } else {
-                // LOCKED -> Opens Pricing Modal
-                ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.ats}</span></li>`;
-            }
-
-            // Broadcast Gating (Internal Comm)
-            if (hasAccess('broadcast')) {
-                 // Broadcast is usually a button inside Dashboard, but if you had a sidebar item:
-                 // (This logic is handled inside the Dashboard view "Send Alert" button)
-            }
+            // ATS was removed from here to prevent duplication
 
             ul.innerHTML += `<li class="nav-item ${state.activeView==='performance'?'active':''}" onclick="state.activeView='performance';renderSidebar();renderMainContent()"><i class="fa-solid fa-star"></i> <span>${t.performance}</span></li>`;
             
             sec.appendChild(ul); container.appendChild(sec);
         }
+
+        // 4. WORKSPACE (Everyone)
+        const sec = document.createElement('div');
+        sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
+        const ul = document.createElement('ul'); ul.className = 'nav-links';
+        ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
+        sec.appendChild(ul); container.appendChild(sec);
+    }
         // 4. WORKSPACE (Everyone)
         const sec = document.createElement('div');
         sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
