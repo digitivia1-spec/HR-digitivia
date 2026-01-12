@@ -1717,13 +1717,7 @@
         ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
         sec.appendChild(ul); container.appendChild(sec);
     }
-        // 4. WORKSPACE (Everyone)
-        const sec = document.createElement('div');
-        sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
-        const ul = document.createElement('ul'); ul.className = 'nav-links';
-        ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
-        sec.appendChild(ul); container.appendChild(sec);
-    }
+      
 
     function exportDashboardPDF() {
         const element = document.getElementById('dash-content');
