@@ -412,7 +412,36 @@
         user: null, profile: null, org: null, lang: 'en', activeView: 'dashboard',
         perfCycle: 'Monthly', perfInputMode: 'file'
     };
+// --- 1. INSERT AFTER 'const state = { ... }' ---
 
+    // BUNDLE & FEATURE CONFIGURATION
+    const BUNDLE_CONFIG = {
+        'free': { 
+            name: 'Standard', 
+            features: ['attendance', 'basic_payroll', 'dashboard', 'employees'], 
+            can_broadcast: false 
+        },
+        'bundle_2': { 
+            name: 'Growth', 
+            features: ['attendance', 'basic_payroll', 'dashboard', 'employees', 'wfm', 'ats', 'broadcast'], 
+            can_broadcast: true 
+        },
+        'bundle_3': { 
+            name: 'Enterprise', 
+            features: ['all'], 
+            can_broadcast: true 
+        }
+    };
+
+    // Helper: Check if feature is allowed
+    function hasAccess(featureKey) {
+        if (!state.org) return false;
+        const tier = state.org.subscription_tier || 'free';
+        const config = BUNDLE_CONFIG[tier] || BUNDLE_CONFIG['free'];
+        
+        if (config.features.includes('all')) return true;
+        return config.features.includes(featureKey);
+    }
     // Translations
     const i18n = {
         en: { welcome: "Welcome back,", dashboard: "Dashboard", org_profile: "Org Profile", payroll: "Payroll Automation", employees: "Employees", attendance: "Time & Attendance", ats: "ATS Recruitment", performance: "Performance", reports: "Reports", wfm: "Workforce WFM", viewAll: "View All", create: "Create New" },
@@ -887,6 +916,49 @@
     }
     // 1. DASHBOARD
     async function loadDashboardView(container) {
+
+        // --- 3. PASTE INSIDE loadDashboardView() AT THE TOP ---
+
+    // 1. Fetch Latest Broadcast
+    const { data: broadcast } = await supabaseClient
+        .from('broadcast_messages')
+        .select('*')
+        .eq('org_id', state.org.id)
+        .order('sent_at', {ascending:false})
+        .limit(1)
+        .maybeSingle();
+
+    let broadcastHTML = '';
+    if (broadcast) {
+        const severityColor = broadcast.severity === 'urgent' ? 'var(--danger)' : 'var(--primary)';
+        broadcastHTML = `
+        <div class="card" style="border-left: 4px solid ${severityColor}; background: linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0) 100%); margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between;">
+                <div style="font-weight:700; color:${severityColor};"><i class="fa-solid fa-bullhorn"></i> ${broadcast.subject || 'Announcement'}</div>
+                <div style="font-size:0.8rem; opacity:0.7">${new Date(broadcast.sent_at).toLocaleDateString()}</div>
+            </div>
+            <div style="margin-top:5px; font-size:1rem;">${broadcast.content}</div>
+        </div>`;
+    }
+
+    // 2. Add "Send Alert" Button (Only for Admins)
+    let sendAlertBtn = '';
+    if (['ceo', 'hr_manager'].includes(state.profile.role) && hasAccess('broadcast')) {
+        sendAlertBtn = `<button class="btn-outline" onclick="document.getElementById('broadcast-modal').classList.remove('hidden')"><i class="fa-solid fa-paper-plane"></i> Send Alert</button>`;
+    }
+
+    // --- NOW UPDATE YOUR HEADER STRING TO INCLUDE THESE ---
+    // Change your existing 'const header = ...' line to:
+    const header = `<div class="page-title">
+        <span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> 
+        <div style="display:flex; gap:10px;">
+            ${sendAlertBtn}
+            <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export</button>
+        </div>
+    </div>
+    ${broadcastHTML}`; // Inject the alert here
+
+        
         if(state.profile.role === 'employee') return renderEmployeeDashboard(container); 
 
         const header = `<div class="page-title"><span>${i18n[state.lang].welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export Snapshot</button></div>`;
@@ -1025,6 +1097,11 @@
     // 2. EMPLOYEES (Restored & Fixed Button Bug)
     async function loadEmployeesView(container) { 
         // FIX: Store the Header HTML in a variable first
+
+
+
+
+        
         const header = `<div class="page-title">${i18n[state.lang].employees} <button class="btn-primary" onclick="openOnboardModal()"><i class="fa-solid fa-plus"></i> Onboard New Hire</button></div>`;
         
         container.innerHTML = `${header}<div class="card">Loading...</div>`; 
@@ -1040,7 +1117,17 @@
         
         data.forEach(emp => { 
             const meta = emp.meta_data || {}; 
-            html += `<tr><td>${emp.full_name}</td><td>${emp.role}</td><td>${emp.email}</td><td><span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">View Extra</span><div class="details-json">${JSON.stringify(meta, null, 2)}</div></td></tr>`; 
+            html += `<tr>
+                <td>${emp.full_name}</td>
+                <td>${emp.role}</td>
+                <td>${emp.email}</td>
+                <td>
+                    <button class="btn-outline" style="font-size:0.75rem; padding:5px 10px; margin-right:5px;" onclick="openDocsModal('${emp.user_id}', '${emp.full_name}')"><i class="fa-solid fa-folder-open"></i> Docs</button>
+                    <span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">Meta</span>
+                    <div class="details-json">${JSON.stringify(meta, null, 2)}</div>
+                </td>
+            </tr>`;
+
         }); 
         
         container.innerHTML = html + `</tbody></table></div>`; 
@@ -1441,15 +1528,30 @@
         }
 
         // 3. TEAM OPS (CEO + HR + Manager)
+       // --- 2. REPLACE THE 'TEAM OPS' SECTION IN renderSidebar() ---
+
+        // 3. TEAM OPS (Gated by Bundle)
         if (['ceo', 'admin', 'hr_manager', 'manager'].includes(role)) {
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Team Management</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="state.activeView='wfm';renderSidebar();renderMainContent()"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
+            
+            // Only show WFM if they have the Bundle
+            if (hasAccess('wfm')) {
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="state.activeView='wfm';renderSidebar();renderMainContent()"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
+            } else {
+                // locked item
+                ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:not-allowed;" onclick="showToast('Upgrade to Growth Bundle to access WFM', true)"><i class="fa-solid fa-lock"></i> <span>${t.wfm}</span></li>`;
+            }
+
+            if (hasAccess('ats')) { // ATS is now gated too
+                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
+            }
+
             ul.innerHTML += `<li class="nav-item ${state.activeView==='performance'?'active':''}" onclick="state.activeView='performance';renderSidebar();renderMainContent()"><i class="fa-solid fa-star"></i> <span>${t.performance}</span></li>`;
+            
             sec.appendChild(ul); container.appendChild(sec);
         }
-
         // 4. WORKSPACE (Everyone)
         const sec = document.createElement('div');
         sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
@@ -1620,6 +1722,128 @@
     function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
     function showToast(msg, isError = false) { const t = document.getElementById('toast'); if(!t) return; document.getElementById('toast-msg').innerText = msg; t.style.background = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)'; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
     function toggleLang() { state.lang = state.lang === 'en' ? 'ar' : 'en'; document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr'); renderSidebar(); renderMainContent(); }
+    // --- 5. NEW HELPER FUNCTIONS (Paste at bottom of script) ---
+
+    // DOCS LOGIC
+    let activeDocUserId = null;
+    
+    window.openDocsModal = async function(userId, name) {
+        activeDocUserId = userId;
+        document.getElementById('docs-user-name').innerText = name;
+        document.getElementById('docs-modal').classList.remove('hidden');
+        loadDocsList(userId);
+    }
+
+    async function loadDocsList(userId) {
+        const list = document.getElementById('docs-list');
+        list.innerHTML = '<div style="text-align:center"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+        
+        const { data: docs } = await supabaseClient.from('employee_documents').select('*').eq('profile_id', userId);
+        
+        if(!docs || docs.length === 0) {
+            list.innerHTML = '<div style="color:var(--text-muted); padding:10px; text-align:center;">No documents tracked.</div>';
+            return;
+        }
+
+        let html = '';
+        docs.forEach(d => {
+            const isExpired = d.expiry_date ? new Date(d.expiry_date) < new Date() : false;
+            const style = isExpired ? 'color:var(--danger); font-weight:bold;' : 'color:var(--success)';
+            const linkHtml = d.external_link ? `<a href="${d.external_link}" target="_blank" style="color:var(--primary)"><i class="fa-solid fa-link"></i></a>` : '';
+            
+            html += `<div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--glass-border); align-items:center;">
+                <span>${d.document_type}</span>
+                <span style="${style}">${d.expiry_date || 'No Expiry'}</span>
+                ${linkHtml}
+            </div>`;
+        });
+        list.innerHTML = html;
+    }
+
+    window.saveEmployeeDoc = async function() {
+        const type = document.getElementById('doc-type').value;
+        const expiry = document.getElementById('doc-expiry').value;
+        const link = document.getElementById('doc-link').value;
+        const isChecklist = document.getElementById('doc-checklist').checked;
+
+        if(!type) return showToast("Type is required", true);
+
+        const { error } = await supabaseClient.from('employee_documents').insert({
+            org_id: state.org.id,
+            profile_id: activeDocUserId, // Uses the global variable set on open
+            document_type: type,
+            expiry_date: expiry || null,
+            external_link: link || null,
+            is_checklist_only: isChecklist
+        });
+
+        if(error) showToast("Error: " + error.message, true);
+        else {
+            showToast("Document Saved");
+            loadDocsList(activeDocUserId); // Refresh list
+            // Clear inputs
+            document.getElementById('doc-type').value = '';
+            document.getElementById('doc-link').value = '';
+        }
+    }
+
+    // BROADCAST LOGIC
+    window.sendBroadcast = async function() {
+        const subject = document.getElementById('bc-subject').value;
+        const msg = document.getElementById('bc-msg').value;
+        const severity = document.getElementById('bc-severity').value;
+
+        if(!msg) return showToast("Message required", true);
+
+        const { error } = await supabaseClient.from('broadcast_messages').insert({
+            org_id: state.org.id,
+            sender_id: state.user.id,
+            subject: subject,
+            content: msg,
+            severity: severity,
+            target_roles: ['all']
+        });
+
+        if(error) showToast("Failed: " + error.message, true);
+        else {
+            showToast("Announcement Sent");
+            document.getElementById('broadcast-modal').classList.add('hidden');
+            loadDashboardView(document.getElementById('main-view')); // Refresh dash
+        }
+    }
 </script>
+    <div id="docs-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-title">Employee Documents <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('docs-modal').classList.add('hidden')"></i></div>
+            <h4 id="docs-user-name" style="color:var(--primary); margin-bottom:15px;"></h4>
+            <div id="docs-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;"></div>
+            
+            <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px;">
+                <div style="font-weight:700; margin-bottom:10px;">Add New Document</div>
+                <div class="form-group"><input type="text" id="doc-type" class="form-input" placeholder="Document Name (e.g. Passport)"></div>
+                <div class="form-group"><input type="date" id="doc-expiry" class="form-input"></div>
+                <div class="form-group"><input type="text" id="doc-link" class="form-input" placeholder="External Drive Link (Optional)"></div>
+                <div class="form-group" style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" id="doc-checklist"> <label for="doc-checklist">Checklist Item Only (No File)</label>
+                </div>
+                <button class="btn-primary" style="width:100%" onclick="saveEmployeeDoc()">Save Record</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="broadcast-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-title">Send Company Announcement <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('broadcast-modal').classList.add('hidden')"></i></div>
+            <div class="form-group"><label>Subject</label><input type="text" id="bc-subject" class="form-input"></div>
+            <div class="form-group"><label>Message</label><textarea id="bc-msg" class="form-input" rows="4"></textarea></div>
+            <div class="form-group"><label>Type</label>
+                <select id="bc-severity" class="form-input" style="background:var(--sidebar-bg)">
+                    <option value="info">General Info (Blue)</option>
+                    <option value="urgent">Urgent Alert (Red)</option>
+                </select>
+            </div>
+            <button class="btn-primary" style="width:100%" onclick="sendBroadcast()">Post Announcement</button>
+        </div>
+    </div>
 </body>
 </html>
