@@ -1565,6 +1565,7 @@ document.getElementById('auth-container').classList.add('hidden');
     }
 
 // 8. ATTENDANCE (Personal View Only)
+   // 8. ATTENDANCE (Personal View Only)
     async function renderAttendanceUI(container) {
         const { data: activity } = await supabaseClient.from('wfm_activity').select('*').eq('user_id', state.user.id).is('clock_out_time', null).maybeSingle();
         const isClockedIn = !!activity;
@@ -1579,7 +1580,6 @@ document.getElementById('auth-container').classList.add('hidden');
         }
         
         const isAdmin = ['ceo','admin','hr_manager'].includes(state.profile.role);
-        // Map removed from here -> Moved to WFM Tab
 
         container.innerHTML = `
             <div class="page-title">
@@ -1603,9 +1603,20 @@ document.getElementById('auth-container').classList.add('hidden');
                     <div class="card-title">My Recent Activity</div>
                     <div id="attendance-history" style="margin-top:15px;">Loading...</div>
                 </div>
+            </div>
+
+            <div class="card" style="margin-top:20px; height:450px;">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-map-location-dot"></i> Live Team Map</div>
+                    <span class="badge" style="position:static; background:var(--success)">Online Staff</span>
+                </div>
+                <div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div>
             </div>`;
             
         loadAttendanceHistory();
+        
+        // Initialize the map (Reuses the existing helper function)
+        setTimeout(initLiveMap, 500); 
     }
 
     // --- NEW: ORG PROFILE (CEO ONLY) ---
