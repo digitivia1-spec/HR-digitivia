@@ -2168,6 +2168,30 @@ async function saveEmailIntegration() {
         document.getElementById('email-connect-modal').classList.add('hidden');
     }
 }
+    // OPEN CANDIDATE MODAL
+window.viewCandidateAI = async function(candidateId) {
+    document.getElementById('candidate-modal').classList.remove('hidden');
+    
+    const { data: c } = await supabaseClient.from('ats_applications').select('*').eq('id', candidateId).single();
+    
+    if(c) {
+        // Update Score
+        document.getElementById('ai-score-circle').innerText = `${c.ai_score || 0}%`;
+        document.getElementById('ai-score-circle').style.borderColor = c.ai_score > 70 ? 'var(--success)' : (c.ai_score > 40 ? 'var(--warning)' : 'var(--danger)');
+        
+        // Update Text
+        document.getElementById('ai-summary-text').innerText = c.ai_summary || "AI is processing this candidate...";
+        document.getElementById('ai-source-text').innerText = c.resume_text || "No text extracted yet.";
+        
+        // Update Skills (Assume comma separated or JSON)
+        let skillsHtml = '';
+        if(c.skills) { // Assuming you save skills as JSON array or text
+             const skills = Array.isArray(c.skills) ? c.skills : (c.skills || '').split(',');
+             skills.forEach(s => skillsHtml += `<span class="badge" style="position:static; background:var(--primary); margin:2px;">${s}</span>`);
+        }
+        document.getElementById('ai-skills-tags').innerHTML = skillsHtml;
+    }
+}
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
@@ -2268,6 +2292,36 @@ async function saveEmailIntegration() {
         </div>
 
         <button class="btn-primary" style="width:100%" onclick="saveEmailIntegration()">Connect & Start AI</button>
+    </div>
+</div>
+    <div id="candidate-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:800px; height:80vh; display:flex; flex-direction:column;">
+        <div class="modal-title">
+            AI Candidate Analysis
+            <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('candidate-modal').classList.add('hidden')"></i>
+        </div>
+        <div style="display:flex; gap:20px; flex-grow:1; overflow:hidden;">
+            <div style="width:300px; background:rgba(0,0,0,0.2); padding:20px; border-radius:12px; overflow-y:auto;">
+                <div style="text-align:center; margin-bottom:20px;">
+                    <div id="ai-score-circle" style="width:100px; height:100px; border-radius:50%; border:5px solid var(--primary); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:bold; margin:0 auto;">
+                        0%
+                    </div>
+                    <div style="margin-top:10px; font-weight:bold;">Match Score</div>
+                </div>
+                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px;">Executive Summary</h4>
+                <p id="ai-summary-text" style="font-size:0.9rem; line-height:1.6; color:var(--text-main);">Loading...</p>
+                
+                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px; margin-top:20px;">Extracted Skills</h4>
+                <div id="ai-skills-tags" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+            </div>
+
+            <div style="flex-grow:1; display:flex; flex-direction:column;">
+                <h4 style="margin-bottom:10px;">Source Context (CV / Portfolio)</h4>
+                <div id="ai-source-text" style="flex-grow:1; background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; overflow-y:auto; font-family:monospace; font-size:0.85rem; white-space:pre-wrap;">
+                    Loading original text...
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 </body>
