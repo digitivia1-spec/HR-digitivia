@@ -36,6 +36,20 @@
             --info: #9b59b6;
         }
 
+        /* FORCE VERTICAL STACKING */
+.main-content {
+    display: flex !important;
+    flex-direction: column !important; /* This forces Header on Top, Content Below */
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+.content-scroll {
+    flex-grow: 1;
+    overflow-y: auto;
+    width: 100%; /* Ensure it takes full width */
+}
+
         html[dir="rtl"] { --sidebar-width: 270px; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
         body { background: var(--bg-body-gradient); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; font-size: 14px; }
@@ -265,20 +279,17 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
                     <span id="current-date" class="hide-on-mobile" style="font-size: 0.9rem; color: var(--text-muted);"></span>
                 </div>
                 <div class="header-right">
-        <div class="branding-logos hide-on-mobile"  style="border:none; padding:0; margin:0; display:flex; align-items:center; gap:15px;">
-            <span id="org-display-name" style="..."></span>
-            <span id="plan-badge"></span> </div>
+    <div class="branding-logos" style="border:none; padding:0; margin:0; display:flex; align-items:center; gap:15px;">
+        <span id="org-display-name" style="font-weight:700; color:white; opacity:0.8; font-size:1.1rem; text-transform:uppercase; letter-spacing:1px;"></span>
+        <span id="plan-badge-container"></span> </div>
+    
+    <div class="user-controls">
+        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
+        <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
+        <div class="dropdown" onclick="openProfileModal()"> <img src="" alt="User" id="user-avatar">
         </div>
-                    <div class="user-controls">
-                        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
-                        <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
-                        <div class="dropdown" onclick="openProfileModal()">
-                            <img src="" alt="User" id="user-avatar">
-                            <span id="user-name">Loading...</span>
-                            <i class="fa-solid fa-right-from-bracket" style="font-size:0.8rem; margin-left:5px; color:var(--danger)"></i>
-                        </div>
-                    </div>
-                </div>
+    </div>
+</div>
             </header>
             <main class="content-scroll" id="main-view"></main>
             <div id="toast" class="toast"><i class="fa-solid fa-circle-check"></i> <span id="toast-msg">Success!</span></div>
@@ -512,25 +523,51 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     // Translations
     // --- FULL TRANSLATIONS ---
 const i18n = {
-    en: {
-        welcome: "Welcome back,", dashboard: "Dashboard", org_profile: "Org Profile", payroll: "Payroll Automation",
-        employees: "Employees", attendance: "Time & Attendance", ats: "ATS Recruitment", performance: "Performance",
-        reports: "Reports", wfm: "Workforce WFM", viewAll: "View All", create: "Create New",
-        langBtn: "عربي", logout: "Sign Out",
-        myProfile: "My Profile", basicInfo: "Basic Info", companyRole: "Company & Role",
-        email: "Email", phone: "Phone", organization: "Organization", department: "Department",
-        // Add more strings here for every piece of text in your app
-    },
-    ar: {
-        welcome: "مرحباً بعودتك،", dashboard: "لوحة التحكم", org_profile: "ملف المؤسسة", payroll: "أتمتة الرواتب",
-        employees: "الموظفين", attendance: "الحضور والانصراف", ats: "نظام التوظيف", performance: "الأداء",
-        reports: "التقارير", wfm: "إدارة القوى العاملة", viewAll: "عرض الكل", create: "إنشاء جديد",
-        langBtn: "English", logout: "تسجيل الخروج",
-        myProfile: "ملفي الشخصي", basicInfo: "المعلومات الأساسية", companyRole: "الشركة والدور الوظيفي",
-        email: "البريد الإلكتروني", phone: "الهاتف", organization: "المؤسسة", department: "القسم",
-        // Add corresponding Arabic translations here
-    }
-};
+        en: { 
+            welcome: "Welcome back,", 
+            dashboard: "Dashboard", 
+            org_profile: "Org Profile", 
+            payroll: "Payroll Automation", 
+            employees: "Employees", 
+            attendance: "Attendance", 
+            ats: "Recruitment Hub", 
+            performance: "Performance AI", 
+            reports: "Strategic Reports", 
+            wfm: "Workforce WFM",
+            total_staff: "Total Staff",
+            online_now: "Online Now",
+            open_jobs: "Open Jobs",
+            late_today: "Late Today",
+            recent_activity: "Recent Activity",
+            expired_docs: "Expired Documents",
+            connect_email: "Connect Email",
+            add_candidate: "Add Candidate",
+            post_job: "Post Job",
+            view_report: "View Report"
+        },
+        ar: { 
+            welcome: "مرحباً بعودتك،", 
+            dashboard: "لوحة القيادة", 
+            org_profile: "ملف المؤسسة", 
+            payroll: "الرواتب الآلية", 
+            employees: "الموظفين", 
+            attendance: "الحضور والانصراف", 
+            ats: "نظام التوظيف الذكي", 
+            performance: "تحليل الأداء", 
+            reports: "التقارير الاستراتيجية", 
+            wfm: "إدارة القوى العاملة",
+            total_staff: "إجمالي الموظفين",
+            online_now: "متصل الآن",
+            open_jobs: "وظائف مفتوحة",
+            late_today: "تأخيرات اليوم",
+            recent_activity: "النشاط الحديث",
+            expired_docs: "وثائق منتهية الصلاحية",
+            connect_email: "ربط البريد الإلكتروني",
+            add_candidate: "إضافة مرشح",
+            post_job: "نشر وظيفة",
+            view_report: "عرض التقرير"
+        }
+    };
     /* -------------------------------------------------------------------------
        CRITICAL: ALL HELPER FUNCTIONS DEFINED FIRST TO AVOID "NOT DEFINED" ERRORS
        ------------------------------------------------------------------------- */
@@ -961,47 +998,6 @@ const i18n = {
                 return;
             }
 
-            const tier = state.org.subscription_tier || 'free';
-        let planName = 'Starter';
-        let planColor = 'var(--text-muted)';
-        let planBg = 'rgba(255,255,255,0.1)';
-        let planIcon = 'fa-seedling';
-
-        if (tier === 'bundle_2') {
-            planName = 'Growth';
-            planColor = '#f1c40f'; // Yellow/Gold
-            planBg = 'rgba(241, 196, 15, 0.2)';
-            planIcon = 'fa-rocket';
-        } else if (tier === 'bundle_3') {
-            planName = 'Enterprise';
-            planColor = '#9b59b6'; // Purple
-            planBg = 'rgba(155, 89, 182, 0.2)';
-            planIcon = 'fa-gem';
-        }
-
-        const badgeHtml = `
-            <span style="
-                background: ${planBg};
-                color: ${planColor};
-                border: 1px solid ${planColor};
-                padding: 5px 12px;
-                border-radius: 20px;
-                font-size: 0.75rem;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            ">
-                <i class="fa-solid ${planIcon}"></i> ${planName}
-            </span>
-        `;
-        document.getElementById('plan-badge').innerHTML = badgeHtml;
-        document.getElementById('user-name').innerText = state.profile.full_name;
-        }
-
         // --- LOAD APPLICATION ---
         // Final Safety Check: Ensure we actually have data before rendering
         if (!profileData || !profileData.organizations) {
@@ -1042,13 +1038,47 @@ const i18n = {
             document.getElementById('setup-modal').classList.remove('hidden');
         }
         renderMainContent();
+
+            const tier = state.org.subscription_tier || 'free';
+        let planName = 'Starter';
+        let planColor = '#94a3b8'; // Grey
+        let planBg = 'rgba(255,255,255,0.1)';
+        let icon = 'fa-seedling';
+
+        if (tier === 'bundle_2') {
+            planName = 'Growth Plus'; // "Feeling" name
+            planColor = '#f1c40f'; // Gold
+            planBg = 'rgba(241, 196, 15, 0.2)';
+            icon = 'fa-rocket';
+        } else if (tier === 'bundle_3') {
+            planName = 'Enterprise Pro'; // "Feeling" name
+            planColor = '#9b59b6'; // Purple
+            planBg = 'rgba(155, 89, 182, 0.2)';
+            icon = 'fa-gem';
+        }
+
+        const badgeHtml = `
+            <span style="background:${planBg}; color:${planColor}; border:1px solid ${planColor}; padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 0 10px ${planBg};">
+                <i class="fa-solid ${icon}"></i> ${planName}
+            </span>`;
+            
+        const badgeContainer = document.getElementById('plan-badge-container');
+        if(badgeContainer) badgeContainer.innerHTML = badgeHtml;
         checkPricingPopup(); // <--- ADD THIS LINE
     }
     // 1. DASHBOARD
     async function loadDashboardView(container) {
+        const t = i18n[state.lang]; // Get current language dictionary
 
         // --- 3. PASTE INSIDE loadDashboardView() AT THE TOP ---
-
+const header = `<div class="page-title">
+            <span>${t.welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> 
+            <div style="display:flex; gap:10px;">
+                ${sendAlertBtn}
+                <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export</button>
+            </div>
+        </div>
+        ${broadcastHTML}`;
     // 1. Fetch Latest Broadcast
         
     const { data: broadcast } = await supabaseClient
@@ -1072,6 +1102,28 @@ const i18n = {
         </div>`;
     }
 
+
+        container.innerHTML = `
+            ${header}
+            <div id="dash-content">
+                <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr);">
+                    <div class="card"><div class="card-title">${t.total_staff}</div><div class="score-val" style="color:var(--text-main)">${totalStaff || 0}</div></div>
+                    <div class="card"><div class="card-title">${t.online_now}</div><div class="score-val" style="color:var(--success)">${activeCount}</div></div>
+                    <div class="card"><div class="card-title">${t.open_jobs}</div><div class="score-val" style="color:var(--info)">${openJobs || 0}</div></div>
+                    <div class="card"><div class="card-title">${t.late_today}</div><div class="score-val" style="color:var(--danger)">${lateCount}</div></div>
+                </div>
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top:25px;">
+                    <div class="card">
+                        <div class="card-title">${t.recent_activity}</div>
+                        <div id="dash-activity">Loading...</div>
+                    </div>
+                    <div class="card" style="border-top: 4px solid var(--danger);">
+                        <div class="card-title" style="color:var(--danger)"><i class="fa-solid fa-triangle-exclamation"></i> ${t.expired_docs}</div>
+                        ${expiredHTML}
+                    </div>
+                </div>
+            </div>`;
+        
         // --- NEW: FETCH EXPIRED DOCUMENTS ---
     const todayStr = new Date().toISOString().split('T')[0];
     const { data: expiredDocs } = await supabaseClient
@@ -2379,6 +2431,16 @@ function openProfileModal() {
 
     document.getElementById('profile-modal').classList.remove('hidden');
 }
+        function closePricingModal() {
+    if(document.getElementById('dont-show-pricing').checked) localStorage.setItem('hide_pricing', 'true');
+    document.getElementById('pricing-modal').classList.add('hidden');
+}
+
+function checkPricingPopup() {
+    if(state.profile.role === 'ceo' && !localStorage.getItem('hide_pricing') && state.org.subscription_tier !== 'bundle_3') {
+        setTimeout(() => document.getElementById('pricing-modal').classList.remove('hidden'), 2000);
+    }
+}
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
@@ -2626,6 +2688,30 @@ function openProfileModal() {
             <button class="btn-outline" style="width: 100%; border-color: var(--danger); color: var(--danger); justify-content: center;" onclick="handleLogout()">
                 <i class="fa-solid fa-right-from-bracket"></i> Sign Out
             </button>
+        </div>
+    </div>
+</div>
+    <div id="pricing-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 1000px; text-align:center;">
+        <div class="modal-title">Upgrade Your Plan <i class="fa-solid fa-xmark close-modal" onclick="closePricingModal()"></i></div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Starter</h3><div class="plan-price">Free</div>
+                <ul class="feature-list"><li>Basic HR</li><li>Attendance</li></ul>
+            </div>
+            <div class="pricing-card popular" style="border:2px solid var(--primary); transform:scale(1.05);">
+                <div class="plan-tag">Best Value</div>
+                <h3 style="color:var(--primary)">Growth Plus</h3><div class="plan-price">$49</div>
+                <ul class="feature-list"><li><b>Everything in Starter</b></li><li>AI Recruitment</li><li>Workforce Maps</li></ul>
+                <button class="btn-primary" style="width:100%">Upgrade Now</button>
+            </div>
+            <div class="pricing-card">
+                <h3>Enterprise</h3><div class="plan-price">$199</div>
+                <ul class="feature-list"><li>Custom Domain</li><li>Priority Support</li></ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <label><input type="checkbox" id="dont-show-pricing"> Don't show again</label>
         </div>
     </div>
 </div>
