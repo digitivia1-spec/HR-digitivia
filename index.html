@@ -1230,109 +1230,110 @@
 
     // 4. ATS (UPGRADED: With Active Jobs Sidebar)
   // 4. ATS (UPGRADED: With Safety Checks)
+// 4. ATS (REMASTERED: AI Intelligence View)
     async function loadATSView(container) {
-     container.innerHTML = `
-        <div class="page-title">
-            ATS Recruitment Pipeline 
-            <div style="display:flex; gap:10px;">
+        // 1. Header: Only "Connect Email" remains (Simplicity)
+        container.innerHTML = `
+            <div class="page-title">
+                Recruitment Intelligence Hub
                 <button class="btn-outline" onclick="openEmailConnectModal()">
-                    <i class="fa-solid fa-envelope"></i> Connect Email
+                    <i class="fa-solid fa-envelope"></i> Connect Email Source
                 </button>
-                <button class="btn-outline" onclick="openCandidateModal()"><i class="fa-solid fa-user-plus"></i> Add Candidate</button>
-                <button class="btn-primary" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Post Job</button>
             </div>
-        </div>
-        <div class="ats-layout">
-            <div class="ats-sidebar">
-                <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Active Jobs</div>
-                <div id="ats-jobs-list">Loading Jobs...</div>
-            </div>
-            <div class="ats-main-board" id="ats-board" style="flex-grow:1; display:flex; gap:20px; overflow-x:auto;">
-                <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
-            </div>
-        </div>`;
+            
+            <div class="card" style="padding:0; overflow:hidden; min-height: 500px;">
+                <div class="card-header" style="padding:20px; background:rgba(255,255,255,0.02); border-bottom:1px solid var(--glass-border);">
+                    <div class="card-title"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--info)"></i> Incoming Candidates & AI Scores</div>
+                </div>
+                
+                <div style="overflow-x:auto;">
+                    <table style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:rgba(255,255,255,0.02);">
+                                <th style="padding:15px; text-align:left; color:var(--text-muted);">Candidate</th>
+                                <th style="padding:15px; text-align:left; color:var(--text-muted);">AI Match Score</th>
+                                <th style="padding:15px; text-align:left; color:var(--text-muted);">AI Executive Summary</th>
+                                <th style="padding:15px; text-align:left; color:var(--text-muted);">Status</th>
+                                <th style="padding:15px; text-align:right; color:var(--text-muted);">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ats-list-body">
+                            <tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">Loading Intelligence...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
 
-        // 1. Load Jobs Sidebar
-        const { data: jobs } = await supabaseClient.from('ats_jobs').select('*').eq('org_id', state.org.id).order('created_at', {ascending:false});
-        
-        // --- 🛑 SAFETY CHECK 1: Ensure view didn't change ---
-        const jobListEl = document.getElementById('ats-jobs-list');
-        if (!jobListEl) return; // Stop if the element is gone
-        // ----------------------------------------------------
+        // 2. Fetch Candidates
+        const { data: candidates, error } = await supabaseClient
+            .from('ats_applications')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .order('created_at', { ascending: false });
+            
+        // --- Safety Check ---
+        const tableBody = document.getElementById('ats-list-body');
+        if (!tableBody) return;
 
-        if(jobs && jobs.length > 0) {
-            jobListEl.innerHTML = '';
-            jobs.forEach(job => {
-                jobListEl.innerHTML += `<div class="ats-job-item">
-                    <div class="ats-job-title">${job.title}</div>
-                    <div class="ats-job-meta"><span>${job.department}</span><span style="color:var(--success)">${job.status}</span></div>
-                </div>`;
-            });
-        } else {
-            jobListEl.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:10px;">No jobs posted yet.</div>`;
+        if (error) {
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--danger);">Error loading data: ${error.message}</td></tr>`;
+            return;
         }
 
-        // 2. Load Candidates Board
-        const { data: candidates, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').order('created_at', { ascending: false });
-        
-        if (error) { 
-            // Check container existence before showing error
-            if(container) container.innerHTML += `<div class="card">Error loading pipeline</div>`; 
-            return; 
+        if (!candidates || candidates.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">
+                <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:10px; opacity:0.5"></i><br>
+                No candidates yet. Connect your email to start auto-importing.
+            </td></tr>`;
+            return;
         }
-        
-        // --- 🛑 SAFETY CHECK 2: Ensure board still exists ---
-        const board = document.getElementById('ats-board'); 
-        if (!board) return; // Stop if the element is gone
-        // ----------------------------------------------------
 
-        board.innerHTML = '';
-        
-        const stages = ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; 
-        
-        stages.forEach(stage => {
-            const col = document.createElement('div'); col.className = 'ats-column'; const stageCandidates = candidates.filter(c => c.status === stage);
-            col.innerHTML = `<div class="ats-col-header">${stage} <span class="ats-count">${stageCandidates.length}</span></div><div class="ats-cards" id="stage-${stage}"></div>`;
-            const cardContainer = col.querySelector('.ats-cards');
-            stageCandidates.forEach(cand => {
-                const card = document.createElement('div'); card.className = 'ats-card'; card.draggable = true; let actionBtn = '';
-                if (stage === 'Hired') actionBtn = `<button class="ats-btn-hire" onclick="promoteCandidateToEmployee('${cand.id}')">Promote to Employee</button>`;
-                card.innerHTML = `<div class="ats-name">${cand.full_name}</div><div class="ats-role">${cand.ats_jobs?.title || 'General Application'}</div><div class="ats-actions">${actionBtn}<i class="fa-regular fa-eye icon-btn" onclick="showToast('View Details: ${cand.id}')" style="font-size:0.9rem;"></i></div>`;
-                cardContainer.appendChild(card);
-            }); board.appendChild(col);
-        });
-    }
+        // 3. Render the "AI View" List
+        let html = '';
+        candidates.forEach(c => {
+            // Determine Score Color
+            const score = c.ai_score || 0;
+            let scoreColor = 'var(--danger)';
+            if(score >= 75) scoreColor = 'var(--success)';
+            else if(score >= 50) scoreColor = 'var(--warning)';
 
-    // New ATS Helper Functions
-    function openJobModal() {
-        document.getElementById('job-title').value = '';
-        document.getElementById('job-dept').value = '';
-        document.getElementById('job-salary').value = '';
-        document.getElementById('job-status').value = 'Open';
-        document.getElementById('job-modal').classList.remove('hidden');
-    }
+            // Formatting
+            const summary = c.ai_summary 
+                ? (c.ai_summary.length > 120 ? c.ai_summary.substring(0, 120) + '...' : c.ai_summary)
+                : '<span style="opacity:0.5; font-style:italic;">Processing analysis...</span>';
+            
+            const role = c.ats_jobs?.title || 'General Application';
 
-    async function saveNewJob() {
-        const title = document.getElementById('job-title').value;
-        const dept = document.getElementById('job-dept').value;
-        const salary = document.getElementById('job-salary').value;
-        const status = document.getElementById('job-status').value;
-
-        if(!title || !dept) return showToast("Title and Department are required", true);
-
-        const { error } = await supabaseClient.from('ats_jobs').insert({
-            org_id: state.org.id,
-            title: title,
-            department: dept,
-            salary_range: salary,
-            status: status
+            html += `
+            <tr style="border-bottom:1px solid var(--glass-border); transition:0.2s;">
+                <td style="padding:15px;">
+                    <div style="font-weight:600; color:white; font-size:1rem;">${c.full_name}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-envelope"></i> ${c.email}</div>
+                </td>
+                <td style="padding:15px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; border-radius:50%; border:3px solid ${scoreColor}; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.85rem; color:white;">
+                            ${score}%
+                        </div>
+                    </div>
+                </td>
+                <td style="padding:15px; max-width:400px;">
+                    <div style="font-size:0.9rem; color:var(--text-main); line-height:1.5;">${summary}</div>
+                </td>
+                <td style="padding:15px;">
+                    <span class="badge" style="background:${c.status === 'Hired' ? 'var(--success)' : 'rgba(255,255,255,0.1)'}; padding:5px 10px; font-size:0.75rem;">
+                        ${c.status || 'New'}
+                    </span>
+                </td>
+                <td style="padding:15px; text-align:right;">
+                    <button class="btn-outline" onclick="viewCandidateAI('${c.id}')" style="font-size:0.8rem;">
+                        <i class="fa-regular fa-eye"></i> Full Report
+                    </button>
+                </td>
+            </tr>`;
         });
 
-        if(error) return showToast("Failed to post job: " + error.message, true);
-        
-        showToast("Job Posted Successfully!");
-        document.getElementById('job-modal').classList.add('hidden');
-        loadATSView(document.getElementById('main-view')); // Refresh view to show new job
+        tableBody.innerHTML = html;
     }
 
     // 5. WFM (Restored)
