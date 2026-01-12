@@ -1154,17 +1154,23 @@
 
     // 4. ATS (UPGRADED: With Active Jobs Sidebar)
     async function loadATSView(container) {
-        container.innerHTML = `
-            <div class="page-title">ATS Recruitment Pipeline <button class="btn-primary" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Post New Job</button></div>
-            <div class="ats-layout">
-                <div class="ats-sidebar">
-                    <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Active Jobs</div>
-                    <div id="ats-jobs-list">Loading Jobs...</div>
-                </div>
-                <div class="ats-main-board" id="ats-board" style="flex-grow:1; display:flex; gap:20px; overflow-x:auto;">
-                    <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
-                </div>
-            </div>`;
+     container.innerHTML = `
+        <div class="page-title">
+            ATS Recruitment Pipeline 
+            <div style="display:flex; gap:10px;">
+                <button class="btn-outline" onclick="openCandidateModal()"><i class="fa-solid fa-user-plus"></i> Add Candidate</button>
+                <button class="btn-primary" onclick="openJobModal()"><i class="fa-solid fa-plus"></i> Post Job</button>
+            </div>
+        </div>
+        <div class="ats-layout">
+            <div class="ats-sidebar">
+                <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px;">Active Jobs</div>
+                <div id="ats-jobs-list">Loading Jobs...</div>
+            </div>
+            <div class="ats-main-board" id="ats-board" style="flex-grow:1; display:flex; gap:20px; overflow-x:auto;">
+                <div class="card" style="width:100%; text-align:center;">Loading Pipeline...</div>
+            </div>
+        </div>`;
 
         // 1. Load Jobs Sidebar
         const { data: jobs } = await supabaseClient.from('ats_jobs').select('*').eq('org_id', state.org.id).order('created_at', {ascending:false});
@@ -1685,7 +1691,13 @@
             }
             
             // Call AI
-            const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ file_url: publicUrl, org_id: state.org.id, batch_id: batchData.id }) }); 
+            const n8nResponse = await fetch(N8N_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, // UPDATED: Sends Bundle Tier so N8N knows whether to apply Advanced Automation
+body: JSON.stringify({ 
+    file_url: publicUrl, 
+    org_id: state.org.id, 
+    batch_id: batchData.id,
+    bundle_tier: state.org.subscription_tier || 'free' // <--- ADDED THIS
+}) }); 
             if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); 
             let aiData = await n8nResponse.json(); 
             if (typeof aiData === 'string') { try { aiData = JSON.parse(aiData); } catch(e) {} } 
@@ -1854,6 +1866,62 @@
 
         } catch(e) {
             console.error(e);
+        }
+    }
+    // --- ATS CANDIDATE LOGIC ---
+    function openCandidateModal() {
+        // Create modal HTML dynamically if it doesn't exist
+        if (!document.getElementById('candidate-modal')) {
+            const modal = document.createElement('div');
+            modal.id = 'candidate-modal';
+            modal.className = 'modal-overlay hidden';
+            modal.innerHTML = `
+            <div class="modal-card">
+                <div class="modal-title">Add Candidate <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('candidate-modal').classList.add('hidden')"></i></div>
+                <div class="form-group"><label>Full Name</label><input type="text" id="cand-name" class="form-input"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="cand-email" class="form-input"></div>
+                <div class="form-group"><label>Apply for Role (Job ID)</label><input type="text" id="cand-job" class="form-input" placeholder="Paste Job ID"></div>
+                <div class="form-group"><label>Upload CV (PDF)</label><input type="file" id="cand-cv" class="form-input"></div>
+                <button class="btn-primary" style="width:100%" onclick="saveCandidate()">Submit Application</button>
+            </div>`;
+            document.body.appendChild(modal);
+        }
+        document.getElementById('candidate-modal').classList.remove('hidden');
+    }
+
+    async function saveCandidate() {
+        const name = document.getElementById('cand-name').value;
+        const email = document.getElementById('cand-email').value;
+        const jobId = document.getElementById('cand-job').value; // In a real app, this would be a dropdown
+        const fileInput = document.getElementById('cand-cv');
+
+        if (!name || !email) return showToast("Name and Email required", true);
+
+        let cvUrl = null;
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = `cvs/${Date.now()}_${file.name}`;
+            const { error: upErr } = await supabaseClient.storage.from('resumes').upload(fileName, file);
+            if (!upErr) {
+                const { data } = supabaseClient.storage.from('resumes').getPublicUrl(fileName);
+                cvUrl = data.publicUrl;
+            }
+        }
+
+        const { error } = await supabaseClient.from('ats_applications').insert({
+            org_id: state.org.id,
+            job_id: jobId || null,
+            full_name: name,
+            email: email,
+            resume_url: cvUrl,
+            status: 'Applied'
+        });
+
+        if (error) showToast("Error: " + error.message, true);
+        else {
+            showToast("Candidate Added");
+            document.getElementById('candidate-modal').classList.add('hidden');
+            loadATSView(document.getElementById('main-view'));
         }
     }
 </script>
