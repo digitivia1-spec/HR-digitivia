@@ -696,12 +696,47 @@ const i18n = {
     function normalizePayrollRows(payload) {
         let data = payload;
         if (typeof data === 'string') {
-            try { data = JSON.parse(data); } catch (e) { return []; }
+            const trimmed = data.trim();
+            const cleaned = trimmed.startsWith('[Object:')
+                ? trimmed.replace(/^\[Object:\s*/, '').replace(/\]$/, '')
+                : trimmed;
+            try { data = JSON.parse(cleaned); } catch (e) { return []; }
+        }
+        if (data && typeof data === 'object' && typeof data.rows === 'string') {
+            try { data = { rows: JSON.parse(data.rows) }; } catch (e) {}
         }
         if (Array.isArray(data)) return data;
         if (data && Array.isArray(data.rows)) return data.rows;
         if (data && Array.isArray(data.items)) return data.items;
         return [];
+    }
+
+    function coercePayrollNumber(value) {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        const cleaned = String(value).replace(/[^0-9.-]/g, '');
+        const parsed = parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function normalizePayrollRow(raw) {
+        const row = (raw && typeof raw === 'object') ? raw : {};
+        const name =
+            row.employee_name ||
+            row.employee ||
+            row.name ||
+            row.full_name ||
+            row['Employee'] ||
+            row['Employee Name'] ||
+            row['Emp Name'] ||
+            row['Employee_Name'] ||
+            '';
+        return {
+            employee_name: String(name || '').trim() || 'Unknown',
+            salary: coercePayrollNumber(row.salary ?? row.base_pay ?? row.base ?? row['Salary'] ?? row['Base Pay'] ?? row['Base'] ?? row['Gross']),
+            bonus: coercePayrollNumber(row.bonus ?? row.overtime ?? row['Bonus'] ?? row['OT'] ?? row['Overtime']),
+            deductions: coercePayrollNumber(row.deductions ?? row.deduction ?? row['Deductions'] ?? row['Tax'] ?? row['Taxes'] ?? row['Insurance'] ?? row['401k'] ?? row['401K'])
+        };
     }
 
     function renderPayrollTable(items, isNew = true) { 
@@ -2309,8 +2344,9 @@ body: JSON.stringify({
             if(!n8nResponse.ok) throw new Error("AI Analysis Failed"); 
             const aiPayload = await n8nResponse.json(); 
             const rows = normalizePayrollRows(aiPayload);
+            const normalizedRows = rows.map(normalizePayrollRow);
             
-            const itemsToInsert = rows.map(item => {
+            const itemsToInsert = normalizedRows.map(item => {
                 const salary = Number(item.salary) || 0;
                 const bonus = Number(item.bonus) || 0;
                 const deductions = Number(item.deductions) || 0;
