@@ -499,6 +499,38 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         user: null, profile: null, org: null, lang: 'en', activeView: 'dashboard',
         perfCycle: 'Monthly', perfInputMode: 'file'
     };
+
+    let atsOrgColumn = null;
+    let atsOrderColumn = 'id';
+
+    async function resolveAtsOrgColumn() {
+        if (atsOrgColumn !== null) return atsOrgColumn;
+        const { data, error } = await supabaseClient
+            .from('ats_applications')
+            .select('*')
+            .limit(1);
+        if (!error && Array.isArray(data) && data.length > 0) {
+            if (Object.prototype.hasOwnProperty.call(data[0], 'org_id')) {
+                atsOrgColumn = 'org_id';
+            } else if (Object.prototype.hasOwnProperty.call(data[0], 'organization_id')) {
+                atsOrgColumn = 'organization_id';
+            } else {
+                atsOrgColumn = '';
+            }
+            if (Object.prototype.hasOwnProperty.call(data[0], 'created_at')) {
+                atsOrderColumn = 'created_at';
+            } else if (Object.prototype.hasOwnProperty.call(data[0], 'submitted_at')) {
+                atsOrderColumn = 'submitted_at';
+            } else if (Object.prototype.hasOwnProperty.call(data[0], 'applied_at')) {
+                atsOrderColumn = 'applied_at';
+            } else {
+                atsOrderColumn = 'id';
+            }
+        } else {
+            atsOrgColumn = '';
+        }
+        return atsOrgColumn;
+    }
 // --- 1. INSERT AFTER 'const state = { ... }' ---
 
     // BUNDLE & FEATURE CONFIGURATION
@@ -1456,34 +1488,23 @@ document.getElementById('auth-container').classList.add('hidden');
         // 2. Load Connected Email
         await refreshAtsIntegrationStatus();
 
-        // 3. Fetch Candidates (gracefully handle missing org column)
+        // 3. Fetch Candidates (avoid invalid column errors)
+        const orgColumn = await resolveAtsOrgColumn();
+        const orderColumn = atsOrderColumn || 'id';
         const baseQuery = () => supabaseClient
             .from('ats_applications')
             .select('*, ats_jobs(title, department)')
-            .order('created_at', { ascending: false });
+            .order(orderColumn, { ascending: false });
+        let resp = orgColumn ? await baseQuery().eq(orgColumn, state.org.id) : await baseQuery();
+        let candidates = resp.data;
+        let error = resp.error;
 
-        let candidates = null;
-        let error = null;
-
-        // Try org_id first
-        let resp = await baseQuery().eq('org_id', state.org.id);
-        if (!resp.error) {
-            candidates = resp.data;
-        } else if ((resp.error.message || '').toLowerCase().includes('org_id')) {
-            // Try legacy column name
-            resp = await baseQuery().eq('organization_id', state.org.id);
-            if (!resp.error) {
-                candidates = resp.data;
-            } else if ((resp.error.message || '').toLowerCase().includes('organization_id')) {
-                // Final fallback: no org filter (prevents hard failure)
-                resp = await baseQuery();
-                candidates = resp.data;
-                error = null; // Ignore missing column error after fallback
-            } else {
-                error = resp.error;
-            }
-        } else {
-            error = resp.error;
+        if (!error && !orgColumn && Array.isArray(candidates)) {
+            candidates = candidates.filter((row) => {
+                if (row.org_id) return row.org_id === state.org.id;
+                if (row.organization_id) return row.organization_id === state.org.id;
+                return true;
+            });
         }
             
         // --- Safety Check ---
@@ -2732,14 +2753,34 @@ function toggleLang() {
             }
         }
 
-        const { error } = await supabaseClient.from('ats_applications').insert({
-            org_id: state.org.id,
+        const payload = {
             job_id: jobId || null,
             full_name: name,
             email: email,
             resume_url: cvUrl,
             status: 'Applied'
-        });
+        };
+
+        const orgColumn = await resolveAtsOrgColumn();
+        if (orgColumn) payload[orgColumn] = state.org.id;
+
+        let { error } = await supabaseClient.from('ats_applications').insert(payload);
+
+        if (error && !orgColumn) {
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('org_id') || msg.includes('organization_id') || msg.includes('organization')) {
+                const tryInsert = async (column) => {
+                    const retryPayload = { ...payload, [column]: state.org.id };
+                    const retry = await supabaseClient.from('ats_applications').insert(retryPayload);
+                    if (!retry.error) {
+                        atsOrgColumn = column;
+                        return null;
+                    }
+                    return retry.error;
+                };
+                error = (await tryInsert('org_id')) || (await tryInsert('organization_id'));
+            }
+        }
 
         if (error) showToast("Error: " + error.message, true);
         else {
@@ -2766,10 +2807,10 @@ async function refreshAtsIntegrationStatus() {
 
     const { data, error } = await supabaseClient
         .from('org_integrations')
-        .select('integration_type, status, config, updated_at')
+        .select('integration_type, status, config, last_sync_at, created_at')
         .eq('org_id', state.org.id)
         .eq('integration_type', 'imap_email')
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -2782,7 +2823,8 @@ async function refreshAtsIntegrationStatus() {
     const provider = cfg.provider || cfg.host || 'custom';
     const email = cfg.email || 'unknown';
     const status = data.status || 'active';
-    const updatedAt = data.updated_at ? new Date(data.updated_at).toLocaleString() : '';
+    const lastSeenAt = data.last_sync_at || data.created_at;
+    const updatedAt = lastSeenAt ? new Date(lastSeenAt).toLocaleString() : '';
 
     box.innerHTML = `
         <div style="font-weight:600; color:var(--text-header)">${email}</div>
