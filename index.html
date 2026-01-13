@@ -2607,17 +2607,7 @@ function checkPricingPopup() {
 
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // 2. Call AI (N8N)
-            const response = await fetch(N8N_WEBHOOK_URL, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'wfm_forecast_analysis',
-                    file_url: publicUrl,
-                    org_id: state.org.id,
-                    bundle_tier: state.org.subscription_tier || 'free'
-                })
-            });
+           
 
             if(!response.ok) throw new Error("AI Analysis Failed");
             
