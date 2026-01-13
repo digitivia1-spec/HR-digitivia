@@ -2710,6 +2710,10 @@ function checkPricingPopup() {
     // =========================================================
 
     // 1. Upload & Start AI (Doesn't wait for answer)
+  // =========================================================
+    // WFM: FIRE & FORGET (With User ID Fix)
+    // =========================================================
+
     window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
@@ -2728,8 +2732,7 @@ function checkPricingPopup() {
             
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // B. Trigger N8N (With minimal timeout because we don't wait for the result)
-            // We verify the request was SENT, we don't care about the response text yet.
+            // B. Trigger N8N (With User ID included)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Handshake limit
 
@@ -2740,24 +2743,29 @@ function checkPricingPopup() {
                     body: JSON.stringify({
                         action: 'wfm_forecast_analysis',
                         file_url: publicUrl,
+                        
+                        // --- THE MISSING FIELDS ---
+                        file_name: fileName,        // So N8N knows the file name
+                        user_id: state.user.id,     // So N8N knows the Actor ID
+                        // --------------------------
+                        
                         org_id: state.org.id,
                         bundle_tier: state.org.subscription_tier || 'free'
                     }),
                     signal: controller.signal
                 });
             } catch (e) {
-                // Ignore timeout errors here - it means N8N got the message but is taking time processing
                 if (e.name !== 'AbortError') console.warn("Webhook trigger warning:", e);
             }
             clearTimeout(timeoutId);
 
-            // C. Start Looking for the Result in DB
+            // C. Start Polling
             showToast("AI Analysis Running... Please wait.", false);
             pollForWFMResults(fileName);
 
         } catch (err) {
             console.error("Upload Error:", err);
-            showToast("Failed to start analysis: " + err.message, true);
+            showToast("Failed to start: " + err.message, true);
         } finally {
             if(btn) btn.innerHTML = oldHtml;
             if(input) input.value = '';
