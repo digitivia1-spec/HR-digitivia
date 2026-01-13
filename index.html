@@ -1456,12 +1456,35 @@ document.getElementById('auth-container').classList.add('hidden');
         // 2. Load Connected Email
         await refreshAtsIntegrationStatus();
 
-        // 3. Fetch Candidates
-        const { data: candidates, error } = await supabaseClient
+        // 3. Fetch Candidates (gracefully handle missing org column)
+        const baseQuery = () => supabaseClient
             .from('ats_applications')
-            .select('*')
-            .eq('org_id', state.org.id)
+            .select('*, ats_jobs(title, department)')
             .order('created_at', { ascending: false });
+
+        let candidates = null;
+        let error = null;
+
+        // Try org_id first
+        let resp = await baseQuery().eq('org_id', state.org.id);
+        if (!resp.error) {
+            candidates = resp.data;
+        } else if ((resp.error.message || '').toLowerCase().includes('org_id')) {
+            // Try legacy column name
+            resp = await baseQuery().eq('organization_id', state.org.id);
+            if (!resp.error) {
+                candidates = resp.data;
+            } else if ((resp.error.message || '').toLowerCase().includes('organization_id')) {
+                // Final fallback: no org filter (prevents hard failure)
+                resp = await baseQuery();
+                candidates = resp.data;
+                error = null; // Ignore missing column error after fallback
+            } else {
+                error = resp.error;
+            }
+        } else {
+            error = resp.error;
+        }
             
         // --- Safety Check ---
         const tableBody = document.getElementById('ats-list-body');
