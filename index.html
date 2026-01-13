@@ -1451,8 +1451,13 @@ document.getElementById('auth-container').classList.add('hidden');
     // 5. WFM (EXECUTIVE EDITION: NO MANUAL RULES, PURE AI)
     // ---------------------------------------------------------
 
+  // =========================================================
+    // WFM MODULE: EXECUTION, HISTORY & EXPORT
+    // =========================================================
+
+    // 1. RENDER UI
     async function renderWFMUI(container) { 
-        // 1. Dynamic Metrics Header (IDs allow instant updates from N8N)
+        // Metric Cards with IDs for updates
         const metricsHtml = `
             <div class="dashboard-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom:20px;">
                 <div class="card" style="padding:15px; text-align:center;">
@@ -1477,7 +1482,7 @@ document.getElementById('auth-container').classList.add('hidden');
                 </div>
             </div>`;
 
-        // 2. Main Layout (Shift Rules Button REMOVED)
+        // Main Layout
         container.innerHTML = `
             <div class="page-title">
                 Workforce Command Center 
@@ -1502,19 +1507,15 @@ document.getElementById('auth-container').classList.add('hidden');
                     </div>
                     <div id="wfm-insight-box" style="background:rgba(255,255,255,0.05); padding:20px; border-radius:12px; height:200px; overflow-y:auto; font-size:0.95rem; line-height:1.6; color:var(--text-main); border-left:4px solid var(--primary);">
                         <div style="color:var(--text-muted); text-align:center; padding-top:40px;">
-                            Upload a forecast file to generate a staffing strategy.
+                            Upload a file to generate a new strategy.
                         </div>
                     </div>
                     
                     <div style="margin-top:20px; border-top:1px solid var(--glass-border); padding-top:15px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                            <div style="font-size:0.9rem; font-weight:700; color:var(--text-muted);">
-                                <i class="fa-solid fa-clock-rotate-left"></i> History
-                            </div>
+                        <div style="font-size:0.9rem; font-weight:700; color:var(--text-muted); margin-bottom:10px;">
+                            <i class="fa-solid fa-clock-rotate-left"></i> History
                         </div>
-                        <div id="wfm-history-list" style="max-height:120px; overflow-y:auto;">
-                            <div style="font-size:0.8rem; color:var(--text-muted);">Loading history...</div>
-                        </div>
+                        <div id="wfm-history-list" style="max-height:120px; overflow-y:auto;">Loading...</div>
                     </div>
                 </div>
 
@@ -1536,10 +1537,151 @@ document.getElementById('auth-container').classList.add('hidden');
                 <div id="work-map" style="width:100%; height:100%; border-radius:12px; z-index:1;"></div>
             </div>`;
         
-        // Initialize components
         loadWFMRoster(); 
         loadWFMHistory(); 
         setTimeout(initLiveMap, 500);
+    }
+
+    // 2. UPLOAD & ANALYZE (Robust)
+    window.handleWFMUpload = async function(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const btn = document.querySelector('.page-title .btn-primary');
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...';
+        showToast("Uploading & Analyzing... Please wait.", false);
+
+        try {
+            // A. Upload to Supabase
+            const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
+            const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
+
+            // B. Call N8N (With Array/Object Handling)
+            const response = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'wfm_forecast_analysis',
+                    file_url: publicUrl,
+                    org_id: state.org.id,
+                    bundle_tier: state.org.subscription_tier || 'free'
+                })
+            });
+
+            if(!response.ok) throw new Error("Connection Error. Please try a smaller file.");
+            
+            let aiData = await response.json();
+            
+            // C. CRITICAL FIX: Handle N8N Array Response
+            if (Array.isArray(aiData) && aiData.length > 0) aiData = aiData[0];
+            if (aiData.json) aiData = aiData.json; // Handle N8N wrapper
+
+            // Defaults if data is missing
+            const metrics = aiData.metrics || { sl: 0, adherence: 0, occupancy: 0, shrinkage: 0 };
+            const insight = aiData.insight || "Analysis complete (No text returned).";
+
+            // D. Save to DB
+            await logSystemAction('WFM_FORECAST_GENERATED', 'wfm_forecasts', { 
+                file: fileName, 
+                insight: insight,
+                metrics: metrics 
+            });
+
+            // E. Update UI
+            document.getElementById('wfm-metric-sl').innerText = (metrics.sl || 0) + "%";
+            document.getElementById('wfm-metric-adh').innerText = (metrics.adherence || 0) + "%";
+            document.getElementById('wfm-metric-occ').innerText = (metrics.occupancy || 0) + "%";
+            document.getElementById('wfm-metric-shr').innerText = (metrics.shrinkage || 0) + "%";
+            
+            const box = document.getElementById('wfm-insight-box');
+            box.style.opacity = 0;
+            setTimeout(() => {
+                box.innerHTML = insight.replace(/\n/g, '<br>');
+                box.style.opacity = 1;
+                box.style.transition = "opacity 0.5s";
+            }, 200);
+
+            showToast("Strategy Generated Successfully");
+            loadWFMHistory();
+
+        } catch (err) {
+            console.error(err);
+            showToast("Error: " + err.message, true);
+        } finally {
+            btn.innerHTML = oldHtml;
+            input.value = '';
+        }
+    }
+
+    // 3. HISTORY LOADER
+    async function loadWFMHistory() {
+        const container = document.getElementById('wfm-history-list');
+        if(!container) return;
+
+        const { data: logs } = await supabaseClient
+            .from('audit_logs')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('action_type', 'WFM_FORECAST_GENERATED')
+            .order('created_at', { ascending: false })
+            .limit(5);
+
+        if (!logs || logs.length === 0) {
+            container.innerHTML = `<div style="padding:10px; font-size:0.8rem; color:var(--text-muted); text-align:center;">No history available.</div>`;
+            return;
+        }
+
+        // Restore latest if dashboard is empty
+        const latest = logs[0].details?.metrics;
+        if(latest && document.getElementById('wfm-metric-sl').innerText.includes('--')) {
+             document.getElementById('wfm-metric-sl').innerText = (latest.sl || 0) + "%";
+             document.getElementById('wfm-metric-adh').innerText = (latest.adherence || 0) + "%";
+             document.getElementById('wfm-metric-occ').innerText = (latest.occupancy || 0) + "%";
+             document.getElementById('wfm-metric-shr').innerText = (latest.shrinkage || 0) + "%";
+             document.getElementById('wfm-insight-box').innerHTML = (logs[0].details?.insight || "").replace(/\n/g, '<br>');
+        }
+
+        let html = '';
+        logs.forEach(log => {
+            const date = new Date(log.created_at).toLocaleDateString();
+            const safeInsight = (log.details?.insight || "").replace(/"/g, "&quot;").replace(/'/g, "\\'");
+            const fname = log.details?.file?.split('_').pop() || "Forecast";
+            html += `<div style="padding:8px; border-bottom:1px solid var(--glass-border); cursor:pointer;" onclick="document.getElementById('wfm-insight-box').innerHTML='${safeInsight}'">
+                <div style="font-weight:bold; color:white; font-size:0.8rem;">${fname}</div>
+                <div style="font-size:0.7rem; color:var(--text-muted);">${date}</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    // 4. EXPORT FUNCTION
+    window.exportWFMData = async function() {
+        showToast("Generating Report...");
+        const { data: logs } = await supabaseClient
+            .from('audit_logs')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('action_type', 'WFM_FORECAST_GENERATED')
+            .order('created_at', { ascending: false });
+
+        if(!logs || logs.length === 0) return showToast("No data to export", true);
+
+        let csv = "Date,File,Service Level,Adherence,Occupancy,Insight\n";
+        logs.forEach(log => {
+            const d = new Date(log.created_at).toLocaleDateString();
+            const f = (log.details?.file || "Unknown").split('_').pop();
+            const m = log.details?.metrics || {};
+            const i = (log.details?.insight || "").replace(/,/g, " ").replace(/\n/g, " ");
+            csv += `${d},${f},${m.sl||0}%,${m.adherence||0}%,${m.occupancy||0}%,${i.substring(0,100)}...\n`;
+        });
+
+        const link = document.createElement("a");
+        link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+        link.download = "WFM_Strategy_Report.csv";
+        link.click();
     }
 
     // --- UPDATED: Handle Upload with CORRECT Webhook & Instant Reflection ---
