@@ -1530,6 +1530,36 @@ document.getElementById('auth-container').classList.add('hidden');
                 </div>
             </div>
 
+            <div class="card" style="margin-top:20px;">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-table"></i> Schedule Preview</div>
+                </div>
+                <div style="overflow:auto; max-height:320px;">
+                    <table id="wfm-preview-table">
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th>Role</th>
+                                <th>Date</th>
+                                <th>Shift Start</th>
+                                <th>Shift End</th>
+                                <th>Break Start</th>
+                                <th>Break End</th>
+                                <th>Location</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="9" style="text-align:center; color:var(--text-muted);">
+                                    Upload a file to preview schedule rows.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="card" style="margin-top:20px; height:500px;">
                 <div class="card-header">
                     <div class="card-title"><i class="fa-solid fa-map-location-dot"></i> Geo-Fenced Presence</div>
@@ -1744,6 +1774,7 @@ document.getElementById('auth-container').classList.add('hidden');
         const latestDetails = parseWfmDetails(logs[0].details);
         const latestMetrics = latestDetails?.metrics;
         const latestInsight = latestDetails?.insight;
+        const latestSchedule = extractWfmSchedule(latestDetails);
         
         if(latestMetrics || latestInsight) {
             const slEl = document.getElementById('wfm-metric-sl');
@@ -1759,6 +1790,9 @@ document.getElementById('auth-container').classList.add('hidden');
                     document.getElementById('wfm-insight-box').innerHTML = (latestInsight || "").replace(/\n/g, '<br>');
                 }
             }
+        }
+        if (latestSchedule && latestSchedule.length) {
+            renderWfmPreviewTable(latestSchedule);
         }
 
         // 2. Render History List
@@ -2742,6 +2776,69 @@ function checkPricingPopup() {
         return Number.isFinite(num) ? num : 0;
     }
 
+    function escapeHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function extractWfmSchedule(result) {
+        if (!result) return [];
+        if (Array.isArray(result.schedule)) return result.schedule;
+        if (result.table && Array.isArray(result.table.rows)) return result.table.rows;
+        return [];
+    }
+
+    function renderWfmPreviewTable(rows) {
+        const table = document.getElementById('wfm-preview-table');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align:center; color:var(--text-muted);">
+                        No schedule rows found in this file.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        let html = '';
+        rows.forEach(row => {
+            html += `
+                <tr>
+                    <td>${escapeHtml(row.employee_name)}</td>
+                    <td>${escapeHtml(row.role)}</td>
+                    <td>${escapeHtml(row.date)}</td>
+                    <td>${escapeHtml(row.shift_start)}</td>
+                    <td>${escapeHtml(row.shift_end)}</td>
+                    <td>${escapeHtml(row.break_start)}</td>
+                    <td>${escapeHtml(row.break_end)}</td>
+                    <td>${escapeHtml(row.location)}</td>
+                    <td>${escapeHtml(row.notes)}</td>
+                </tr>`;
+        });
+        tbody.innerHTML = html;
+    }
+
+    function setWfmPreviewMessage(message) {
+        const table = document.getElementById('wfm-preview-table');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align:center; color:var(--text-muted);">
+                    ${escapeHtml(message)}
+                </td>
+            </tr>`;
+    }
+
     function applyWfmResult(result) {
         if (!result) return false;
         const metrics = result.metrics || {};
@@ -2758,6 +2855,7 @@ function checkPricingPopup() {
         }
         const box = document.getElementById('wfm-insight-box');
         if (box) box.innerHTML = (insight || "").replace(/\n/g, '<br>');
+        renderWfmPreviewTable(extractWfmSchedule(result));
         return Boolean(insight || Object.keys(metrics).length);
     }
 
@@ -2770,6 +2868,7 @@ function checkPricingPopup() {
         const oldHtml = btn ? btn.innerHTML : 'Import';
         if(btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Starting AI...';
         showToast("Uploading...", false);
+        setWfmPreviewMessage("Parsing schedule preview...");
 
         try {
             // A. Upload File to Supabase
