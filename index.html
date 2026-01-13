@@ -486,6 +486,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lZXBnc3BwY2VtendhcGNleHlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc1NDI5NzEsImV4cCI6MjA4MzExODk3MX0.1gXea9dkLrE8CY80ho0wC0al04DCvMJK5UimqAj96e0';
     const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
     const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_performance'; 
+    const N8N_ATS_CONNECT_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ats_connect';
     
     // --- TESLA-GRADE ATTENDANCE CONFIG ---
     const OFFICE_COORDS = { lat: 30.0444, lng: 31.2357 }; // Change to your HQ
@@ -538,7 +539,7 @@ const i18n = {
             payroll: "Payroll Automation", 
             employees: "Employees", 
             attendance: "Attendance", 
-            ats: "Recruitment Hub", 
+            ats: "ATS Recruitment", 
             performance: "Performance AI", 
             reports: "Strategic Reports", 
             wfm: "Workforce WFM",
@@ -560,7 +561,7 @@ const i18n = {
             payroll: "الرواتب الآلية", 
             employees: "الموظفين", 
             attendance: "الحضور والانصراف", 
-            ats: "نظام التوظيف الذكي", 
+            ats: "التوظيف ATS", 
             performance: "تحليل الأداء", 
             reports: "التقارير الاستراتيجية", 
             wfm: "إدارة القوى العاملة",
@@ -1412,10 +1413,21 @@ document.getElementById('auth-container').classList.add('hidden');
         // 1. Header: Only "Connect Email" remains (Simplicity)
         container.innerHTML = `
             <div class="page-title">
-                Recruitment Intelligence Hub
+                ATS Recruitment
                 <button class="btn-outline" onclick="openEmailConnectModal()">
                     <i class="fa-solid fa-envelope"></i> Connect Email Source
                 </button>
+            </div>
+
+            <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-bottom:20px;">
+                <div class="card" style="padding:18px;">
+                    <div class="card-title"><i class="fa-solid fa-at" style="color:var(--primary)"></i> Connected Email</div>
+                    <div id="ats-email-status" style="margin-top:10px; color:var(--text-muted);">Checking connection...</div>
+                </div>
+                <div class="card" style="padding:18px;">
+                    <div class="card-title"><i class="fa-solid fa-robot" style="color:var(--info)"></i> Auto-Processing</div>
+                    <div style="margin-top:10px; color:var(--text-muted); font-size:0.9rem;">CVs and portfolio links are analyzed automatically from the connected inbox.</div>
+                </div>
             </div>
             
             <div class="card" style="padding:0; overflow:hidden; min-height: 500px;">
@@ -1441,7 +1453,10 @@ document.getElementById('auth-container').classList.add('hidden');
                 </div>
             </div>`;
 
-        // 2. Fetch Candidates
+        // 2. Load Connected Email
+        await refreshAtsIntegrationStatus();
+
+        // 3. Fetch Candidates
         const { data: candidates, error } = await supabaseClient
             .from('ats_applications')
             .select('*')
@@ -1465,7 +1480,7 @@ document.getElementById('auth-container').classList.add('hidden');
             return;
         }
 
-        // 3. Render the "AI View" List
+        // 4. Render the "AI View" List
         let html = '';
         candidates.forEach(c => {
             // Determine Score Color
@@ -2722,28 +2737,71 @@ function toggleImapFields() {
     else { box.classList.add('hidden'); host.value = type === 'gmail' ? 'imap.gmail.com' : 'outlook.office365.com'; }
 }
 
+async function refreshAtsIntegrationStatus() {
+    const box = document.getElementById('ats-email-status');
+    if (!box || !state.org) return;
+
+    const { data, error } = await supabaseClient
+        .from('org_integrations')
+        .select('integration_type, status, config, updated_at')
+        .eq('org_id', state.org.id)
+        .eq('integration_type', 'imap_email')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error || !data) {
+        box.innerHTML = 'No email connected yet.';
+        return;
+    }
+
+    const cfg = data.config || {};
+    const provider = cfg.provider || cfg.host || 'custom';
+    const email = cfg.email || 'unknown';
+    const status = data.status || 'active';
+    const updatedAt = data.updated_at ? new Date(data.updated_at).toLocaleString() : '';
+
+    box.innerHTML = `
+        <div style="font-weight:600; color:var(--text-header)">${email}</div>
+        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+            Provider: ${provider} • Status: ${status}${updatedAt ? ` • Updated: ${updatedAt}` : ''}
+        </div>`;
+}
+
 async function saveEmailIntegration() {
     const email = document.getElementById('imap-email').value;
     const pass = document.getElementById('imap-pass').value;
     const host = document.getElementById('imap-host').value;
     const port = document.getElementById('imap-port').value || 993;
+    const provider = document.getElementById('imap-provider').value;
 
     if(!email || !pass) return showToast("Email and Password required", true);
 
-    const config = { email, password: pass, host, port, tls: true };
+    const payload = {
+        org_id: state.org.id,
+        integration_type: 'imap_email',
+        provider,
+        email,
+        password: pass,
+        host,
+        port,
+        tls: true,
+        status: 'active'
+    };
 
-    const { error } = await supabaseClient.from('org_integrations')
-        .upsert({ 
-            org_id: state.org.id, 
-            integration_type: 'imap_email', 
-            config: config, 
-            status: 'active' 
-        }, { onConflict: 'org_id, integration_type' });
-
-    if(error) showToast("Error: " + error.message, true);
-    else {
+    try {
+        const res = await fetch(N8N_ATS_CONNECT_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("Webhook rejected the request");
         showToast("Connected! AI is now watching your inbox.");
         document.getElementById('email-connect-modal').classList.add('hidden');
+        await refreshAtsIntegrationStatus();
+    } catch (err) {
+        console.error("ATS Connect Error:", err);
+        showToast("Connect failed: " + err.message, true);
     }
 }
     // OPEN CANDIDATE MODAL
