@@ -241,6 +241,49 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .day-check { display: none; }
         .day-label { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
         .day-check:checked + .day-label { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* --- AI ASSISTANT --- */
+        :root {
+            --ai-panel-bg: rgba(10, 20, 32, 0.92);
+            --ai-panel-border: rgba(255, 255, 255, 0.12);
+            --ai-bubble-user: linear-gradient(135deg, #2c7fb8, #3498db);
+            --ai-bubble-assistant: rgba(255, 255, 255, 0.08);
+            --ai-bubble-text: #eaf2ff;
+            --ai-launcher-bg: linear-gradient(135deg, #0f2a3d, #2c5364);
+        }
+
+        #ai-widget { position: fixed; bottom: 24px; left: 24px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+        html[dir="rtl"] #ai-widget { left: auto; right: 24px; }
+        #ai-window { width: 420px; max-width: 92vw; height: 560px; max-height: 75vh; padding: 0; overflow: hidden; display: flex; flex-direction: column; border-radius: 18px; background: var(--ai-panel-bg); border: 1px solid var(--ai-panel-border); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); }
+        #ai-window.hidden { display: none !important; }
+        .ai-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: rgba(52, 152, 219, 0.18); border-bottom: 1px solid var(--ai-panel-border); }
+        .ai-title { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #fff; }
+        .ai-credits { font-size: 0.8rem; color: var(--text-muted); background: rgba(255, 255, 255, 0.08); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); }
+        .ai-chat-body { flex: 1; overflow-y: auto; padding: 16px; background: rgba(0, 0, 0, 0.15); }
+        .ai-msg { display: flex; margin-bottom: 12px; }
+        .ai-msg.user { justify-content: flex-end; }
+        .ai-msg.assistant { justify-content: flex-start; }
+        .ai-bubble { max-width: 78%; padding: 10px 12px; border-radius: 12px; color: var(--ai-bubble-text); font-size: 0.9rem; line-height: 1.5; }
+        .ai-msg.user .ai-bubble { background: var(--ai-bubble-user); color: #fff; border-bottom-right-radius: 4px; }
+        .ai-msg.assistant .ai-bubble { background: var(--ai-bubble-assistant); border: 1px solid rgba(255, 255, 255, 0.08); border-bottom-left-radius: 4px; }
+        .ai-input-row { padding: 12px; background: rgba(15, 30, 45, 0.6); border-top: 1px solid var(--ai-panel-border); display: flex; gap: 10px; align-items: center; }
+        .ai-input { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; padding: 10px 12px; border-radius: 10px; }
+        .ai-input:focus { outline: none; border-color: var(--primary); }
+        .ai-send-btn { padding: 10px 14px; border-radius: 10px; }
+        .ai-launcher { width: 60px; height: 60px; border-radius: 50%; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; background: var(--ai-launcher-bg); box-shadow: 0 10px 30px rgba(10, 30, 45, 0.35); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+        .ai-launcher:hover { transform: translateY(-2px); }
+        #ai-widget.ai-open { inset: auto auto 24px 24px; }
+        @media (max-width: 900px) {
+            #ai-window { width: 92vw; height: 70vh; }
+        }
+        @media (max-width: 600px) {
+            #ai-widget.ai-open { top: 0; left: 0; right: 0; bottom: 0; align-items: stretch; padding: 0; }
+            html[dir="rtl"] #ai-widget.ai-open { left: 0; right: 0; }
+            #ai-widget.ai-open #ai-window { width: 100vw; height: 100vh; border-radius: 0; }
+            .ai-bubble { max-width: 90%; }
+            #ai-widget.ai-open .ai-launcher { position: absolute; bottom: 16px; left: 16px; }
+            html[dir="rtl"] #ai-widget.ai-open .ai-launcher { left: auto; right: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -487,9 +530,43 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
     const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_performance'; 
     const N8N_ATS_CONNECT_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ats_connect';
-    // --- AI ASSISTANT CONFIG ---
-const N8N_AI_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ai_assistant';
-const AI_CREDITS_COST_PER_MESSAGE = 1; // like Notion: each message costs credits
+    const N8N_AI_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ai_assistant';
+    const N8N_HR_ASSISTANT_URL = N8N_AI_WEBHOOK_URL;
+    const AI_CREDIT_COST = 1;
+
+    const HR_ASSISTANT_SYSTEM_PROMPT = `
+You are "Digitivia HR Assistant", a senior HR operations consultant inside an HR SaaS dashboard.
+Goals: fast, accurate, actionable answers with high information density.
+Language: always respond in the same language as the user's last message.
+Tone: concise, confident, friendly, business-like.
+
+Navigation guidance:
+- Use these exact menu names when pointing users: Dashboard, Org Profile, Employees, Payroll Automation, Attendance, ATS Recruitment, Performance AI, Strategic Reports, Workforce WFM, My Workspace.
+- If asked "where do I do X", provide the shortest path with steps.
+
+Employee creation via chat:
+- Required fields: full_name, email, role (employee|manager|hr_manager), phone.
+- Optional: department, temp_password.
+- If any required field is missing, ask only for the missing fields.
+- When the user confirms and all required fields exist, output a JSON object ONLY with this schema:
+{
+  "action": "create_employee",
+  "auto_create": true,
+  "employee": {
+    "full_name": "",
+    "email": "",
+    "role": "",
+    "phone": "",
+    "department": "",
+    "temp_password": ""
+  },
+  "reply": "short confirmation shown to user"
+}
+- Otherwise, respond normally (not JSON).
+
+If the user asks for a job posting or ATS help, guide them to ATS Recruitment > Smart Job Wizard.
+Keep replies short: 3-6 bullet points or 2-4 short paragraphs. Provide quick next steps.
+Never invent data. Ask if unsure.`;
 
     
     // --- TESLA-GRADE ATTENDANCE CONFIG ---
@@ -501,7 +578,7 @@ const AI_CREDITS_COST_PER_MESSAGE = 1; // like Notion: each message costs credit
     // --- STATE ---
     const state = { 
         user: null, profile: null, org: null, lang: 'en', activeView: 'dashboard',
-        perfCycle: 'Monthly', perfInputMode: 'file'
+        perfCycle: 'Monthly', perfInputMode: 'file', aiCredits: null
     };
 
     let atsOrgColumn = null;
@@ -2688,205 +2765,222 @@ function toggleLang() {
     }
     // --- AI ASSISTANT LOGIC ---
     function toggleAiWidget() {
+        const widget = document.getElementById('ai-widget');
         const win = document.getElementById('ai-window');
-        win.classList.toggle('hidden');
-        if(!win.classList.contains('hidden')) updateAiCredits();
+        const isHidden = win.classList.toggle('hidden');
+        widget.classList.toggle('ai-open', !isHidden);
+        if (!isHidden) {
+            updateAiCredits();
+            setTimeout(() => {
+                const input = document.getElementById('ai-input');
+                if (input) input.focus();
+            }, 50);
+        }
     }
 
-
-    function escapeHtml(str = '') {
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
-function addAiBubble(side, html, isHtml = false) {
-  const body = document.getElementById('ai-chat-body');
-  if (!body) return null;
-
-  const wrap = document.createElement('div');
-  wrap.style.textAlign = side === 'user' ? 'right' : 'left';
-  wrap.style.marginBottom = '10px';
-
-  const bubble = document.createElement('div');
-  bubble.style.padding = '10px';
-  bubble.style.borderRadius = '10px';
-  bubble.style.display = 'inline-block';
-  bubble.style.maxWidth = '90%';
-  bubble.style.background = side === 'user'
-    ? 'rgba(142,68,173,0.20)'
-    : 'rgba(255,255,255,0.10)';
-
-  const id = `ai-msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  bubble.id = id;
-
-  if (isHtml) bubble.innerHTML = html;
-  else bubble.textContent = html;
-
-  wrap.appendChild(bubble);
-  body.appendChild(wrap);
-  body.scrollTop = body.scrollHeight;
-  return id;
-}
-
-function updateAiBubble(id, html, isHtml = false) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (isHtml) el.innerHTML = html;
-  else el.textContent = html;
-  const body = document.getElementById('ai-chat-body');
-  if (body) body.scrollTop = body.scrollHeight;
-}
-
-/**
- * ALLOWED actions ONLY (safety).
- * Your n8n response must return: { reply: "...", actions: [ ... ] }
- */
-async function runAiActions(actions = []) {
-  const results = [];
-
-  for (const a of actions) {
-    try {
-      const type = (a?.type || '').toUpperCase();
-
-      // 1) Navigate
-      if (type === 'NAVIGATE') {
-        if (!a.view) throw new Error('Missing view');
-        state.activeView = a.view;
-        renderSidebar();
-        renderMainContent();
-        results.push(`Opened ${a.view}`);
-        continue;
-      }
-
-      // 2) Open modal (limited allowlist)
-      if (type === 'OPEN_MODAL') {
-        const modal = (a.modal || '').toUpperCase();
-        if (modal === 'ONBOARD_EMPLOYEE') openOnboardModal();
-        else if (modal === 'EMAIL_CONNECT') openEmailConnectModal();
-        else throw new Error(`Modal not allowed: ${modal}`);
-        results.push(`Opened ${modal}`);
-        continue;
-      }
-
-      // 3) Create employee (uses your existing onboarding flow)
-      if (type === 'CREATE_EMPLOYEE') {
-        // REQUIRED FIELDS (you can relax later)
-        const full_name = a.full_name || a.name;
-        const email = a.email;
-        const phone = a.phone || '';
-        const department = a.department || '';
-        const role = a.role || 'employee';
-
-        if (!full_name || !email) throw new Error('CREATE_EMPLOYEE missing full_name/email');
-
-        // Open modal + fill fields + execute
-        openOnboardModal();
-        await new Promise(r => setTimeout(r, 80)); // small DOM wait
-
-        // These IDs exist in your file (used by executeOnboard)
-        document.getElementById('new-name').value = full_name;
-        document.getElementById('new-email').value = email;
-        document.getElementById('new-meta-phone').value = phone;
-        document.getElementById('new-meta-dept').value = department;
-        document.getElementById('new-role').value = role;
-
-        // Password: AI can send one, or we generate.
-        const pwd = a.password || (Math.random().toString(36).slice(2) + '!A7');
-        document.getElementById('new-pass').value = pwd;
-
-        await executeOnboard();
-        results.push(`Created employee: ${full_name} (${email})`);
-        continue;
-      }
-
-      // Unknown action => blocked
-      throw new Error(`Action not allowed: ${type}`);
-    } catch (err) {
-      console.error('AI action failed:', a, err);
-      results.push(`❌ ${a?.type || 'UNKNOWN'} failed: ${err.message}`);
+    function formatAiText(value) {
+        return escapeHtml(String(value || '')).replace(/\n/g, '<br>');
     }
-  }
 
-  return results;
-}
+    function appendAiMessage(content, role, allowHtml = false) {
+        const body = document.getElementById('ai-chat-body');
+        if (!body) return null;
+        const wrapper = document.createElement('div');
+        wrapper.className = `ai-msg ${role}`;
+        const bubble = document.createElement('div');
+        bubble.className = 'ai-bubble';
+        bubble.innerHTML = allowHtml ? content : formatAiText(content);
+        wrapper.appendChild(bubble);
+        body.appendChild(wrapper);
+        body.scrollTop = body.scrollHeight;
+        return bubble;
+    }
 
+    async function updateAiCredits() {
+        if(!state.org) return;
+        const { data, error } = await supabaseClient.from('organizations').select('ai_credits_balance').eq('id', state.org.id).single();
+        if (error) return;
+        const credits = Number(data?.ai_credits_balance || 0);
+        state.aiCredits = credits;
+        const creditsEl = document.getElementById('ai-credits');
+        if (creditsEl) creditsEl.innerText = `${credits} Credits`;
+    }
 
-   async function updateAiCredits() {
-  try {
-    if (!state.org?.id) return;
+    async function debitAiCredits(cost) {
+        if (!state.org || !Number.isFinite(cost)) return true;
+        let current = Number.isFinite(state.aiCredits) ? state.aiCredits : null;
+        if (current === null) {
+            const { data, error } = await supabaseClient.from('organizations').select('ai_credits_balance').eq('id', state.org.id).single();
+            if (error) return false;
+            current = Number(data?.ai_credits_balance || 0);
+        }
+        if (current < cost) return false;
+        const next = Math.max(0, current - cost);
+        const { error: updateError } = await supabaseClient.from('organizations').update({ ai_credits_balance: next }).eq('id', state.org.id);
+        if (updateError) return false;
+        state.aiCredits = next;
+        const creditsEl = document.getElementById('ai-credits');
+        if (creditsEl) creditsEl.innerText = `${next} Credits`;
+        return true;
+    }
 
-    const { data, error } = await supabaseClient
-      .from('organizations')
-      .select('ai_credits_balance')
-      .eq('id', state.org.id)
-      .single();
+    function extractJsonPayload(raw) {
+        if (!raw) return null;
+        if (typeof raw === 'object') return raw;
+        const text = String(raw).trim();
+        if (!text) return null;
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        if (firstBrace === -1 || lastBrace === -1) return null;
+        const candidate = text.slice(firstBrace, lastBrace + 1);
+        try { return JSON.parse(candidate); } catch (e) { return null; }
+    }
 
-    if (error) throw error;
+    function normalizeAssistantResponse(raw) {
+        if (raw === null || raw === undefined) return { text: '' };
+        if (typeof raw === 'string') return { text: raw };
+        if (raw.reply || raw.message || raw.text) {
+            return { text: raw.reply || raw.message || raw.text, action: raw.action, auto_create: raw.auto_create, employee: raw.employee };
+        }
+        if (raw.output) return { text: typeof raw.output === 'string' ? raw.output : JSON.stringify(raw.output) };
+        return { text: JSON.stringify(raw) };
+    }
 
-    const bal = data?.ai_credits_balance ?? 0;
-    const el = document.getElementById('ai-credits');
-    if (el) el.textContent = `${bal} Credits`;
+    function normalizeEmployeeRole(role) {
+        const clean = String(role || '').toLowerCase().trim();
+        if (clean === 'hr manager' || clean === 'hr' || clean === 'hr_manager') return 'hr_manager';
+        if (clean === 'manager') return 'manager';
+        if (clean === 'employee') return 'employee';
+        return 'employee';
+    }
 
-    // Optional cache
-    state.org.ai_credits_balance = bal;
-    return bal;
-  } catch (e) {
-    console.warn('updateAiCredits failed:', e);
-    return null;
-  }
-}
+    function generateTempPassword() {
+        const rand = Math.floor(1000 + Math.random() * 9000);
+        return `Welcome${rand}!`;
+    }
 
+    async function createEmployeeFromChat(employee = {}) {
+        if (!state.org || !state.user) return { ok: false, error: 'Not authenticated.' };
+        const payload = {
+            full_name: String(employee.full_name || '').trim(),
+            email: String(employee.email || '').trim(),
+            role: normalizeEmployeeRole(employee.role),
+            phone: String(employee.phone || '').trim(),
+            department: String(employee.department || '').trim(),
+            temp_password: String(employee.temp_password || '').trim()
+        };
+        const missing = [];
+        if (!payload.full_name) missing.push('full_name');
+        if (!payload.email) missing.push('email');
+        if (!payload.phone) missing.push('phone');
+        if (!payload.role) missing.push('role');
+        if (missing.length) return { ok: false, error: `Missing fields: ${missing.join(', ')}` };
 
-  
-// ✅ Replace your current sendAiMessage() with this version
+        const tempPassword = payload.temp_password || generateTempPassword();
+        const dummyStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+        const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false, storage: dummyStorage, autoRefreshToken: false, detectSessionInUrl: false }
+        });
 
-async function sendAiMessage() {
-  const input = document.getElementById('ai-input');
-  const msg = (input?.value || '').trim();
-  if (!msg) return;
+        const { data: authData, error: authError } = await tempClient.auth.signUp({
+            email: payload.email,
+            password: tempPassword,
+            options: { data: { full_name: payload.full_name } }
+        });
 
-  // user bubble
-  addAiBubble('user', msg);
-  input.value = '';
+        if (authError) return { ok: false, error: authError.message };
+        if (!authData?.user) return { ok: false, error: 'Auth creation failed.' };
 
-  // thinking bubble
-  const thinkingId = addAiBubble('ai', '<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...', true);
+        const metaData = { phone: payload.phone, department: payload.department };
+        const { error: profileError } = await supabaseClient.rpc('admin_create_profile', {
+            target_user_id: authData.user.id,
+            user_email: payload.email,
+            full_name: payload.full_name,
+            user_role: payload.role,
+            target_org_id: state.org.id,
+            user_meta: metaData,
+            avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.full_name)}&background=random`
+        });
 
-  console.log('[AI] Calling webhook:', N8N_AI_WEBHOOK_URL);
+        if (profileError) return { ok: false, error: profileError.message };
+        showToast(`Employee created: ${payload.full_name}`);
+        if (state.activeView === 'employees') loadEmployeesView(document.getElementById('main-view'));
+        return { ok: true, tempPassword };
+    }
 
-  try {
-    const payload = {
-      message: msg,
-      org_id: state.org?.id ?? null,
-      user_id: state.user?.id ?? null,
-      active_view: state.activeView ?? null
-    };
+    async function sendAiMessage() {
+        const input = document.getElementById('ai-input');
+        const text = (input.value || '').trim();
+        if (!text) return;
 
-    const res = await fetch(N8N_AI_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+        appendAiMessage(text, 'user');
+        input.value = '';
+        const thinkingBubble = appendAiMessage('<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...', 'assistant', true);
+        if (state.aiCredits === null) await updateAiCredits();
+        if (Number.isFinite(state.aiCredits) && state.aiCredits < AI_CREDIT_COST) {
+            if (thinkingBubble) thinkingBubble.innerHTML = formatAiText('No credits left. Please top up to continue.');
+            return;
+        }
 
-    const raw = await res.text();
-    let data = {};
-    try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
+        let replyText = '';
+        let actionPayload = null;
+        let didCallAi = false;
 
-    const reply = data.reply || data.message || raw || `HTTP ${res.status}`;
-    updateAiBubble(thinkingId, escapeHtml(reply).replace(/\n/g, '<br>'), true);
+        try {
+            if (!N8N_HR_ASSISTANT_URL) {
+                replyText = `I can help with navigation, onboarding, policies, and ATS workflows. Share your request and I will guide you.`;
+            } else {
+                const response = await fetch(N8N_HR_ASSISTANT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        org_id: state.org?.id,
+                        user_id: state.user?.id,
+                        lang: state.lang,
+                        system_prompt: HR_ASSISTANT_SYSTEM_PROMPT,
+                        context: {
+                            org_name: state.org?.name || '',
+                            user_role: state.profile?.role || '',
+                            plan: state.org?.subscription_tier || 'free'
+                        }
+                    })
+                });
+                if (!response.ok) throw new Error(`Assistant error: ${response.status}`);
+                didCallAi = true;
+                const raw = await response.text();
+                actionPayload = extractJsonPayload(raw);
+                if (actionPayload) {
+                    const normalized = normalizeAssistantResponse(actionPayload);
+                    replyText = normalized.text;
+                } else {
+                    replyText = raw;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            replyText = 'Sorry, I could not reach the assistant right now. Please try again.';
+        }
 
-  } catch (err) {
-    console.error('[AI] webhook error', err);
-    updateAiBubble(thinkingId, `⚠️ ${escapeHtml(err.message)}`, false);
-  }
-}
+        if (actionPayload && actionPayload.action === 'create_employee') {
+            if (actionPayload.auto_create) {
+                const result = await createEmployeeFromChat(actionPayload.employee || {});
+                if (result.ok) {
+                    replyText = (actionPayload.reply || 'Employee created.') + `\nTemporary password: ${result.tempPassword}`;
+                } else {
+                    replyText = (actionPayload.reply || 'I need more details.') + `\n${result.error}`;
+                }
+            } else if (actionPayload.reply) {
+                replyText = actionPayload.reply;
+            }
+        }
 
-// ✅ ensures inline onclick="sendAiMessage()" always hits this one
-window.sendAiMessage = sendAiMessage;
+        if (thinkingBubble) thinkingBubble.innerHTML = formatAiText(replyText || 'Please try again.');
+        if (didCallAi) {
+            const debited = await debitAiCredits(AI_CREDIT_COST);
+            if (!debited) showToast('Unable to debit AI credits.', true);
+        }
+    }
     // --- ATS CANDIDATE LOGIC ---
     function openCandidateModal() {
         // Create modal HTML dynamically if it doesn't exist
@@ -3345,87 +3439,6 @@ function checkPricingPopup() {
         // Not found? Wait 3s and look again
         setTimeout(() => pollForWFMResults(fileNamePart, attempts + 1, baseline, hasImmediateResult), 3000);
     }
-    // ===== FORCE OVERRIDE AI SEND (paste at VERY bottom of <script>) =====
-
-// 1) Put your real AI webhook URL here:
-
-function escapeHtml(s = "") {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-window.sendAiMessage = async function () {
-  const input = document.getElementById("ai-input");
-  const text = (input?.value || "").trim();
-  if (!text) return;
-
-  const body = document.getElementById("ai-chat-body");
-  if (!body) return;
-
-  // User bubble
-  body.insertAdjacentHTML(
-    "beforeend",
-    `<div style="text-align:right; margin-bottom:10px;">
-      <div style="background:var(--primary); color:white; padding:8px 12px; border-radius:10px; display:inline-block;">
-        ${escapeHtml(text)}
-      </div>
-    </div>`
-  );
-  input.value = "";
-  body.scrollTop = body.scrollHeight;
-
-  // Thinking bubble
-  body.insertAdjacentHTML(
-    "beforeend",
-    `<div style="text-align:left; margin-bottom:10px;">
-      <div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">
-        <i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...
-      </div>
-    </div>`
-  );
-  body.scrollTop = body.scrollHeight;
-
-  const target = body.lastElementChild;
-
-  try {
-    console.log("[AI] Calling webhook:", N8N_AI_WEBHOOK_URL);
-
-    const payload = {
-      message: text,
-      org_id: (window.state?.org?.id ?? null),
-      user_id: (window.state?.user?.id ?? null),
-      active_view: (window.state?.activeView ?? null),
-    };
-
-    const res = await fetch(N8N_AI_WEBHOOK_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const raw = await res.text();
-    let data = {};
-    try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
-
-    const reply = data.reply || data.message || raw || `HTTP ${res.status}`;
-    target.innerHTML =
-      `<div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">` +
-      `${escapeHtml(reply).replace(/\n/g, "<br>")}` +
-      `</div>`;
-  } catch (err) {
-    console.error("[AI] Webhook error:", err);
-    target.innerHTML =
-      `<div style="background:rgba(231,76,60,0.12); padding:8px 12px; border-radius:10px; display:inline-block;">` +
-      `⚠️ ${escapeHtml(err.message)}` +
-      `</div>`;
-  }
-};
-// ===== END FORCE OVERRIDE =====
-
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
@@ -3460,27 +3473,27 @@ window.sendAiMessage = async function () {
             <button class="btn-primary" style="width:100%" onclick="sendBroadcast()">Post Announcement</button>
         </div>
     </div>
-    <div id="ai-widget" style="position:fixed; bottom:30px; left:30px; z-index:9999; display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
-    <div id="ai-window" class="hidden card" style="width:300px; height:400px; padding:0; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-        <div style="background:var(--primary); padding:15px; color:white; font-weight:bold; display:flex; justify-content:space-between;">
-            <span><i class="fa-solid fa-robot"></i> HR Assistant</span>
-            <span style="font-size:0.8rem; opacity:0.8" id="ai-credits">0 Credits</span>
-        </div>
-        <div id="ai-chat-body" style="flex-grow:1; background:rgba(0,0,0,0.2); padding:15px; overflow-y:auto; font-size:0.9rem;">
-            <div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; margin-bottom:10px; display:inline-block;">
-                Hello! I can help you draft emails, check policies, or analyze data.
+    <div id="ai-widget">
+        <div id="ai-window" class="hidden">
+            <div class="ai-header">
+                <span class="ai-title"><i class="fa-solid fa-robot"></i> Your HR Assistant</span>
+                <span class="ai-credits" id="ai-credits">0 Credits</span>
+            </div>
+            <div id="ai-chat-body" class="ai-chat-body">
+                <div class="ai-msg assistant">
+                    <div class="ai-bubble">Hello! I can help you navigate, onboard employees, and explain any HR feature.</div>
+                </div>
+            </div>
+            <div class="ai-input-row">
+                <input type="text" id="ai-input" class="ai-input" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAiMessage()">
+                <button class="btn-primary ai-send-btn" onclick="sendAiMessage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
-        <div style="padding:10px; background:var(--glass-bg); display:flex; gap:5px; border-top:1px solid var(--glass-border);">
-            <input type="text" id="ai-input" class="table-input" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAiMessage()">
-            <button class="btn-primary" style="padding:8px 15px;" onclick="sendAiMessage()"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
+
+        <button class="ai-launcher" onclick="toggleAiWidget()" aria-label="Open HR assistant">
+            <i class="fa-solid fa-robot"></i>
+        </button>
     </div>
-    
-    <button onclick="toggleAiWidget()" style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, #8e44ad, #9b59b6); border:none; color:white; font-size:1.5rem; cursor:pointer; box-shadow:0 5px 20px rgba(142, 68, 173, 0.4); display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-    </button>
-</div>
     <div id="setup-modal" class="modal-overlay hidden">
     <div class="modal-card" style="text-align:center;">
         <i class="fa-solid fa-handshake" style="font-size:3rem; color:var(--success); margin-bottom:20px;"></i>
