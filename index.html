@@ -487,6 +487,10 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     const N8N_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_hr_payroll'; 
     const N8N_PERF_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_performance'; 
     const N8N_ATS_CONNECT_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ats_connect';
+    // --- AI ASSISTANT CONFIG ---
+const N8N_AI_WEBHOOK_URL = 'https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ai_assistant';
+const AI_CREDITS_COST_PER_MESSAGE = 1; // like Notion: each message costs credits
+
     
     // --- TESLA-GRADE ATTENDANCE CONFIG ---
     const OFFICE_COORDS = { lat: 30.0444, lng: 31.2357 }; // Change to your HQ
@@ -2689,40 +2693,249 @@ function toggleLang() {
         if(!win.classList.contains('hidden')) updateAiCredits();
     }
 
-    async function updateAiCredits() {
-        if(!state.org) return;
-        // Uses the column 'ai_credits_balance' we added to DB
-        const { data } = await supabaseClient.from('organizations').select('ai_credits_balance').eq('id', state.org.id).single();
-        if(data) document.getElementById('ai-credits').innerText = `${data.ai_credits_balance || 0} Credits`;
+
+    function escapeHtml(str = '') {
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function addAiBubble(side, html, isHtml = false) {
+  const body = document.getElementById('ai-chat-body');
+  if (!body) return null;
+
+  const wrap = document.createElement('div');
+  wrap.style.textAlign = side === 'user' ? 'right' : 'left';
+  wrap.style.marginBottom = '10px';
+
+  const bubble = document.createElement('div');
+  bubble.style.padding = '10px';
+  bubble.style.borderRadius = '10px';
+  bubble.style.display = 'inline-block';
+  bubble.style.maxWidth = '90%';
+  bubble.style.background = side === 'user'
+    ? 'rgba(142,68,173,0.20)'
+    : 'rgba(255,255,255,0.10)';
+
+  const id = `ai-msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  bubble.id = id;
+
+  if (isHtml) bubble.innerHTML = html;
+  else bubble.textContent = html;
+
+  wrap.appendChild(bubble);
+  body.appendChild(wrap);
+  body.scrollTop = body.scrollHeight;
+  return id;
+}
+
+function updateAiBubble(id, html, isHtml = false) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (isHtml) el.innerHTML = html;
+  else el.textContent = html;
+  const body = document.getElementById('ai-chat-body');
+  if (body) body.scrollTop = body.scrollHeight;
+}
+
+/**
+ * ALLOWED actions ONLY (safety).
+ * Your n8n response must return: { reply: "...", actions: [ ... ] }
+ */
+async function runAiActions(actions = []) {
+  const results = [];
+
+  for (const a of actions) {
+    try {
+      const type = (a?.type || '').toUpperCase();
+
+      // 1) Navigate
+      if (type === 'NAVIGATE') {
+        if (!a.view) throw new Error('Missing view');
+        state.activeView = a.view;
+        renderSidebar();
+        renderMainContent();
+        results.push(`Opened ${a.view}`);
+        continue;
+      }
+
+      // 2) Open modal (limited allowlist)
+      if (type === 'OPEN_MODAL') {
+        const modal = (a.modal || '').toUpperCase();
+        if (modal === 'ONBOARD_EMPLOYEE') openOnboardModal();
+        else if (modal === 'EMAIL_CONNECT') openEmailConnectModal();
+        else throw new Error(`Modal not allowed: ${modal}`);
+        results.push(`Opened ${modal}`);
+        continue;
+      }
+
+      // 3) Create employee (uses your existing onboarding flow)
+      if (type === 'CREATE_EMPLOYEE') {
+        // REQUIRED FIELDS (you can relax later)
+        const full_name = a.full_name || a.name;
+        const email = a.email;
+        const phone = a.phone || '';
+        const department = a.department || '';
+        const role = a.role || 'employee';
+
+        if (!full_name || !email) throw new Error('CREATE_EMPLOYEE missing full_name/email');
+
+        // Open modal + fill fields + execute
+        openOnboardModal();
+        await new Promise(r => setTimeout(r, 80)); // small DOM wait
+
+        // These IDs exist in your file (used by executeOnboard)
+        document.getElementById('new-name').value = full_name;
+        document.getElementById('new-email').value = email;
+        document.getElementById('new-meta-phone').value = phone;
+        document.getElementById('new-meta-dept').value = department;
+        document.getElementById('new-role').value = role;
+
+        // Password: AI can send one, or we generate.
+        const pwd = a.password || (Math.random().toString(36).slice(2) + '!A7');
+        document.getElementById('new-pass').value = pwd;
+
+        await executeOnboard();
+        results.push(`Created employee: ${full_name} (${email})`);
+        continue;
+      }
+
+      // Unknown action => blocked
+      throw new Error(`Action not allowed: ${type}`);
+    } catch (err) {
+      console.error('AI action failed:', a, err);
+      results.push(`❌ ${a?.type || 'UNKNOWN'} failed: ${err.message}`);
+    }
+  }
+
+  return results;
+}
+
+
+   async function updateAiCredits() {
+  try {
+    if (!state.org?.id) return;
+
+    const { data, error } = await supabaseClient
+      .from('organizations')
+      .select('ai_credits_balance')
+      .eq('id', state.org.id)
+      .single();
+
+    if (error) throw error;
+
+    const bal = data?.ai_credits_balance ?? 0;
+    const el = document.getElementById('ai-credits');
+    if (el) el.textContent = `${bal} Credits`;
+
+    // Optional cache
+    state.org.ai_credits_balance = bal;
+    return bal;
+  } catch (e) {
+    console.warn('updateAiCredits failed:', e);
+    return null;
+  }
+}
+
+
+   async function sendAiMessage() {
+  const input = document.getElementById('ai-input');
+  const msg = (input?.value || '').trim();
+  if (!msg) return;
+
+  // UI: user bubble
+  addAiBubble('user', msg, false);
+  input.value = '';
+
+  // UI: thinking bubble (we’ll replace it later)
+  const thinkingId = addAiBubble(
+    'ai',
+    `<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...`,
+    true
+  );
+
+  // 1) Credits check (block if no credits)
+  const bal = await updateAiCredits();
+  const cost = AI_CREDITS_COST_PER_MESSAGE;
+
+  if ((bal ?? 0) < cost) {
+    updateAiBubble(
+      thinkingId,
+      `⚠️ You have <b>${bal ?? 0}</b> credits. Please top-up to use AI.`,
+      true
+    );
+    return;
+  }
+
+  // 2) Call n8n webhook
+  try {
+    const payload = {
+      message: msg,
+      org_id: state.org?.id,
+      user_id: state.user?.id,
+      user_role: state.profile?.role,
+      active_view: state.activeView,
+      lang: state.lang,
+
+      // Tell the AI what it is allowed to do (very important)
+      allowed_actions: [
+        { type: "NAVIGATE", fields: ["view"] },
+        { type: "OPEN_MODAL", fields: ["modal"], values: ["ONBOARD_EMPLOYEE", "EMAIL_CONNECT"] },
+        { type: "CREATE_EMPLOYEE", fields: ["full_name","email","phone","department","role","password"] }
+      ]
+    };
+
+    const res = await fetch(N8N_AI_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error(`AI webhook failed: ${res.status} ${res.statusText}`);
+
+    const out = await res.json();
+
+    const reply =
+      out.reply ||
+      out.assistant_message ||
+      out.message ||
+      'Done.';
+
+    updateAiBubble(thinkingId, escapeHtml(reply).replace(/\n/g, '<br>'), true);
+
+    // 3) Run actions (if any)
+    if (Array.isArray(out.actions) && out.actions.length > 0) {
+      const results = await runAiActions(out.actions);
+      if (results?.length) {
+        addAiBubble('ai', `✅ Actions:<br>${results.map(r => `• ${escapeHtml(r)}`).join('<br>')}`, true);
+      }
     }
 
-    async function sendAiMessage() {
-        const input = document.getElementById('ai-input');
-        const text = input.value;
-        if(!text) return;
+    // 4) Deduct credits (simple version)
+    // IMPORTANT: This needs the SQL function below. If you don’t add it, comment these lines.
+    const { error: creditErr } = await supabaseClient.rpc('consume_ai_credits', {
+      p_org_id: state.org.id,
+      p_user_id: state.user.id,
+      p_cost: cost,
+      p_reason: 'ai_chat',
+      p_meta: { message: msg }
+    });
 
-        // UI: Add User Message
-        const body = document.getElementById('ai-chat-body');
-        body.innerHTML += `<div style="text-align:right; margin-bottom:10px;"><div style="background:var(--primary); color:white; padding:8px 12px; border-radius:10px; display:inline-block;">${text}</div></div>`;
-        input.value = '';
-        body.scrollTop = body.scrollHeight;
-
-        // Logic: Call N8N or Mock Response
-        // Note: You need to replace this URL with your actual AI Webhook if you have one separate from Payroll
-        try {
-            // Simulating API call...
-            body.innerHTML += `<div style="text-align:left; margin-bottom:10px;"><div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;"><i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...</div></div>`;
-            
-            // For now, simple mock response to prove it works. 
-            // Replace with fetch(N8N_WEBHOOK...) when ready.
-            setTimeout(() => {
-                body.lastElementChild.innerHTML = `<div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">I've received your request: "${text}". (Connect N8N to process real answers!)</div>`;
-            }, 1000);
-
-        } catch(e) {
-            console.error(e);
-        }
+    if (creditErr) {
+      console.warn('Credit deduction failed:', creditErr);
+      addAiBubble('ai', '⚠️ AI worked, but credit deduction failed. Check your SQL function / RLS.', false);
     }
+
+    await updateAiCredits();
+  } catch (err) {
+    console.error(err);
+    updateAiBubble(thinkingId, `⚠️ Error: ${escapeHtml(err.message)}`, true);
+  }
+}
+
     // --- ATS CANDIDATE LOGIC ---
     function openCandidateModal() {
         // Create modal HTML dynamically if it doesn't exist
