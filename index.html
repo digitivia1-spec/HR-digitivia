@@ -1543,83 +1543,107 @@ document.getElementById('auth-container').classList.add('hidden');
     }
 
     // 2. UPLOAD & ANALYZE (Robust)
+   // =========================================================
+    // WFM: FIRE & FORGET (Fixes ERR_CONNECTION_CLOSED)
+    // =========================================================
+
+    // 1. Upload & Start AI (Doesn't wait for answer)
     window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
 
+        // UI Feedback
         const btn = document.querySelector('.page-title .btn-primary');
-        const oldHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Analyzing...';
-        showToast("Uploading & Analyzing... Please wait.", false);
+        const oldHtml = btn ? btn.innerHTML : 'Import';
+        if(btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Starting AI...';
+        showToast("Uploading...", false);
 
         try {
-            // A. Upload to Supabase
+            // A. Upload File to Supabase Storage
             const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
             const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
             if (uploadError) throw uploadError;
+            
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // B. Call N8N (With Array/Object Handling)
-            const response = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'wfm_forecast_analysis',
-                    file_url: publicUrl,
-                    org_id: state.org.id,
-                    bundle_tier: state.org.subscription_tier || 'free'
-                })
-            });
+            // B. Trigger N8N (Fire & Forget)
+            // We verify the request was SENT, but we DO NOT wait for the analysis to finish.
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Handshake limit
 
-            if(!response.ok) throw new Error("Connection Error. Please try a smaller file.");
-            
-            let aiData = await response.json();
-            
-            // C. CRITICAL FIX: Handle N8N Array Response
-            if (Array.isArray(aiData) && aiData.length > 0) aiData = aiData[0];
-            if (aiData.json) aiData = aiData.json; // Handle N8N wrapper
+            try {
+                await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'wfm_forecast_analysis',
+                        file_url: publicUrl,
+                        file_name: fileName, // Important: Sent so N8N can save it to DB
+                        org_id: state.org.id,
+                        user_id: state.user.id,
+                        bundle_tier: state.org.subscription_tier || 'free'
+                    }),
+                    signal: controller.signal
+                });
+            } catch (e) {
+                // Ignore timeout errors here - it means N8N got the message and is working.
+                if (e.name !== 'AbortError') console.warn("Webhook trigger warning:", e);
+            }
+            clearTimeout(timeoutId);
 
-            // Defaults if data is missing
-            const metrics = aiData.metrics || { sl: 0, adherence: 0, occupancy: 0, shrinkage: 0 };
-            const insight = aiData.insight || "Analysis complete (No text returned).";
-
-            // D. Save to DB
-            await logSystemAction('WFM_FORECAST_GENERATED', 'wfm_forecasts', { 
-                file: fileName, 
-                insight: insight,
-                metrics: metrics 
-            });
-
-            // E. Update UI
-            document.getElementById('wfm-metric-sl').innerText = (metrics.sl || 0) + "%";
-            document.getElementById('wfm-metric-adh').innerText = (metrics.adherence || 0) + "%";
-            document.getElementById('wfm-metric-occ').innerText = (metrics.occupancy || 0) + "%";
-            document.getElementById('wfm-metric-shr').innerText = (metrics.shrinkage || 0) + "%";
-            
-            const box = document.getElementById('wfm-insight-box');
-            box.style.opacity = 0;
-            setTimeout(() => {
-                box.innerHTML = insight.replace(/\n/g, '<br>');
-                box.style.opacity = 1;
-                box.style.transition = "opacity 0.5s";
-            }, 200);
-
-            showToast("Strategy Generated Successfully");
-            loadWFMHistory();
+            // C. Start Looking for the Result in DB
+            showToast("AI is analyzing. Results will appear automatically.", false);
+            pollForWFMResults(fileName);
 
         } catch (err) {
-            console.error(err);
-            showToast("Error: " + err.message, true);
+            console.error("Upload Error:", err);
+            showToast("Failed to start: " + err.message, true);
         } finally {
-            btn.innerHTML = oldHtml;
-            input.value = '';
+            if(btn) btn.innerHTML = oldHtml;
+            if(input) input.value = '';
         }
     }
 
-    // 3. HISTORY LOADER
+    // 2. Poll Database for Results (Bypasses Server Timeout)
+    async function pollForWFMResults(targetFileName, attempts = 0) {
+        // Stop after 3 minutes (60 attempts * 3s)
+        if (attempts > 60) {
+            showToast("Analysis taking longer than usual. Check history later.", true);
+            return;
+        }
+
+        const box = document.getElementById('wfm-insight-box');
+        if(box && attempts === 0) {
+            box.innerHTML = '<div style="text-align:center; padding:40px; color:var(--info)"><i class="fa-solid fa-brain fa-bounce" style="font-size:2rem; margin-bottom:10px;"></i><br>AI is analyzing strategy...</div>';
+        }
+
+        // Look for a recent log entry for THIS file in Supabase
+        const { data: logs } = await supabaseClient
+            .from('audit_logs')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('action_type', 'WFM_FORECAST_GENERATED')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (logs && logs.length > 0) {
+            const log = logs[0];
+            // Check if this log matches the file we just uploaded
+            if (log.details && log.details.file === targetFileName) {
+                showToast("Analysis Complete!", false);
+                loadWFMHistory(); // Update the UI
+                return;
+            }
+        }
+
+        // Not found yet? Wait 3s and look again
+        setTimeout(() => pollForWFMResults(targetFileName, attempts + 1), 3000);
+    }
+
+    // 3. Load History & Update UI
     async function loadWFMHistory() {
-        const container = document.getElementById('wfm-history-list');
-        if(!container) return;
+        const listContainer = document.getElementById('wfm-history-list');
+        if(!listContainer) return;
 
         const { data: logs } = await supabaseClient
             .from('audit_logs')
@@ -1630,33 +1654,43 @@ document.getElementById('auth-container').classList.add('hidden');
             .limit(5);
 
         if (!logs || logs.length === 0) {
-            container.innerHTML = `<div style="padding:10px; font-size:0.8rem; color:var(--text-muted); text-align:center;">No history available.</div>`;
             return;
         }
 
-        // Restore latest if dashboard is empty
+        // Update Dashboard with LATEST entry
         const latest = logs[0].details?.metrics;
-        if(latest && document.getElementById('wfm-metric-sl').innerText.includes('--')) {
-             document.getElementById('wfm-metric-sl').innerText = (latest.sl || 0) + "%";
-             document.getElementById('wfm-metric-adh').innerText = (latest.adherence || 0) + "%";
-             document.getElementById('wfm-metric-occ').innerText = (latest.occupancy || 0) + "%";
-             document.getElementById('wfm-metric-shr').innerText = (latest.shrinkage || 0) + "%";
-             document.getElementById('wfm-insight-box').innerHTML = (logs[0].details?.insight || "").replace(/\n/g, '<br>');
+        const latestInsight = logs[0].details?.insight;
+        
+        if(latest) {
+            const slEl = document.getElementById('wfm-metric-sl');
+            if(slEl) {
+                slEl.innerText = (latest.sl || 0) + "%";
+                document.getElementById('wfm-metric-adh').innerText = (latest.adherence || 0) + "%";
+                document.getElementById('wfm-metric-occ').innerText = (latest.occupancy || 0) + "%";
+                document.getElementById('wfm-metric-shr').innerText = (latest.shrinkage || 0) + "%";
+                document.getElementById('wfm-insight-box').innerHTML = (latestInsight || "").replace(/\n/g, '<br>');
+            }
         }
 
+        // Render List
         let html = '';
         logs.forEach(log => {
             const date = new Date(log.created_at).toLocaleDateString();
+            const fileName = log.details?.file?.split('_').pop() || "Data File";
+            // Escape quotes for onclick
             const safeInsight = (log.details?.insight || "").replace(/"/g, "&quot;").replace(/'/g, "\\'");
-            const fname = log.details?.file?.split('_').pop() || "Forecast";
-            html += `<div style="padding:8px; border-bottom:1px solid var(--glass-border); cursor:pointer;" onclick="document.getElementById('wfm-insight-box').innerHTML='${safeInsight}'">
-                <div style="font-weight:bold; color:white; font-size:0.8rem;">${fname}</div>
-                <div style="font-size:0.7rem; color:var(--text-muted);">${date}</div>
+
+            html += `
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--info); cursor:pointer;" onclick="document.getElementById('wfm-insight-box').innerHTML='${safeInsight}'">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span style="font-weight:600; font-size:0.85rem; color:white;">${fileName}</span>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">${date}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--primary);">Click to view</div>
             </div>`;
         });
-        container.innerHTML = html;
+        listContainer.innerHTML = html;
     }
-
     // 4. EXPORT FUNCTION
     window.exportWFMData = async function() {
         showToast("Generating Report...");
