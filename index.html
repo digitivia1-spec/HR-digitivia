@@ -1740,31 +1740,41 @@ document.getElementById('auth-container').classList.add('hidden');
             return; // Keep default empty state
         }
 
-        // 1. If page just loaded, Restore the LATEST dashboard state automatically
-        const latest = logs[0].details?.metrics;
-        const latestInsight = logs[0].details?.insight;
+        // 1. Restore the latest dashboard state automatically
+        const latestDetails = parseWfmDetails(logs[0].details);
+        const latestMetrics = latestDetails?.metrics;
+        const latestInsight = latestDetails?.insight;
         
-        if(latest) {
+        if(latestMetrics || latestInsight) {
             const slEl = document.getElementById('wfm-metric-sl');
-            // Only update if currently showing placeholder "--"
-            if(slEl && slEl.innerText.includes('--')) {
-                slEl.innerText = (latest.sl || 0) + "%";
-                document.getElementById('wfm-metric-adh').innerText = (latest.adherence || 0) + "%";
-                document.getElementById('wfm-metric-occ').innerText = (latest.occupancy || 0) + "%";
-                document.getElementById('wfm-metric-shr').innerText = (latest.shrinkage || 0) + "%";
-                document.getElementById('wfm-insight-box').innerHTML = (latestInsight || "").replace(/\n/g, '<br>');
+            if(slEl) {
+                slEl.innerText = parsePercent(latestMetrics?.sl) + "%";
+                const adhEl = document.getElementById('wfm-metric-adh');
+                if (adhEl) adhEl.innerText = parsePercent(latestMetrics?.adherence) + "%";
+                const occEl = document.getElementById('wfm-metric-occ');
+                if (occEl) occEl.innerText = parsePercent(latestMetrics?.occupancy) + "%";
+                const shrEl = document.getElementById('wfm-metric-shr');
+                if (shrEl) shrEl.innerText = parsePercent(latestMetrics?.shrinkage) + "%";
+                if (latestInsight) {
+                    document.getElementById('wfm-insight-box').innerHTML = (latestInsight || "").replace(/\n/g, '<br>');
+                }
             }
         }
 
         // 2. Render History List
         let html = '';
         logs.forEach(log => {
+            const details = parseWfmDetails(log.details);
             const date = new Date(log.created_at).toLocaleDateString();
-            const fileName = log.details?.file?.split('_').pop() || "Forecast File";
+            const fileName = details?.file?.split('_').pop() || "Forecast File";
+            const safeInsight = (details?.insight || "").replace(/"/g, "&quot;").replace(/'/g, "\\'").replace(/\n/g, "<br>");
             html += `
-            <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick='alert("${log.details?.insight?.substring(0,100)}...")'>
-                <div style="font-size:0.85rem; color:white;">${fileName}</div>
-                <div style="font-size:0.75rem; color:var(--text-muted);">${date}</div>
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--info); cursor:pointer;" onclick="document.getElementById('wfm-insight-box').innerHTML='${safeInsight}'">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                    <span style="font-weight:600; font-size:0.85rem; color:white;">${fileName}</span>
+                    <span style="font-size:0.75rem; color:var(--text-muted);">${date}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--primary);">Click to view</div>
             </div>`;
         });
         listContainer.innerHTML = html;
@@ -2714,6 +2724,43 @@ function checkPricingPopup() {
     // WFM: FIRE & FORGET (With User ID Fix)
     // =========================================================
 
+    function parseWfmDetails(details) {
+        if (!details) return null;
+        if (typeof details === 'string') {
+            try {
+                return JSON.parse(details);
+            } catch (e) {
+                return null;
+            }
+        }
+        return details;
+    }
+
+    function parsePercent(value) {
+        if (value === null || value === undefined) return 0;
+        const num = parseFloat(String(value).replace('%', '').trim());
+        return Number.isFinite(num) ? num : 0;
+    }
+
+    function applyWfmResult(result) {
+        if (!result) return false;
+        const metrics = result.metrics || {};
+        const insight = result.insight || "";
+        const slEl = document.getElementById('wfm-metric-sl');
+        if (slEl) {
+            slEl.innerText = parsePercent(metrics.sl) + "%";
+            const adhEl = document.getElementById('wfm-metric-adh');
+            if (adhEl) adhEl.innerText = parsePercent(metrics.adherence) + "%";
+            const occEl = document.getElementById('wfm-metric-occ');
+            if (occEl) occEl.innerText = parsePercent(metrics.occupancy) + "%";
+            const shrEl = document.getElementById('wfm-metric-shr');
+            if (shrEl) shrEl.innerText = parsePercent(metrics.shrinkage) + "%";
+        }
+        const box = document.getElementById('wfm-insight-box');
+        if (box) box.innerHTML = (insight || "").replace(/\n/g, '<br>');
+        return Boolean(insight || Object.keys(metrics).length);
+    }
+
     window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
@@ -2727,6 +2774,7 @@ function checkPricingPopup() {
         try {
             // A. Upload File to Supabase
             const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
+            const startedAt = Date.now();
             const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
             if (uploadError) throw uploadError;
             
@@ -2735,9 +2783,10 @@ function checkPricingPopup() {
             // B. Trigger N8N (With User ID included)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Handshake limit
+            let responseData = null;
 
             try {
-                await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
+                const res = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2754,14 +2803,30 @@ function checkPricingPopup() {
                     }),
                     signal: controller.signal
                 });
+                if (res && res.ok) {
+                    const rawText = await res.text();
+                    if (rawText) {
+                        try {
+                            responseData = JSON.parse(rawText);
+                        } catch (e) {
+                            responseData = null;
+                        }
+                    }
+                }
             } catch (e) {
                 if (e.name !== 'AbortError') console.warn("Webhook trigger warning:", e);
             }
             clearTimeout(timeoutId);
 
             // C. Start Polling
-            showToast("AI Analysis Running... Please wait.", false);
-            pollForWFMResults(fileName);
+            const hasImmediateResult = responseData && (responseData.insight || responseData.metrics);
+            if (hasImmediateResult) {
+                applyWfmResult(responseData);
+                showToast("Analysis Complete!", false);
+            } else {
+                showToast("AI Analysis Running... Please wait.", false);
+            }
+            pollForWFMResults(fileName, 0, startedAt, hasImmediateResult);
 
         } catch (err) {
             console.error("Upload Error:", err);
@@ -2773,15 +2838,16 @@ function checkPricingPopup() {
     }
 
     // 2. Check Database Loop
-    async function pollForWFMResults(fileNamePart, attempts = 0) {
+    async function pollForWFMResults(fileNamePart, attempts = 0, startedAt = null, hasImmediateResult = false) {
         // Stop after 3 minutes (60 attempts * 3s)
         if (attempts > 60) {
             showToast("Analysis taking a while. Check history later.", true);
             return;
         }
+        const baseline = startedAt || Date.now();
 
         const box = document.getElementById('wfm-insight-box');
-        if(box && attempts === 0) {
+        if(box && attempts === 0 && !hasImmediateResult) {
             box.innerHTML = '<div style="text-align:center; padding:40px; color:var(--info)"><i class="fa-solid fa-brain fa-bounce" style="font-size:2rem; margin-bottom:10px;"></i><br>AI is analyzing strategy...</div>';
         }
 
@@ -2797,9 +2863,11 @@ function checkPricingPopup() {
         if (logs && logs.length > 0) {
             const log = logs[0];
             const logTime = new Date(log.created_at).getTime();
-            // If log is fresh (less than 2 mins old)
-            if (Date.now() - logTime < 120000) {
-                // Found it!
+            const details = parseWfmDetails(log.details);
+            const isFileMatch = details && details.file === fileNamePart;
+            const isTimeMatch = logTime >= (baseline - 5000);
+            if (isFileMatch || isTimeMatch) {
+                if (details) applyWfmResult(details);
                 showToast("Analysis Complete!", false);
                 loadWFMHistory(); // Update UI
                 return;
@@ -2807,7 +2875,7 @@ function checkPricingPopup() {
         }
 
         // Not found? Wait 3s and look again
-        setTimeout(() => pollForWFMResults(fileNamePart, attempts + 1), 3000);
+        setTimeout(() => pollForWFMResults(fileNamePart, attempts + 1, baseline, hasImmediateResult), 3000);
     }
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
