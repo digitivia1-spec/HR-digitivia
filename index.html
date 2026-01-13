@@ -3342,6 +3342,88 @@ function checkPricingPopup() {
         // Not found? Wait 3s and look again
         setTimeout(() => pollForWFMResults(fileNamePart, attempts + 1, baseline, hasImmediateResult), 3000);
     }
+    // ===== FORCE OVERRIDE AI SEND (paste at VERY bottom of <script>) =====
+
+// 1) Put your real AI webhook URL here:
+const N8N_AI_WEBHOOK_URL = "https://n8n.srv1174105.hstgr.cloud/webhook/digitivia_ai_assistant";
+
+function escapeHtml(s = "") {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+window.sendAiMessage = async function () {
+  const input = document.getElementById("ai-input");
+  const text = (input?.value || "").trim();
+  if (!text) return;
+
+  const body = document.getElementById("ai-chat-body");
+  if (!body) return;
+
+  // User bubble
+  body.insertAdjacentHTML(
+    "beforeend",
+    `<div style="text-align:right; margin-bottom:10px;">
+      <div style="background:var(--primary); color:white; padding:8px 12px; border-radius:10px; display:inline-block;">
+        ${escapeHtml(text)}
+      </div>
+    </div>`
+  );
+  input.value = "";
+  body.scrollTop = body.scrollHeight;
+
+  // Thinking bubble
+  body.insertAdjacentHTML(
+    "beforeend",
+    `<div style="text-align:left; margin-bottom:10px;">
+      <div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...
+      </div>
+    </div>`
+  );
+  body.scrollTop = body.scrollHeight;
+
+  const target = body.lastElementChild;
+
+  try {
+    console.log("[AI] Calling webhook:", N8N_AI_WEBHOOK_URL);
+
+    const payload = {
+      message: text,
+      org_id: (window.state?.org?.id ?? null),
+      user_id: (window.state?.user?.id ?? null),
+      active_view: (window.state?.activeView ?? null),
+    };
+
+    const res = await fetch(N8N_AI_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const raw = await res.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
+
+    const reply = data.reply || data.message || raw || `HTTP ${res.status}`;
+    target.innerHTML =
+      `<div style="background:rgba(255,255,255,0.1); padding:8px 12px; border-radius:10px; display:inline-block;">` +
+      `${escapeHtml(reply).replace(/\n/g, "<br>")}` +
+      `</div>`;
+  } catch (err) {
+    console.error("[AI] Webhook error:", err);
+    target.innerHTML =
+      `<div style="background:rgba(231,76,60,0.12); padding:8px 12px; border-radius:10px; display:inline-block;">` +
+      `⚠️ ${escapeHtml(err.message)}` +
+      `</div>`;
+  }
+};
+// ===== END FORCE OVERRIDE =====
+
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
