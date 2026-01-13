@@ -1544,11 +1544,12 @@ document.getElementById('auth-container').classList.add('hidden');
 
     // --- UPDATED: Handle Upload with CORRECT Webhook & Instant Reflection ---
  // --- UPDATED: Handle Upload with CORRECT Webhook & Error Fix ---
-    window.handleWFMUpload = async function(input) {
+// --- UPDATED: Handle Upload with Robust Error Handling & Array Support ---
+  /**/ window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
 
-        showToast("Uploading & Analyzing...", false);
+        showToast("Uploading & Analyzing... (This may take ~60s)", false);
         const btn = document.querySelector('.page-title .btn-primary');
         const oldHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
@@ -1561,8 +1562,10 @@ document.getElementById('auth-container').classList.add('hidden');
             
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // 2. Call the CORRECT Workforce Webhook
-            // We declare 'response' here with 'const' so it is defined for the lines below
+            // 2. Call the CORRECT Workforce Webhook with a longer timeout signal
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 Minute Client Timeout
+
             const response = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -1571,24 +1574,32 @@ document.getElementById('auth-container').classList.add('hidden');
                     file_url: publicUrl,
                     org_id: state.org.id,
                     bundle_tier: state.org.subscription_tier || 'free'
-                })
+                }),
+                signal: controller.signal
             });
 
-            // Check if response exists before using it
-            if (!response) throw new Error("Network Error: No response from AI.");
-            if (!response.ok) throw new Error("AI Analysis Failed: " + response.statusText);
-            
-            // 3. Process N8N Response
-            let aiData = await response.json();
-            
-            // Handle if N8N returns a stringified JSON instead of object
-            if(typeof aiData === 'string') { 
-                try { aiData = JSON.parse(aiData); } catch(e){} 
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                if (response.status === 504) throw new Error("Server Timeout: AI is still thinking. Check back in 1 minute.");
+                throw new Error(`AI Connection Error: ${response.statusText}`);
             }
             
+            // 3. Process N8N Response (Handle Array vs Object)
+            let aiData = await response.json();
+            
+            // FIX: If N8N returns an array like [{insight: ...}], extract the first item
+            if (Array.isArray(aiData) && aiData.length > 0) {
+                aiData = aiData[0]; 
+            }
+            
+            // FIX: Some N8N nodes wrap data in a 'json' or 'body' property
+            if (aiData.json) aiData = aiData.json;
+            if (aiData.body && !aiData.insight) aiData = aiData.body;
+
             // Extract Data with Fallbacks
             const metrics = aiData.metrics || { sl: 0, adherence: 0, occupancy: 0, shrinkage: 0 };
-            const insight = aiData.insight || "Analysis complete. See details below.";
+            const insight = aiData.insight || "Analysis complete. Data structure mismatch.";
 
             // 4. Save to Database (History Persistence)
             await logSystemAction('WFM_FORECAST_GENERATED', 'wfm_forecasts', { 
@@ -1597,7 +1608,7 @@ document.getElementById('auth-container').classList.add('hidden');
                 metrics: metrics 
             });
 
-            // 5. UPDATE UI INSTANTLY (The "Reflection")
+            // 5. UPDATE UI INSTANTLY
             const slEl = document.getElementById('wfm-metric-sl');
             if(slEl) slEl.innerText = (metrics.sl || 0) + "%";
             
@@ -1610,26 +1621,28 @@ document.getElementById('auth-container').classList.add('hidden');
             const shrEl = document.getElementById('wfm-metric-shr');
             if(shrEl) shrEl.innerText = (metrics.shrinkage || 0) + "%";
             
-            // Update Insight Box with a nice fade-in effect
+            // Update Insight Box
             const box = document.getElementById('wfm-insight-box');
             if(box) {
                 box.style.opacity = 0;
                 setTimeout(() => {
-                    box.innerHTML = insight.replace(/\n/g, '<br>'); // Handle newlines
+                    box.innerHTML = insight.replace(/\n/g, '<br>');
                     box.style.opacity = 1;
                     box.style.transition = "opacity 0.5s";
                 }, 200);
             }
 
             showToast("Workforce Strategy Updated");
-            // Refresh the history list if the function exists
-            if(typeof loadWFMHistory === 'function') {
-                loadWFMHistory(); 
-            }
+            if(typeof loadWFMHistory === 'function') loadWFMHistory(); 
 
         } catch (err) {
             console.error("WFM Upload Error:", err);
-            showToast("Analysis Failed: " + err.message, true);
+            // Handle AbortError (Timeout) explicitly
+            if (err.name === 'AbortError') {
+                showToast("Request Timed Out: AI is taking too long.", true);
+            } else {
+                showToast("Analysis Failed: " + err.message, true);
+            }
         } finally {
             if(btn) btn.innerHTML = oldHtml;
             if(input) input.value = '';
@@ -2611,11 +2624,13 @@ function checkPricingPopup() {
 }
     // --- NEW EXPERT FUNCTION: Handle Historical Data Upload ---
   // --- UPDATED: Handle Upload with CORRECT Webhook & Error Fix ---
+// --- UPDATED: Handle Upload with Robust Error Handling & Array Support ---
+// --- UPDATED: Handle Upload with Robust Error Handling & Array Support ---
     window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
 
-        showToast("Uploading & Analyzing...", false);
+        showToast("Uploading & Analyzing... (This may take ~60s)", false);
         const btn = document.querySelector('.page-title .btn-primary');
         const oldHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
@@ -2628,8 +2643,10 @@ function checkPricingPopup() {
             
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // 2. Call the CORRECT Workforce Webhook
-            // We declare 'response' here with 'const' so it is defined for the lines below
+            // 2. Call the CORRECT Workforce Webhook with a longer timeout signal
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 Minute Client Timeout
+
             const response = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
@@ -2638,24 +2655,32 @@ function checkPricingPopup() {
                     file_url: publicUrl,
                     org_id: state.org.id,
                     bundle_tier: state.org.subscription_tier || 'free'
-                })
+                }),
+                signal: controller.signal
             });
 
-            // Check if response exists before using it
-            if (!response) throw new Error("Network Error: No response from AI.");
-            if (!response.ok) throw new Error("AI Analysis Failed: " + response.statusText);
-            
-            // 3. Process N8N Response
-            let aiData = await response.json();
-            
-            // Handle if N8N returns a stringified JSON instead of object
-            if(typeof aiData === 'string') { 
-                try { aiData = JSON.parse(aiData); } catch(e){} 
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                if (response.status === 504) throw new Error("Server Timeout: AI is still thinking. Check back in 1 minute.");
+                throw new Error(`AI Connection Error: ${response.statusText}`);
             }
             
+            // 3. Process N8N Response (Handle Array vs Object)
+            let aiData = await response.json();
+            
+            // FIX: If N8N returns an array like [{insight: ...}], extract the first item
+            if (Array.isArray(aiData) && aiData.length > 0) {
+                aiData = aiData[0]; 
+            }
+            
+            // FIX: Some N8N nodes wrap data in a 'json' or 'body' property
+            if (aiData.json) aiData = aiData.json;
+            if (aiData.body && !aiData.insight) aiData = aiData.body;
+
             // Extract Data with Fallbacks
             const metrics = aiData.metrics || { sl: 0, adherence: 0, occupancy: 0, shrinkage: 0 };
-            const insight = aiData.insight || "Analysis complete. See details below.";
+            const insight = aiData.insight || "Analysis complete. Data structure mismatch.";
 
             // 4. Save to Database (History Persistence)
             await logSystemAction('WFM_FORECAST_GENERATED', 'wfm_forecasts', { 
@@ -2664,7 +2689,7 @@ function checkPricingPopup() {
                 metrics: metrics 
             });
 
-            // 5. UPDATE UI INSTANTLY (The "Reflection")
+            // 5. UPDATE UI INSTANTLY
             const slEl = document.getElementById('wfm-metric-sl');
             if(slEl) slEl.innerText = (metrics.sl || 0) + "%";
             
@@ -2677,26 +2702,28 @@ function checkPricingPopup() {
             const shrEl = document.getElementById('wfm-metric-shr');
             if(shrEl) shrEl.innerText = (metrics.shrinkage || 0) + "%";
             
-            // Update Insight Box with a nice fade-in effect
+            // Update Insight Box
             const box = document.getElementById('wfm-insight-box');
             if(box) {
                 box.style.opacity = 0;
                 setTimeout(() => {
-                    box.innerHTML = insight.replace(/\n/g, '<br>'); // Handle newlines
+                    box.innerHTML = insight.replace(/\n/g, '<br>');
                     box.style.opacity = 1;
                     box.style.transition = "opacity 0.5s";
                 }, 200);
             }
 
             showToast("Workforce Strategy Updated");
-            // Refresh the history list if the function exists
-            if(typeof loadWFMHistory === 'function') {
-                loadWFMHistory(); 
-            }
+            if(typeof loadWFMHistory === 'function') loadWFMHistory(); 
 
         } catch (err) {
             console.error("WFM Upload Error:", err);
-            showToast("Analysis Failed: " + err.message, true);
+            // Handle AbortError (Timeout) explicitly
+            if (err.name === 'AbortError') {
+                showToast("Request Timed Out: AI is taking too long.", true);
+            } else {
+                showToast("Analysis Failed: " + err.message, true);
+            }
         } finally {
             if(btn) btn.innerHTML = oldHtml;
             if(input) input.value = '';
