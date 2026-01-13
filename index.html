@@ -2622,30 +2622,33 @@ function checkPricingPopup() {
         setTimeout(() => document.getElementById('pricing-modal').classList.remove('hidden'), 2000);
     }
 }
-    // --- NEW EXPERT FUNCTION: Handle Historical Data Upload ---
-  // --- UPDATED: Handle Upload with CORRECT Webhook & Error Fix ---
-// --- UPDATED: Handle Upload with Robust Error Handling & Array Support ---
-// --- UPDATED: Handle Upload with Robust Error Handling & Array Support ---
+
+    // =========================================================
+    // WFM MODULE: INTEGRATED & CLEANED (Place at bottom of Script)
+    // =========================================================
+
+    // 1. Handle File Upload (Fire & Forget to avoid Timeout)
     window.handleWFMUpload = async function(input) {
         const file = input.files[0];
         if (!file) return;
 
-        showToast("Uploading & Analyzing... (This may take ~60s)", false);
+        showToast("Uploading & Starting AI...", false);
         const btn = document.querySelector('.page-title .btn-primary');
-        const oldHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...';
+        const oldHtml = btn ? btn.innerHTML : 'Import';
+        if(btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Sending...';
 
         try {
-            // 1. Upload File to Supabase
+            // A. Upload File to Supabase
             const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
             const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
             if (uploadError) throw uploadError;
             
             const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
 
-            // 2. Call the CORRECT Workforce Webhook with a longer timeout signal
+            // B. Send to N8N (With Timeout Protection)
+            // We use a short timeout because we just want to hand off the task, not wait for the result
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 Minute Client Timeout
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Timeout for HANDSHAKE only
 
             const response = await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
                 method: 'POST', 
@@ -2658,115 +2661,152 @@ function checkPricingPopup() {
                 }),
                 signal: controller.signal
             });
-
             clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                if (response.status === 504) throw new Error("Server Timeout: AI is still thinking. Check back in 1 minute.");
-                throw new Error(`AI Connection Error: ${response.statusText}`);
-            }
+            // C. UI Feedback
+            showToast("AI Analysis Started. Results will appear shortly.", false);
             
-            // 3. Process N8N Response (Handle Array vs Object)
-            let aiData = await response.json();
-            
-            // FIX: If N8N returns an array like [{insight: ...}], extract the first item
-            if (Array.isArray(aiData) && aiData.length > 0) {
-                aiData = aiData[0]; 
-            }
-            
-            // FIX: Some N8N nodes wrap data in a 'json' or 'body' property
-            if (aiData.json) aiData = aiData.json;
-            if (aiData.body && !aiData.insight) aiData = aiData.body;
-
-            // Extract Data with Fallbacks
-            const metrics = aiData.metrics || { sl: 0, adherence: 0, occupancy: 0, shrinkage: 0 };
-            const insight = aiData.insight || "Analysis complete. Data structure mismatch.";
-
-            // 4. Save to Database (History Persistence)
-            await logSystemAction('WFM_FORECAST_GENERATED', 'wfm_forecasts', { 
-                file: fileName, 
-                insight: insight,
-                metrics: metrics 
-            });
-
-            // 5. UPDATE UI INSTANTLY
-            const slEl = document.getElementById('wfm-metric-sl');
-            if(slEl) slEl.innerText = (metrics.sl || 0) + "%";
-            
-            const adhEl = document.getElementById('wfm-metric-adh');
-            if(adhEl) adhEl.innerText = (metrics.adherence || 0) + "%";
-            
-            const occEl = document.getElementById('wfm-metric-occ');
-            if(occEl) occEl.innerText = (metrics.occupancy || 0) + "%";
-            
-            const shrEl = document.getElementById('wfm-metric-shr');
-            if(shrEl) shrEl.innerText = (metrics.shrinkage || 0) + "%";
-            
-            // Update Insight Box
-            const box = document.getElementById('wfm-insight-box');
-            if(box) {
-                box.style.opacity = 0;
-                setTimeout(() => {
-                    box.innerHTML = insight.replace(/\n/g, '<br>');
-                    box.style.opacity = 1;
-                    box.style.transition = "opacity 0.5s";
-                }, 200);
-            }
-
-            showToast("Workforce Strategy Updated");
-            if(typeof loadWFMHistory === 'function') loadWFMHistory(); 
+            // D. Start Polling for Results (Checks DB every 3s for 60s)
+            pollForWFMResults(fileName);
 
         } catch (err) {
             console.error("WFM Upload Error:", err);
-            // Handle AbortError (Timeout) explicitly
-            if (err.name === 'AbortError') {
-                showToast("Request Timed Out: AI is taking too long.", true);
+            // If it's a timeout, it might actually be good news (N8N received it but is busy)
+            if (err.name === 'AbortError' || err.message.includes('timeout')) {
+                showToast("AI Started (Background). Checking for results...", false);
+                pollForWFMResults(file.name); 
             } else {
-                showToast("Analysis Failed: " + err.message, true);
+                showToast("Connection Failed: " + err.message, true);
             }
         } finally {
             if(btn) btn.innerHTML = oldHtml;
             if(input) input.value = '';
         }
     }
-    // --- NEW HELPER: Fetch & Display WFM History ---
-    async function loadWFMHistory() {
-        const container = document.getElementById('wfm-history-list');
-        if(!container) return;
 
-        // Fetch logs where action is WFM_FORECAST_GENERATED
+    // 2. Poll Database for Results (Bypasses Browser Timeout)
+    async function pollForWFMResults(fileNamePart, attempts = 0) {
+        if (attempts > 20) {
+            showToast("Analysis is taking longer than expected. Check 'Recent History' later.", true);
+            return;
+        }
+
+        const box = document.getElementById('wfm-insight-box');
+        if(box && attempts === 0) box.innerHTML = '<div style="text-align:center; padding:40px; color:var(--info)"><i class="fa-solid fa-brain fa-bounce"></i><br>AI is thinking...</div>';
+
+        // Check Audit Logs for the completed analysis
+        const { data: logs } = await supabaseClient
+            .from('audit_logs')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('action_type', 'WFM_FORECAST_GENERATED')
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        // Check if we found a NEW log (created in the last minute) containing our file
+        if (logs && logs.length > 0) {
+            const log = logs[0];
+            const logTime = new Date(log.created_at).getTime();
+            const now = Date.now();
+            const isFresh = (now - logTime) < 60000; // Created in last 60s
+            
+            if (isFresh) {
+                // SUCCESS: Data found!
+                showToast("Analysis Complete!", false);
+                loadWFMHistory(); // Refresh the UI
+                return;
+            }
+        }
+
+        // Not found yet, wait 3s and try again
+        setTimeout(() => pollForWFMResults(fileNamePart, attempts + 1), 3000);
+    }
+
+    // 3. Load History & Metrics
+    async function loadWFMHistory() {
+        const listContainer = document.getElementById('wfm-history-list');
+        if(!listContainer) return;
+
         const { data: logs, error } = await supabaseClient
             .from('audit_logs')
             .select('*')
             .eq('org_id', state.org.id)
             .eq('action_type', 'WFM_FORECAST_GENERATED')
             .order('created_at', { ascending: false })
-            .limit(5);
+            .limit(10);
 
         if (error || !logs || logs.length === 0) {
-            container.innerHTML = `<div style="padding:10px; font-size:0.8rem; color:var(--text-muted); text-align:center;">No forecasts generated yet. Upload a CSV to start.</div>`;
+            listContainer.innerHTML = `<div style="padding:10px; font-size:0.8rem; color:var(--text-muted); text-align:center;">No forecasts generated yet.</div>`;
             return;
         }
 
+        // Update Dashboard with LATEST entry
+        const latest = logs[0].details?.metrics;
+        const latestInsight = logs[0].details?.insight;
+        
+        if(latest) {
+            const slEl = document.getElementById('wfm-metric-sl');
+            if(slEl) {
+                slEl.innerText = (latest.sl || 0) + "%";
+                document.getElementById('wfm-metric-adh').innerText = (latest.adherence || 0) + "%";
+                document.getElementById('wfm-metric-occ').innerText = (latest.occupancy || 0) + "%";
+                document.getElementById('wfm-metric-shr').innerText = (latest.shrinkage || 0) + "%";
+                
+                const box = document.getElementById('wfm-insight-box');
+                if(box) box.innerHTML = (latestInsight || "No insight available.").replace(/\n/g, '<br>');
+            }
+        }
+
+        // Render List
         let html = '';
         logs.forEach(log => {
             const date = new Date(log.created_at).toLocaleDateString();
             const time = new Date(log.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            // The AI Insight is stored in the 'details' JSON column
-            const insight = log.details?.insight || "Analysis complete.";
             const fileName = log.details?.file?.split('_').pop() || "Data File";
+            // Escape quotes for the onclick handler
+            const safeInsight = (log.details?.insight || "").replace(/"/g, "&quot;").replace(/'/g, "\\'");
 
             html += `
-            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--info);">
+            <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px; border-left:3px solid var(--info); cursor:pointer;" onclick="document.getElementById('wfm-insight-box').innerHTML = '${safeInsight}'">
                 <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                     <span style="font-weight:600; font-size:0.85rem; color:white;">${fileName}</span>
                     <span style="font-size:0.75rem; color:var(--text-muted);">${date} ${time}</span>
                 </div>
-                <div style="font-size:0.8rem; color:var(--text-main); line-height:1.4;">${insight}</div>
+                <div style="font-size:0.75rem; color:var(--primary);">Click to view report</div>
             </div>`;
         });
+        listContainer.innerHTML = html;
+    }
 
-        container.innerHTML = html;
+    // 4. Export Function
+    window.exportWFMData = async function() {
+        showToast("Generating Report...");
+        const { data: logs, error } = await supabaseClient
+            .from('audit_logs')
+            .select('*')
+            .eq('org_id', state.org.id)
+            .eq('action_type', 'WFM_FORECAST_GENERATED')
+            .order('created_at', { ascending: false });
+
+        if(error || !logs || logs.length === 0) return showToast("No data available to export", true);
+
+        let csvContent = "data:text/csv;charset=utf-8,Date,Time,File Name,Service Level,Adherence,Occupancy,Shrinkage,AI Insight\n";
+        logs.forEach(log => {
+            const date = new Date(log.created_at).toLocaleDateString();
+            const time = new Date(log.created_at).toLocaleTimeString();
+            const m = log.details?.metrics || {};
+            const insight = (log.details?.insight || "").replace(/,/g, " ").replace(/\n/g, " ");
+            const file = (log.details?.file || "Unknown").split('_').pop();
+            csvContent += `${date},${time},${file},${m.sl||0}%,${m.adherence||0}%,${m.occupancy||0}%,${m.shrinkage||0}%,${insight}\n`;
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `WFM_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
