@@ -2842,27 +2842,28 @@ async function runAiActions(actions = []) {
 
 
   
+// ✅ Replace your current sendAiMessage() with this version
+
 async function sendAiMessage() {
   const input = document.getElementById('ai-input');
   const msg = (input?.value || '').trim();
   if (!msg) return;
 
-  // UI: user bubble
+  // user bubble
   addAiBubble('user', msg);
   input.value = '';
 
-  // UI: thinking bubble
-  const placeholderId = addAiBubble('ai', '<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...');
+  // thinking bubble
+  const thinkingId = addAiBubble('ai', '<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...', true);
 
-  // DEBUG (remove later)
-  console.log('[AI] sendAiMessage fired', { msg, org: state.org?.id, user: state.user?.id, url: N8N_AI_WEBHOOK_URL });
+  console.log('[AI] Calling webhook:', N8N_AI_WEBHOOK_URL);
 
   try {
     const payload = {
-      action: 'assistant_command',
       message: msg,
-      org_id: state.org?.id || null,
-      user_id: state.user?.id || null
+      org_id: state.org?.id ?? null,
+      user_id: state.user?.id ?? null,
+      active_view: state.activeView ?? null
     };
 
     const res = await fetch(N8N_AI_WEBHOOK_URL, {
@@ -2875,15 +2876,17 @@ async function sendAiMessage() {
     let data = {};
     try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
 
-    const reply = data.reply || raw || 'No reply from webhook.';
-    updateAiBubble(placeholderId, reply);
+    const reply = data.reply || data.message || raw || `HTTP ${res.status}`;
+    updateAiBubble(thinkingId, escapeHtml(reply).replace(/\n/g, '<br>'), true);
 
   } catch (err) {
     console.error('[AI] webhook error', err);
-    updateAiBubble(placeholderId, `⚠️ AI error: ${err.message}`);
+    updateAiBubble(thinkingId, `⚠️ ${escapeHtml(err.message)}`, false);
   }
 }
 
+// ✅ ensures inline onclick="sendAiMessage()" always hits this one
+window.sendAiMessage = sendAiMessage;
     // --- ATS CANDIDATE LOGIC ---
     function openCandidateModal() {
         // Create modal HTML dynamically if it doesn't exist
