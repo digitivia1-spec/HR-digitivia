@@ -97,7 +97,8 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 15px; }
-        .header-right { display: flex; align-items: center; gap: 20px; }
+        .header-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
         .branding-logos { display: flex; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--glass-border); }
         html[dir="rtl"] .branding-logos { margin-left: 0; padding-left: 0; margin-right: 20px; padding-right: 20px; border-left: none; border-right: 1px solid var(--glass-border); }
         .user-controls { display: flex; align-items: center; gap: 15px; }
@@ -106,7 +107,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .badge { position: absolute; top: -5px; right: -5px; background: var(--danger); color: #fff; font-size: 0.6rem; padding: 2px 5px; border-radius: 50%; border: 1px solid var(--bg-body-gradient); }
         .dropdown { position: relative; cursor: pointer; display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 500; color: var(--text-header); }
         .dropdown img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); }
-        .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; }
+        .content-scroll { flex-grow: 1; overflow-y: auto; padding: 30px; padding-bottom: 90px; }
         .page-title { margin-bottom: 30px; font-size: 2rem; font-weight: 700; color: var(--text-header); display: flex; justify-content: space-between; align-items: center; text-shadow: 0 2px 10px rgba(0,0,0,0.3); }
         .card { background: var(--glass-bg); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-radius: 16px; padding: 25px; box-shadow: var(--glass-shadow); border: 1px solid var(--glass-border); height: 100%; transition: transform 0.3s ease, box-shadow 0.3s ease; color: var(--text-main); display: flex; flex-direction: column; }
         .card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5); border-color: rgba(255,255,255,0.25); }
@@ -147,6 +148,9 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     .main-content .content-scroll { padding: 15px; }
     .page-title { font-size: 1.5rem; flex-direction: column; align-items: flex-start; gap: 10px; }
     .page-title button { width: 100%; }
+    .top-header { height: auto; padding: 15px; gap: 10px; flex-wrap: wrap; }
+    .header-right { width: 100%; justify-content: space-between; }
+    .header-actions { width: 100%; justify-content: flex-start; }
 }
 
         /* --- PRICING MODAL STYLES --- */
@@ -242,6 +246,11 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .day-label { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; cursor: pointer; color: var(--text-muted); transition: 0.2s; }
         .day-check:checked + .day-label { background: var(--primary); color: white; border-color: var(--primary); }
 
+        .app-footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 12px 20px; background: rgba(13, 27, 42, 0.92); border-top: 1px solid var(--glass-border); display: flex; justify-content: center; gap: 22px; z-index: 999; backdrop-filter: blur(12px); }
+        html[dir="rtl"] .app-footer { right: 0; left: 0; }
+        .app-footer a { color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 500; }
+        .app-footer a:hover { color: #fff; }
+
         /* --- AI ASSISTANT --- */
         :root {
             --ai-panel-bg: rgba(10, 20, 32, 0.92);
@@ -259,6 +268,9 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .ai-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: rgba(52, 152, 219, 0.18); border-bottom: 1px solid var(--ai-panel-border); }
         .ai-title { display: flex; align-items: center; gap: 10px; font-weight: 700; color: #fff; }
         .ai-credits { font-size: 0.8rem; color: var(--text-muted); background: rgba(255, 255, 255, 0.08); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.12); }
+        .ai-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--ai-panel-border); background: rgba(0, 0, 0, 0.18); }
+        .ai-quick-btn { border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.08); color: #eaf2ff; padding: 6px 10px; border-radius: 999px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; }
+        .ai-quick-btn:hover { border-color: var(--primary); color: #fff; }
         .ai-chat-body { flex: 1; overflow-y: auto; padding: 16px; background: rgba(0, 0, 0, 0.15); }
         .ai-msg { display: flex; margin-bottom: 12px; }
         .ai-msg.user { justify-content: flex-end; }
@@ -296,23 +308,11 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
             <div class="form-group"><label>Email Address</label><input type="email" id="login-email" class="form-input" placeholder="name@company.com"></div>
             <div class="form-group"><label>Password</label><input type="password" id="login-pass" class="form-input" placeholder="••••••••"></div>
             <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Login</button>
-            <div class="social-divider">Or continue with</div>
+            <div class="social-divider" id="auth-divider">Login or create an account with</div>
             <div class="social-buttons">
                 <div class="social-btn" onclick="socialLogin('google')" style="color:#DB4437"><i class="fa-brands fa-google"></i></div>
 <div class="social-btn" onclick="socialLogin('linkedin_oidc')" style="color:#0077b5"><i class="fa-brands fa-linkedin-in"></i></div>                <div class="social-btn" onclick="socialLogin('azure')" style="color:#00a4ef"><i class="fa-brands fa-microsoft"></i></div>
             </div>
-            <div class="toggle-link" onclick="toggleAuthMode('register')">Register New Organization</div>
-        </div>
-        <div class="auth-card hidden" id="register-card">
-            <img src="https://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
-            <div class="auth-title">Start Your Business</div>
-            <div class="auth-subtitle">Create Organization & CEO Account</div>
-            <div class="form-group"><label>Organization Name</label><input type="text" id="reg-org-name" class="form-input" placeholder="e.g. Digitivia Corp"></div>
-            <div class="form-group"><label>Full Name</label><input type="text" id="reg-name" class="form-input" placeholder="John Doe"></div>
-            <div class="form-group"><label>Work Email</label><input type="email" id="reg-email" class="form-input" placeholder="ceo@company.com"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="reg-pass" class="form-input" placeholder="••••••••"></div>
-            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleRegister()">Create Organization</button>
-            <div class="toggle-link" onclick="toggleAuthMode('login')">Already have an account? Login</div>
         </div>
     </div>
 
@@ -332,8 +332,14 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
                 <div class="header-right">
     <div class="branding-logos" style="border:none; padding:0; margin:0; display:flex; align-items:center; gap:15px;">
         <span id="org-display-name" style="font-weight:700; color:white; opacity:0.8; font-size:1.1rem; text-transform:uppercase; letter-spacing:1px;"></span>
-        <span id="plan-badge-container"></span> </div>
-    
+        <span id="plan-badge-container"></span>
+    </div>
+
+    <div class="header-actions">
+        <button class="btn-outline" onclick="openPricingModal()"><i class="fa-solid fa-tags"></i> Pricing</button>
+        <button class="btn-outline" onclick="openHelpModal()"><i class="fa-solid fa-circle-question"></i> Need Help?</button>
+    </div>
+
     <div class="user-controls">
         <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
         <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
@@ -647,16 +653,17 @@ Never invent data. Ask if unsure.`;
     // Translations
     // --- FULL TRANSLATIONS ---
 const i18n = {
-        en: { 
-            welcome: "Welcome back,", 
-            dashboard: "Dashboard", 
-            org_profile: "Org Profile", 
-            payroll: "Payroll Automation", 
-            employees: "Employees", 
-            attendance: "Attendance", 
-            ats: "ATS Recruitment", 
-            performance: "Performance AI", 
-            reports: "Strategic Reports", 
+        en: {
+            lang_btn: "عربي",
+            welcome: "Welcome back,",
+            dashboard: "Dashboard",
+            org_profile: "Org Profile",
+            payroll: "Payroll Automation",
+            employees: "Employees",
+            attendance: "Attendance",
+            ats: "ATS Recruitment",
+            performance: "Performance AI",
+            reports: "Strategic Reports",
             wfm: "Workforce WFM",
             total_staff: "Total Staff",
             online_now: "Online Now",
@@ -667,18 +674,198 @@ const i18n = {
             connect_email: "Connect Email",
             add_candidate: "Add Candidate",
             post_job: "Post Job",
-            view_report: "View Report"
+            view_report: "View Report",
+            loading: "Loading...",
+            error_loading: "Error loading data.",
+            access_denied: "Access Denied",
+            pricing_btn: "Pricing",
+            help_btn: "Need Help?",
+            role_loading: "Loading...",
+            login_title: "Enterprise Access",
+            login_subtitle: "Secure Login to Digitivia Operations",
+            login_email_label: "Email Address",
+            login_email_placeholder: "name@company.com",
+            login_password_label: "Password",
+            login_password_placeholder: "••••••••",
+            login_button: "Login",
+            auth_divider: "Log in or create an account with",
+            job_wizard_title: "Smart Job Wizard",
+            job_title_label: "Job Title",
+            job_title_placeholder: "e.g. Senior Backend Engineer",
+            job_dept_label: "Department",
+            job_dept_placeholder: "e.g. Engineering",
+            job_salary_label: "Salary Range",
+            job_salary_placeholder: "e.g. $80k - $120k",
+            job_status_label: "Status",
+            job_status_open: "Open",
+            job_status_draft: "Draft",
+            job_status_closed: "Closed",
+            job_publish_btn: "Publish Job",
+            onboard_title: "Onboard New Hire",
+            onboard_step1: "1. Employee Details",
+            onboard_full_name: "Full Name",
+            onboard_full_name_placeholder: "Jane Doe",
+            onboard_email: "Company Email",
+            onboard_email_placeholder: "jane@company.com",
+            onboard_password: "Temporary Password",
+            onboard_password_placeholder: "Welcome123",
+            onboard_role: "Role",
+            onboard_phone: "Phone Number",
+            onboard_phone_placeholder: "+1 234 567 890",
+            onboard_dept: "Department (Optional)",
+            onboard_dept_placeholder: "Engineering",
+            onboard_step2: "2. Starter Documents",
+            onboard_docs_hint: "Add Contracts, IDs, or Passports immediately.",
+            onboard_add_doc_row: "Add Document Row",
+            onboard_submit: "Create Employee & Save Docs",
+            import_title: "Import Legacy Attendance",
+            import_upload_label: "Upload CSV",
+            import_format_hint: "Format: email, date, in_time, out_time",
+            import_warning: "Smart Merge Active: Rows that conflict with verified \"Live\" data will be skipped to preserve integrity.",
+            import_process_btn: "Process Import",
+            perf_modal_title: "Upload Performance Data",
+            perf_dept_rules: "Department Rules",
+            perf_dept_engineering: "Engineering (Qual 40 / Spd 30)",
+            perf_dept_sales: "Sales (Rev 50 / Spd 30)",
+            perf_dept_support: "Support (Qual 50 / Spd 30)",
+            perf_dept_general: "General (Balanced)",
+            perf_input_method: "Input Method",
+            perf_input_file: "File Upload",
+            perf_input_manual: "Manual Text",
+            perf_upload_label: "Upload CSV/Excel Log",
+            perf_manual_label: "Paste Raw Work Logs",
+            perf_manual_placeholder: "e.g. John completed 40 tickets with 2 errors. Sarah closed 5 deals...",
+            perf_analyze_btn: "Analyze with AI",
+            settings_title: "Department Schedules (Option B)",
+            settings_dept_label: "Department Name",
+            settings_dept_placeholder: "e.g. Sales, Engineering, or Global",
+            settings_work_days: "Work Days",
+            settings_start_time: "Start Time",
+            settings_end_time: "End Time",
+            settings_save_btn: "Save Rule",
+            docs_title: "Employee Documents",
+            docs_add_title: "Add New Document",
+            docs_type_placeholder: "Document Name (e.g. Passport)",
+            docs_expiry_label: "Expiry Date",
+            docs_link_placeholder: "External Drive Link (Optional)",
+            docs_checklist_label: "Checklist Item Only (No File)",
+            docs_save_btn: "Save Record",
+            broadcast_title: "Send Company Announcement",
+            broadcast_subject: "Subject",
+            broadcast_message: "Message",
+            broadcast_type: "Type",
+            broadcast_info: "General Info (Blue)",
+            broadcast_urgent: "Urgent Alert (Red)",
+            broadcast_post_btn: "Post Announcement",
+            setup_title: "Welcome to Digitivia!",
+            setup_body: "We are thrilled to have you. To ensure your HR data is migrated correctly, we offer <b>2 Free Setup Calls</b> (30 mins each).",
+            setup_cta: "Book Integration Call",
+            setup_skip: "I'll explore on my own",
+            help_title: "Need Help?",
+            help_body: "Book two free 30-minute sessions (1 hour total) and we will help you integrate and set up your HR workspace.",
+            help_cta: "Book a Free Meeting",
+            email_connect_title: "Connect Recruitment Email",
+            email_auto_scan: "<i class=\"fa-solid fa-robot\"></i> <b>AI Auto-Scan:</b> The AI will connect via IMAP and scan this inbox every 10 minutes for emails with \"Resume\" or \"CV\" in the subject.",
+            email_provider: "Email Provider",
+            email_provider_tip: "Choose 'Custom' if you use Zoho, GoDaddy, or a private server.",
+            email_provider_gmail: "Gmail",
+            email_provider_outlook: "Outlook / Office 365",
+            email_provider_custom: "Custom IMAP (Other)",
+            email_address: "Email Address",
+            email_address_tip: "The email address where you receive job applications.",
+            email_address_placeholder: "careers@company.com",
+            app_password: "App Password",
+            app_password_tip: "Do NOT use your login password. Generate a secure 'App Password' in your Google/Microsoft Account Security settings.",
+            app_password_placeholder: "abcd xxxx yyyy zzzz",
+            security_tip: "<i class=\"fa-solid fa-shield-halved\"></i> <strong>Security Tip:</strong> Use an <a href=\"https://myaccount.google.com/apppasswords\" target=\"_blank\" style=\"color:var(--primary); text-decoration:underline;\">App Password</a>, not your main password.",
+            imap_host: "IMAP Host",
+            imap_host_placeholder: "imap.server.com",
+            imap_port: "IMAP Port",
+            email_connect_btn: "Connect & Start AI Scanning",
+            candidate_ai_title: "AI Candidate Analysis",
+            match_score: "Match Score",
+            exec_summary: "Executive Summary",
+            extracted_skills: "Extracted Skills",
+            source_context: "Source Context (CV / Portfolio)",
+            pricing_title: "Upgrade Your Operation",
+            pricing_subtitle: "Choose the bundle that fits your scale.",
+            plan_starter: "Starter",
+            plan_growth: "Growth",
+            plan_enterprise: "Enterprise",
+            price_free: "Free",
+            price_growth: "$49",
+            price_enterprise: "$199",
+            per_month: "/mo",
+            feature_time_attendance: "Time & Attendance",
+            feature_basic_payroll: "Basic Payroll",
+            feature_employee_db: "Employee Database",
+            feature_live_dashboard: "Live Dashboard",
+            feature_ai_recruitment: "AI Recruitment",
+            feature_workforce: "Workforce Management",
+            feature_everything_in_starter: "Everything in Starter",
+            feature_ats: "AI Recruitment (ATS)",
+            feature_wfm: "Workforce WFM (Maps)",
+            feature_broadcast: "Internal Broadcasting",
+            feature_adherence: "Adherence Charts",
+            feature_everything_in_growth: "Everything in Growth",
+            feature_self_hosted: "Self-Hosted VPS Option",
+            feature_adv_payroll: "Advanced Payroll Automation",
+            feature_custom_domain: "Custom Domain",
+            feature_priority_support: "Priority Support",
+            current_plan: "Current Plan",
+            recommended: "Recommended",
+            upgrade_growth: "Upgrade to Growth",
+            contact_sales: "Contact Sales",
+            dont_show_again: "Don't show this automatically again",
+            close_btn: "Close",
+            profile_title: "My Profile",
+            profile_basic_info: "Basic Info",
+            profile_company_role: "Company & Role",
+            profile_email: "Email",
+            profile_phone: "Phone",
+            profile_org: "Organization",
+            profile_dept: "Department",
+            sign_out: "Sign Out",
+            footer_docs: "Documentation",
+            footer_privacy: "Privacy Policy",
+            footer_legal: "Legal Notes",
+            ai_title: "Your HR Assistant",
+            ai_intro: "Hello! I can help you navigate, onboard employees, and explain any HR feature.",
+            ai_placeholder: "Ask anything...",
+            ai_quick_add_employee: "Add employee",
+            ai_quick_add_hr: "Add HR manager",
+            ai_quick_payroll_help: "Payroll help",
+            ai_quick_attendance_help: "Attendance help",
+            ai_login_required: "Please log in or create an account with Google or LinkedIn to use the HR assistant.",
+            ai_no_credits: "You are out of AI credits. Upgrade your plan to keep using the HR assistant.",
+            ai_assistant_error: "Sorry, I could not reach the assistant right now. Please try again.",
+            ai_credit_debit_failed: "Unable to debit AI credits.",
+            ai_credits: "{count} Credits",
+            ai_thinking: "Thinking...",
+            ai_prompts: {
+                add_employee: "Add a new employee named John Doe, email john@company.com, role employee, phone +1 555 0100, department Sales",
+                add_hr: "Create an HR manager named Sara Ali, email sara@company.com, phone +1 555 0200, department HR",
+                payroll_help: "Where can I upload payroll files and run payroll?",
+                attendance_help: "Where do I view attendance and clock-in records?"
+            },
+            nav_exec_suite: "Executive Suite",
+            nav_hr_ops: "HR Operations",
+            nav_team_mgmt: "Team Management",
+            nav_workspace: "My Workspace",
+            nav_my_home: "My Home",
+            nav_time_clock: "Time Clock"
         },
-        ar: { 
-            welcome: "مرحباً بعودتك،", 
-            dashboard: "لوحة القيادة", 
-            org_profile: "ملف المؤسسة", 
-            payroll: "الرواتب الآلية", 
-            employees: "الموظفين", 
-            attendance: "الحضور والانصراف", 
-            ats: "التوظيف ATS", 
-            performance: "تحليل الأداء", 
-            reports: "التقارير الاستراتيجية", 
+        ar: {
+            lang_btn: "English",
+            welcome: "مرحباً بعودتك،",
+            dashboard: "لوحة القيادة",
+            org_profile: "ملف المؤسسة",
+            payroll: "أتمتة الرواتب",
+            employees: "الموظفون",
+            attendance: "الحضور والانصراف",
+            ats: "التوظيف الذكي ATS",
+            performance: "تحليل الأداء",
+            reports: "التقارير الاستراتيجية",
             wfm: "إدارة القوى العاملة",
             total_staff: "إجمالي الموظفين",
             online_now: "متصل الآن",
@@ -689,9 +876,238 @@ const i18n = {
             connect_email: "ربط البريد الإلكتروني",
             add_candidate: "إضافة مرشح",
             post_job: "نشر وظيفة",
-            view_report: "عرض التقرير"
+            view_report: "عرض التقرير",
+            loading: "جارٍ التحميل...",
+            error_loading: "تعذر تحميل البيانات.",
+            access_denied: "تم رفض الوصول",
+            pricing_btn: "الأسعار",
+            help_btn: "تحتاج مساعدة؟",
+            role_loading: "جارٍ التحميل...",
+            login_title: "الدخول للمؤسسات",
+            login_subtitle: "تسجيل دخول آمن إلى عمليات ديجيتيفيا",
+            login_email_label: "عنوان البريد الإلكتروني",
+            login_email_placeholder: "name@company.com",
+            login_password_label: "كلمة المرور",
+            login_password_placeholder: "••••••••",
+            login_button: "تسجيل الدخول",
+            auth_divider: "سجّل الدخول أو أنشئ حساباً عبر",
+            job_wizard_title: "معالج الوظائف الذكي",
+            job_title_label: "المسمى الوظيفي",
+            job_title_placeholder: "مثال: مهندس برمجيات أول",
+            job_dept_label: "القسم",
+            job_dept_placeholder: "مثال: الهندسة",
+            job_salary_label: "نطاق الراتب",
+            job_salary_placeholder: "مثال: 80 ألف - 120 ألف دولار",
+            job_status_label: "الحالة",
+            job_status_open: "مفتوحة",
+            job_status_draft: "مسودة",
+            job_status_closed: "مغلقة",
+            job_publish_btn: "نشر الوظيفة",
+            onboard_title: "تأهيل موظف جديد",
+            onboard_step1: "1. بيانات الموظف",
+            onboard_full_name: "الاسم الكامل",
+            onboard_full_name_placeholder: "Jane Doe",
+            onboard_email: "البريد الإلكتروني للشركة",
+            onboard_email_placeholder: "jane@company.com",
+            onboard_password: "كلمة المرور المؤقتة",
+            onboard_password_placeholder: "Welcome123",
+            onboard_role: "الدور الوظيفي",
+            onboard_phone: "رقم الهاتف",
+            onboard_phone_placeholder: "+1 234 567 890",
+            onboard_dept: "القسم (اختياري)",
+            onboard_dept_placeholder: "الهندسة",
+            onboard_step2: "2. المستندات الأولية",
+            onboard_docs_hint: "أضف العقود أو الهويات أو جوازات السفر مباشرة.",
+            onboard_add_doc_row: "إضافة صف مستند",
+            onboard_submit: "إنشاء الموظف وحفظ المستندات",
+            import_title: "استيراد الحضور القديم",
+            import_upload_label: "تحميل CSV",
+            import_format_hint: "الصيغة: البريد الإلكتروني، التاريخ، وقت الدخول، وقت الخروج",
+            import_warning: "الدمج الذكي مفعّل: سيتم تجاوز الصفوف المتعارضة مع البيانات المعتمدة للحفاظ على النزاهة.",
+            import_process_btn: "تنفيذ الاستيراد",
+            perf_modal_title: "رفع بيانات الأداء",
+            perf_dept_rules: "قواعد القسم",
+            perf_dept_engineering: "الهندسة (الجودة 40 / السرعة 30)",
+            perf_dept_sales: "المبيعات (الإيراد 50 / السرعة 30)",
+            perf_dept_support: "الدعم (الجودة 50 / السرعة 30)",
+            perf_dept_general: "عام (متوازن)",
+            perf_input_method: "طريقة الإدخال",
+            perf_input_file: "تحميل ملف",
+            perf_input_manual: "نص يدوي",
+            perf_upload_label: "تحميل سجل CSV/Excel",
+            perf_manual_label: "ألصق سجلات العمل الخام",
+            perf_manual_placeholder: "مثال: أنجز أحمد 40 تذكرة مع خطأين. أغلقت سارة 5 صفقات...",
+            perf_analyze_btn: "تحليل بالذكاء الاصطناعي",
+            settings_title: "جداول الأقسام (الخيار ب)",
+            settings_dept_label: "اسم القسم",
+            settings_dept_placeholder: "مثال: المبيعات، الهندسة، أو عام",
+            settings_work_days: "أيام العمل",
+            settings_start_time: "وقت البداية",
+            settings_end_time: "وقت النهاية",
+            settings_save_btn: "حفظ القاعدة",
+            docs_title: "مستندات الموظف",
+            docs_add_title: "إضافة مستند جديد",
+            docs_type_placeholder: "اسم المستند (مثال: جواز سفر)",
+            docs_expiry_label: "تاريخ الانتهاء",
+            docs_link_placeholder: "رابط خارجي (اختياري)",
+            docs_checklist_label: "بند قائمة فقط (بدون ملف)",
+            docs_save_btn: "حفظ السجل",
+            broadcast_title: "إرسال إعلان للشركة",
+            broadcast_subject: "الموضوع",
+            broadcast_message: "الرسالة",
+            broadcast_type: "النوع",
+            broadcast_info: "معلومة عامة (أزرق)",
+            broadcast_urgent: "تنبيه عاجل (أحمر)",
+            broadcast_post_btn: "نشر الإعلان",
+            setup_title: "مرحباً بك في ديجيتيفيا!",
+            setup_body: "يسعدنا انضمامك. لضمان نقل بيانات الموارد البشرية بشكل صحيح، نوفر <b>مكالمتين مجانيتين</b> (30 دقيقة لكل مكالمة).",
+            setup_cta: "احجز مكالمة إعداد",
+            setup_skip: "سأستكشف بنفسي",
+            help_title: "تحتاج مساعدة؟",
+            help_body: "احجز جلستين مجانيتين مدة كل منهما 30 دقيقة (إجمالي ساعة واحدة) لمساعدتك في التكامل والإعداد.",
+            help_cta: "احجز اجتماعاً مجانياً",
+            email_connect_title: "ربط بريد التوظيف",
+            email_auto_scan: "<i class=\"fa-solid fa-robot\"></i> <b>المسح الذكي:</b> سيقوم الذكاء الاصطناعي بالاتصال عبر IMAP وفحص البريد كل 10 دقائق للرسائل التي تحتوي على \"Resume\" أو \"CV\" في العنوان.",
+            email_provider: "مزود البريد الإلكتروني",
+            email_provider_tip: "اختر \"مخصص\" إذا كنت تستخدم Zoho أو GoDaddy أو خادماً خاصاً.",
+            email_provider_gmail: "جيميل",
+            email_provider_outlook: "أوتلوك / أوفيس 365",
+            email_provider_custom: "IMAP مخصص (أخرى)",
+            email_address: "عنوان البريد الإلكتروني",
+            email_address_tip: "البريد الذي تستقبل عليه طلبات التوظيف.",
+            email_address_placeholder: "careers@company.com",
+            app_password: "كلمة مرور التطبيق",
+            app_password_tip: "لا تستخدم كلمة المرور الأساسية. أنشئ كلمة مرور تطبيق آمنة من إعدادات حسابك.",
+            app_password_placeholder: "abcd xxxx yyyy zzzz",
+            security_tip: "<i class=\"fa-solid fa-shield-halved\"></i> <strong>نصيحة أمان:</strong> استخدم <a href=\"https://myaccount.google.com/apppasswords\" target=\"_blank\" style=\"color:var(--primary); text-decoration:underline;\">كلمة مرور التطبيق</a> وليس كلمة المرور الرئيسية.",
+            imap_host: "خادم IMAP",
+            imap_host_placeholder: "imap.server.com",
+            imap_port: "منفذ IMAP",
+            email_connect_btn: "ربط البريد وبدء المسح الذكي",
+            candidate_ai_title: "تحليل المرشح بالذكاء الاصطناعي",
+            match_score: "درجة المطابقة",
+            exec_summary: "الملخص التنفيذي",
+            extracted_skills: "المهارات المستخرجة",
+            source_context: "المحتوى الأصلي (السيرة / البورتفوليو)",
+            pricing_title: "ترقية عمليتك",
+            pricing_subtitle: "اختر الباقة الأنسب لنطاق عملك.",
+            plan_starter: "الأساسية",
+            plan_growth: "النمو",
+            plan_enterprise: "المؤسسات",
+            price_free: "مجانية",
+            price_growth: "49$",
+            price_enterprise: "199$",
+            per_month: "/شهرياً",
+            feature_time_attendance: "الحضور والانصراف",
+            feature_basic_payroll: "الرواتب الأساسية",
+            feature_employee_db: "قاعدة بيانات الموظفين",
+            feature_live_dashboard: "لوحة معلومات مباشرة",
+            feature_ai_recruitment: "التوظيف بالذكاء الاصطناعي",
+            feature_workforce: "إدارة القوى العاملة",
+            feature_everything_in_starter: "كل مزايا الباقة الأساسية",
+            feature_ats: "التوظيف الذكي (ATS)",
+            feature_wfm: "خرائط القوى العاملة",
+            feature_broadcast: "البث الداخلي",
+            feature_adherence: "مخططات الالتزام",
+            feature_everything_in_growth: "كل مزايا باقة النمو",
+            feature_self_hosted: "خيار استضافة ذاتية",
+            feature_adv_payroll: "أتمتة رواتب متقدمة",
+            feature_custom_domain: "نطاق مخصص",
+            feature_priority_support: "دعم أولوية",
+            current_plan: "الخطة الحالية",
+            recommended: "موصى بها",
+            upgrade_growth: "الترقية إلى النمو",
+            contact_sales: "تواصل مع المبيعات",
+            dont_show_again: "لا تظهر هذا تلقائياً مرة أخرى",
+            close_btn: "إغلاق",
+            profile_title: "ملفي الشخصي",
+            profile_basic_info: "المعلومات الأساسية",
+            profile_company_role: "الشركة والدور",
+            profile_email: "البريد الإلكتروني",
+            profile_phone: "الهاتف",
+            profile_org: "المؤسسة",
+            profile_dept: "القسم",
+            sign_out: "تسجيل الخروج",
+            footer_docs: "التوثيق",
+            footer_privacy: "سياسة الخصوصية",
+            footer_legal: "ملاحظات قانونية",
+            ai_title: "مساعد الموارد البشرية",
+            ai_intro: "مرحباً! يمكنني مساعدتك في التنقل، تأهيل الموظفين، وشرح ميزات الموارد البشرية.",
+            ai_placeholder: "اسأل أي شيء...",
+            ai_quick_add_employee: "إضافة موظف",
+            ai_quick_add_hr: "إضافة مدير موارد بشرية",
+            ai_quick_payroll_help: "مساعدة الرواتب",
+            ai_quick_attendance_help: "مساعدة الحضور",
+            ai_login_required: "يرجى تسجيل الدخول أو إنشاء حساب عبر جوجل أو لينكدإن لاستخدام مساعد الموارد البشرية.",
+            ai_no_credits: "لا توجد أرصدة كافية. قم بترقية خطتك للاستمرار في استخدام المساعد.",
+            ai_assistant_error: "عذراً، تعذر الاتصال بالمساعد حالياً. يرجى المحاولة لاحقاً.",
+            ai_credit_debit_failed: "تعذر خصم أرصدة الذكاء الاصطناعي.",
+            ai_credits: "الرصيد: {count}",
+            ai_thinking: "جارٍ التفكير...",
+            ai_prompts: {
+                add_employee: "أضف موظفاً جديداً باسم John Doe، البريد john@company.com، الدور موظف، الهاتف +1 555 0100، القسم المبيعات",
+                add_hr: "أنشئ مدير موارد بشرية باسم Sara Ali، البريد sara@company.com، الهاتف +1 555 0200، القسم الموارد البشرية",
+                payroll_help: "أين يمكنني رفع ملفات الرواتب وتشغيل الرواتب؟",
+                attendance_help: "أين يمكنني عرض سجلات الحضور والانصراف؟"
+            },
+            nav_exec_suite: "الجناح التنفيذي",
+            nav_hr_ops: "عمليات الموارد البشرية",
+            nav_team_mgmt: "إدارة الفريق",
+            nav_workspace: "مساحتي",
+            nav_my_home: "صفحتي",
+            nav_time_clock: "سجل الوقت"
         }
     };
+
+    function t(key, fallback = '') {
+        const dict = i18n[state.lang] || i18n.en || {};
+        const parts = String(key || '').split('.');
+        let value = dict;
+        for (const part of parts) {
+            if (value && Object.prototype.hasOwnProperty.call(value, part)) {
+                value = value[part];
+            } else {
+                value = null;
+                break;
+            }
+        }
+        if (value === null || value === undefined) return fallback || key;
+        return value;
+    }
+
+    function tf(key, vars = {}, fallback = '') {
+        let str = t(key, fallback);
+        if (typeof str !== 'string') return str;
+        return str.replace(/\{(\w+)\}/g, (match, name) => {
+            if (Object.prototype.hasOwnProperty.call(vars, name)) {
+                return vars[name];
+            }
+            return match;
+        });
+    }
+
+    function applyStaticTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+            const key = el.getAttribute('data-i18n');
+            const value = t(key);
+            if (value) el.textContent = value;
+        });
+        document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+            const key = el.getAttribute('data-i18n-html');
+            const value = t(key);
+            if (value) el.innerHTML = value;
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            const value = t(key);
+            if (value) el.setAttribute('placeholder', value);
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+            const key = el.getAttribute('data-i18n-title');
+            const value = t(key);
+            if (value) el.setAttribute('title', value);
+        });
+    }
     /* -------------------------------------------------------------------------
        CRITICAL: ALL HELPER FUNCTIONS DEFINED FIRST TO AVOID "NOT DEFINED" ERRORS
        ------------------------------------------------------------------------- */
@@ -1080,7 +1496,6 @@ const i18n = {
             }
         }
     });
-    function toggleAuthMode(mode) { if(mode === 'register') { document.getElementById('login-card').classList.add('hidden'); document.getElementById('register-card').classList.remove('hidden'); } else { document.getElementById('register-card').classList.add('hidden'); document.getElementById('login-card').classList.remove('hidden'); } }
     async function handleLogin() { const email = document.getElementById('login-email').value; const password = document.getElementById('login-pass').value; try { const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }); if (error) throw error; loadAppData(data.user); } catch (err) { showToast(err.message, true); } }
     async function handleRegister() { const email = document.getElementById('reg-email').value; const password = document.getElementById('reg-pass').value; const fullName = document.getElementById('reg-name').value; const orgName = document.getElementById('reg-org-name').value; if(!email || !password || !fullName || !orgName) { showToast("Please fill all fields", true); return; } try { const { data, error } = await supabaseClient.auth.signUp({ email, password, options: { data: { full_name: fullName, org_name: orgName, avatar_url: `https://ui-avatars.com/api/?name=${fullName}&background=random` } } }); if (error) throw error; showToast("Registration successful! Logging in..."); if(data.session) loadAppData(data.user); else showToast("Please check your email to confirm account", false); } catch (err) { showToast(err.message || "Server Error", true); } }
     async function socialLogin(provider) { 
@@ -1462,7 +1877,7 @@ document.getElementById('auth-container').classList.add('hidden');
             </div>
             <div class="card" style="margin-top:20px; padding:40px; text-align:center;">
                 <h3 style="margin-bottom:15px;">Quick Actions</h3>
-                <button class="btn-primary" onclick="state.activeView='attendance'; renderSidebar(); renderMainContent();">Go to Time Clock</button>
+                <button class="btn-primary" onclick="navigateTo('attendance')">Go to Time Clock</button>
             </div>
         `;
     }
@@ -2277,6 +2692,16 @@ document.getElementById('auth-container').classList.add('hidden');
         else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
     }
 
+    function navigateTo(view) {
+        state.activeView = view;
+        renderSidebar();
+        renderMainContent();
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.remove('active');
+        }
+    }
+
     // --- RBAC HIERARCHY SIDEBAR ---
    // --- RBAC HIERARCHY SIDEBAR ---
     function renderSidebar() {
@@ -2286,8 +2711,8 @@ document.getElementById('auth-container').classList.add('hidden');
         // 0. EMPLOYEE VIEW
         if (role === 'employee') {
              const ul = document.createElement('ul'); ul.className = 'nav-links';
-             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="state.activeView='employee_dash';renderSidebar();renderMainContent()"><i class="fa-solid fa-home"></i> <span>My Home</span></li>`;
-             ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>Time Clock</span></li>`;
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="navigateTo('employee_dash')"><i class="fa-solid fa-home"></i> <span>My Home</span></li>`;
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>Time Clock</span></li>`;
              container.appendChild(ul);
              return;
         }
@@ -2297,15 +2722,15 @@ document.getElementById('auth-container').classList.add('hidden');
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="state.activeView='dashboard';renderSidebar();renderMainContent()"><i class="fa-solid fa-chart-pie"></i> <span>${t.dashboard}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="navigateTo('dashboard')"><i class="fa-solid fa-chart-pie"></i> <span>${t.dashboard}</span></li>`;
             
             // CEO Only: Org Settings
             if (role === 'ceo') {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="state.activeView='org_profile';renderSidebar();renderMainContent()"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="navigateTo('org_profile')"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
             }
             // Reports
             if (['ceo', 'admin'].includes(role)) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="state.activeView='reports';renderSidebar();renderMainContent()"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="navigateTo('reports')"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
             }
             sec.appendChild(ul); container.appendChild(sec);
         }
@@ -2316,16 +2741,16 @@ document.getElementById('auth-container').classList.add('hidden');
             sec.innerHTML = `<div class="nav-header">HR Operations</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='employees'?'active':''}" onclick="state.activeView='employees';renderSidebar();renderMainContent()"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='employees'?'active':''}" onclick="navigateTo('employees')"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
             
             // Payroll
             if(['ceo','hr_manager'].includes(role)) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='payroll'?'active':''}" onclick="state.activeView='payroll';renderSidebar();renderMainContent()"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='payroll'?'active':''}" onclick="navigateTo('payroll')"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
             }
             
             // --- ATS MOVED HERE WITH GATING LOGIC ---
             if (hasAccess('ats')) { 
-                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="state.activeView='ats';renderSidebar();renderMainContent()"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
+                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="navigateTo('ats')"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
             } else {
                 // LOCKED -> Opens Pricing Modal
                 ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.ats}</span></li>`;
@@ -2342,14 +2767,14 @@ document.getElementById('auth-container').classList.add('hidden');
             
             // WFM Feature Gating
             if (hasAccess('wfm')) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="state.activeView='wfm';renderSidebar();renderMainContent()"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="navigateTo('wfm')"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
             } else {
                 ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.wfm}</span></li>`;
             }
 
             // ATS was removed from here to prevent duplication
 
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='performance'?'active':''}" onclick="state.activeView='performance';renderSidebar();renderMainContent()"><i class="fa-solid fa-star"></i> <span>${t.performance}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='performance'?'active':''}" onclick="navigateTo('performance')"><i class="fa-solid fa-star"></i> <span>${t.performance}</span></li>`;
             
             sec.appendChild(ul); container.appendChild(sec);
         }
@@ -2358,7 +2783,7 @@ document.getElementById('auth-container').classList.add('hidden');
         const sec = document.createElement('div');
         sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
         const ul = document.createElement('ul'); ul.className = 'nav-links';
-        ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="state.activeView='attendance';renderSidebar();renderMainContent()"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
+        ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
         sec.appendChild(ul); container.appendChild(sec);
     }
       
@@ -2796,6 +3221,13 @@ function toggleLang() {
         return bubble;
     }
 
+    function prefillAiPrompt(text) {
+        const input = document.getElementById('ai-input');
+        if (!input) return;
+        input.value = text;
+        input.focus();
+    }
+
     async function updateAiCredits() {
         if(!state.org) return;
         const { data, error } = await supabaseClient.from('organizations').select('ai_credits_balance').eq('id', state.org.id).single();
@@ -2915,10 +3347,19 @@ function toggleLang() {
 
         appendAiMessage(text, 'user');
         input.value = '';
+        if (!state.user || !state.org) {
+            appendAiMessage('Please log in or create an account with Google or LinkedIn to use the HR assistant.', 'assistant');
+            return;
+        }
+
         const thinkingBubble = appendAiMessage('<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...', 'assistant', true);
         if (state.aiCredits === null) await updateAiCredits();
-        if (Number.isFinite(state.aiCredits) && state.aiCredits < AI_CREDIT_COST) {
-            if (thinkingBubble) thinkingBubble.innerHTML = formatAiText('No credits left. Please top up to continue.');
+        if (!Number.isFinite(state.aiCredits)) state.aiCredits = 0;
+        if (state.aiCredits < AI_CREDIT_COST) {
+            if (thinkingBubble) {
+                thinkingBubble.innerHTML = formatAiText('You are out of AI credits. Upgrade your plan to keep using the HR assistant.');
+            }
+            openPricingModal();
             return;
         }
 
@@ -3161,6 +3602,14 @@ function closePricingModal() {
         localStorage.setItem('digitivia_hide_pricing', 'true');
     }
     document.getElementById('pricing-modal').classList.add('hidden');
+}
+
+function openHelpModal() {
+    document.getElementById('help-modal').classList.remove('hidden');
+}
+
+function closeHelpModal() {
+    document.getElementById('help-modal').classList.add('hidden');
 }
 
 // Function to check and show on load
@@ -3479,6 +3928,12 @@ function checkPricingPopup() {
                 <span class="ai-title"><i class="fa-solid fa-robot"></i> Your HR Assistant</span>
                 <span class="ai-credits" id="ai-credits">0 Credits</span>
             </div>
+            <div class="ai-quick-actions">
+                <button class="ai-quick-btn" onclick="prefillAiPrompt('Add a new employee named John Doe, email john@company.com, role employee, phone +1 555 0100, department Sales')">Add employee</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt('Create an HR manager named Sara Ali, email sara@company.com, phone +1 555 0200, department HR')">Add HR manager</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt('Where can I upload payroll files and run payroll?')">Payroll help</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt('Where do I view attendance and clock-in records?')">Attendance help</button>
+            </div>
             <div id="ai-chat-body" class="ai-chat-body">
                 <div class="ai-msg assistant">
                     <div class="ai-bubble">Hello! I can help you navigate, onboard employees, and explain any HR feature.</div>
@@ -3494,6 +3949,11 @@ function checkPricingPopup() {
             <i class="fa-solid fa-robot"></i>
         </button>
     </div>
+    <footer class="app-footer">
+        <a href="#" onclick="return false;">Documentation</a>
+        <a href="#" onclick="return false;">Privacy Policy</a>
+        <a href="#" onclick="return false;">Legal Notes</a>
+    </footer>
     <div id="setup-modal" class="modal-overlay hidden">
     <div class="modal-card" style="text-align:center;">
         <i class="fa-solid fa-handshake" style="font-size:3rem; color:var(--success); margin-bottom:20px;"></i>
@@ -3511,6 +3971,20 @@ function checkPricingPopup() {
         </div>
     </div>
 </div>
+    <div id="help-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width:560px; text-align:center;">
+            <div class="modal-title">
+                Need Help?
+                <i class="fa-solid fa-xmark close-modal" onclick="closeHelpModal()"></i>
+            </div>
+            <p style="color:var(--text-muted); margin-bottom:20px; line-height:1.6;">
+                Book two free 30-minute sessions (1 hour total) and we will help you integrate and set up your HR workspace.
+            </p>
+            <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+                <i class="fa-solid fa-calendar-check"></i> Book a Free Meeting
+            </a>
+        </div>
+    </div>
    <div id="email-connect-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
