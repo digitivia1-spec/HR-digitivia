@@ -502,6 +502,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 
     let atsOrgColumn = null;
     let atsOrderColumn = 'id';
+    let atsUseJobOrgFilter = false;
 
     async function resolveAtsOrgColumn() {
         if (atsOrgColumn !== null) return atsOrgColumn;
@@ -512,10 +513,10 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         if (!error && Array.isArray(data) && data.length > 0) {
             if (Object.prototype.hasOwnProperty.call(data[0], 'org_id')) {
                 atsOrgColumn = 'org_id';
-            } else if (Object.prototype.hasOwnProperty.call(data[0], 'organization_id')) {
-                atsOrgColumn = 'organization_id';
+                atsUseJobOrgFilter = false;
             } else {
                 atsOrgColumn = '';
+                atsUseJobOrgFilter = true;
             }
             if (Object.prototype.hasOwnProperty.call(data[0], 'created_at')) {
                 atsOrderColumn = 'created_at';
@@ -528,6 +529,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
             }
         } else {
             atsOrgColumn = '';
+            atsUseJobOrgFilter = true;
         }
         return atsOrgColumn;
     }
@@ -1491,21 +1493,29 @@ document.getElementById('auth-container').classList.add('hidden');
         // 3. Fetch Candidates (avoid invalid column errors)
         const orgColumn = await resolveAtsOrgColumn();
         const orderColumn = atsOrderColumn || 'id';
-        const baseQuery = () => supabaseClient
-            .from('ats_applications')
-            .select('*, ats_jobs(title, department)')
-            .order(orderColumn, { ascending: false });
-        let resp = orgColumn ? await baseQuery().eq(orgColumn, state.org.id) : await baseQuery();
+        let resp;
+
+        if (orgColumn) {
+            resp = await supabaseClient
+                .from('ats_applications')
+                .select('*, ats_jobs(title, department)')
+                .eq(orgColumn, state.org.id)
+                .order(orderColumn, { ascending: false });
+        } else if (atsUseJobOrgFilter) {
+            resp = await supabaseClient
+                .from('ats_applications')
+                .select('*, ats_jobs!inner(title, department, org_id)')
+                .eq('ats_jobs.org_id', state.org.id)
+                .order(orderColumn, { ascending: false });
+        } else {
+            resp = await supabaseClient
+                .from('ats_applications')
+                .select('*, ats_jobs(title, department)')
+                .order(orderColumn, { ascending: false });
+        }
+
         let candidates = resp.data;
         let error = resp.error;
-
-        if (!error && !orgColumn && Array.isArray(candidates)) {
-            candidates = candidates.filter((row) => {
-                if (row.org_id) return row.org_id === state.org.id;
-                if (row.organization_id) return row.organization_id === state.org.id;
-                return true;
-            });
-        }
             
         // --- Safety Check ---
         const tableBody = document.getElementById('ats-list-body');
@@ -2762,25 +2772,13 @@ function toggleLang() {
         };
 
         const orgColumn = await resolveAtsOrgColumn();
+        if (!orgColumn && atsUseJobOrgFilter && !jobId) {
+            showToast("Please provide a Job ID so we can link this candidate to your organization.", true);
+            return;
+        }
         if (orgColumn) payload[orgColumn] = state.org.id;
 
-        let { error } = await supabaseClient.from('ats_applications').insert(payload);
-
-        if (error && !orgColumn) {
-            const msg = (error.message || '').toLowerCase();
-            if (msg.includes('org_id') || msg.includes('organization_id') || msg.includes('organization')) {
-                const tryInsert = async (column) => {
-                    const retryPayload = { ...payload, [column]: state.org.id };
-                    const retry = await supabaseClient.from('ats_applications').insert(retryPayload);
-                    if (!retry.error) {
-                        atsOrgColumn = column;
-                        return null;
-                    }
-                    return retry.error;
-                };
-                error = (await tryInsert('org_id')) || (await tryInsert('organization_id'));
-            }
-        }
+        const { error } = await supabaseClient.from('ats_applications').insert(payload);
 
         if (error) showToast("Error: " + error.message, true);
         else {
