@@ -2841,51 +2841,28 @@ async function runAiActions(actions = []) {
 }
 
 
-   async function sendAiMessage() {
+  
+async function sendAiMessage() {
   const input = document.getElementById('ai-input');
   const msg = (input?.value || '').trim();
   if (!msg) return;
 
   // UI: user bubble
-  addAiBubble('user', msg, false);
+  addAiBubble('user', msg);
   input.value = '';
 
-  // UI: thinking bubble (we’ll replace it later)
-  const thinkingId = addAiBubble(
-    'ai',
-    `<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...`,
-    true
-  );
+  // UI: thinking bubble
+  const placeholderId = addAiBubble('ai', '<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...');
 
-  // 1) Credits check (block if no credits)
-  const bal = await updateAiCredits();
-  const cost = AI_CREDITS_COST_PER_MESSAGE;
+  // DEBUG (remove later)
+  console.log('[AI] sendAiMessage fired', { msg, org: state.org?.id, user: state.user?.id, url: N8N_AI_WEBHOOK_URL });
 
-  if ((bal ?? 0) < cost) {
-    updateAiBubble(
-      thinkingId,
-      `⚠️ You have <b>${bal ?? 0}</b> credits. Please top-up to use AI.`,
-      true
-    );
-    return;
-  }
-
-  // 2) Call n8n webhook
   try {
     const payload = {
+      action: 'assistant_command',
       message: msg,
-      org_id: state.org?.id,
-      user_id: state.user?.id,
-      user_role: state.profile?.role,
-      active_view: state.activeView,
-      lang: state.lang,
-
-      // Tell the AI what it is allowed to do (very important)
-      allowed_actions: [
-        { type: "NAVIGATE", fields: ["view"] },
-        { type: "OPEN_MODAL", fields: ["modal"], values: ["ONBOARD_EMPLOYEE", "EMAIL_CONNECT"] },
-        { type: "CREATE_EMPLOYEE", fields: ["full_name","email","phone","department","role","password"] }
-      ]
+      org_id: state.org?.id || null,
+      user_id: state.user?.id || null
     };
 
     const res = await fetch(N8N_AI_WEBHOOK_URL, {
@@ -2894,45 +2871,16 @@ async function runAiActions(actions = []) {
       body: JSON.stringify(payload)
     });
 
-    if (!res.ok) throw new Error(`AI webhook failed: ${res.status} ${res.statusText}`);
+    const raw = await res.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; } catch (_) {}
 
-    const out = await res.json();
+    const reply = data.reply || raw || 'No reply from webhook.';
+    updateAiBubble(placeholderId, reply);
 
-    const reply =
-      out.reply ||
-      out.assistant_message ||
-      out.message ||
-      'Done.';
-
-    updateAiBubble(thinkingId, escapeHtml(reply).replace(/\n/g, '<br>'), true);
-
-    // 3) Run actions (if any)
-    if (Array.isArray(out.actions) && out.actions.length > 0) {
-      const results = await runAiActions(out.actions);
-      if (results?.length) {
-        addAiBubble('ai', `✅ Actions:<br>${results.map(r => `• ${escapeHtml(r)}`).join('<br>')}`, true);
-      }
-    }
-
-    // 4) Deduct credits (simple version)
-    // IMPORTANT: This needs the SQL function below. If you don’t add it, comment these lines.
-    const { error: creditErr } = await supabaseClient.rpc('consume_ai_credits', {
-      p_org_id: state.org.id,
-      p_user_id: state.user.id,
-      p_cost: cost,
-      p_reason: 'ai_chat',
-      p_meta: { message: msg }
-    });
-
-    if (creditErr) {
-      console.warn('Credit deduction failed:', creditErr);
-      addAiBubble('ai', '⚠️ AI worked, but credit deduction failed. Check your SQL function / RLS.', false);
-    }
-
-    await updateAiCredits();
   } catch (err) {
-    console.error(err);
-    updateAiBubble(thinkingId, `⚠️ Error: ${escapeHtml(err.message)}`, true);
+    console.error('[AI] webhook error', err);
+    updateAiBubble(placeholderId, `⚠️ AI error: ${err.message}`);
   }
 }
 
