@@ -97,6 +97,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
         .top-header { height: 80px; background: rgba(13, 27, 42, 0.4); backdrop-filter: blur(var(--blur-amount)); -webkit-backdrop-filter: blur(var(--blur-amount)); border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-left .fa-bars { display: none; }
         .header-right { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
         .header-actions { display: flex; align-items: center; gap: 10px; }
         .branding-logos { display: flex; align-items: center; gap: 15px; margin-left: 20px; padding-left: 20px; border-left: 1px solid var(--glass-border); }
@@ -144,7 +145,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 @media (max-width: 768px) {
     .hide-on-mobile { display: none !important; }
     /* Show hamburger menu on mobile */
-    .header-left .fa-bars { display: block !important; margin-right: 15px; font-size: 1.2rem; cursor: pointer; }
+    .header-left .fa-bars { display: inline-flex !important; align-items: center; justify-content: center; width: 36px; height: 36px; margin-right: 15px; font-size: 1.2rem; cursor: pointer; }
     /* Make tables scrollable on mobile */
     .card { overflow-x: auto; } 
     /* Adjust padding for smaller screens */
@@ -376,7 +377,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         <div class="main-content">
             <header class="top-header">
                 <div class="header-left">
-                    <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()" style="display:none; margin-right:10px;"></i> 
+                    <i class="fa-solid fa-bars icon-btn" onclick="toggleSidebar()"></i> 
                     <span id="current-date" class="hide-on-mobile" style="font-size: 0.9rem; color: var(--text-muted);"></span>
                 </div>
                 <div class="header-right">
@@ -1872,17 +1873,10 @@ document.getElementById('auth-container').classList.add('hidden');
             expiredHTML += '</div>';
         }
 
-        // 3. Send Alert Button
-        let sendAlertBtn = '';
-        if (['ceo', 'hr_manager'].includes(state.profile.role) && hasAccess('broadcast')) {
-            sendAlertBtn = `<button class="btn-outline" onclick="document.getElementById('broadcast-modal').classList.remove('hidden')"><i class="fa-solid fa-paper-plane"></i> Send Alert</button>`;
-        }
-
-        // 4. HEADER DEFINITION (Only Once)
+        // 3. HEADER DEFINITION (Only Once)
         const header = `<div class="page-title">
             <span>${t.welcome} <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> 
             <div style="display:flex; gap:10px;">
-                ${sendAlertBtn}
                 <button class="btn-outline" onclick="exportDashboardPDF()"><i class="fa-solid fa-file-pdf"></i> Export</button>
             </div>
         </div>
