@@ -4031,16 +4031,30 @@ async function startCheckout(planId) {
     }
 
     const sessionToken = sessionData.session.access_token;
+    const endpoint = `${SUPABASE_URL}/functions/v1/create-checkout-session`;
+    const payload = { plan_id: planId, currency, success_url, cancel_url };
 
     try {
-        const { data, error } = await supabaseClient.functions.invoke('create-checkout-session', {
-            body: { plan_id: planId, currency, success_url, cancel_url },
-            headers: { Authorization: `Bearer ${sessionToken}` }
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${sessionToken}`,
+                apikey: SUPABASE_KEY,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
         });
-        if (error) throw error;
-        const url = data?.url || data?.checkout_url || data?.redirect_url;
-        if (!url) throw new Error("Missing checkout URL");
-        window.location.href = url;
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data?.error || "Checkout session failed");
+        }
+
+        if (!data?.url) {
+            throw new Error("Checkout session did not return a redirect URL");
+        }
+
+        window.location.href = data.url;
     } catch (err) {
         console.error("Checkout Error:", err);
         showToast("Checkout failed: " + err.message, true);
