@@ -188,7 +188,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 }
 
         /* --- PRICING MODAL STYLES --- */
-.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 20px; }
 .pricing-card { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); border-radius: 16px; padding: 25px; text-align: center; transition: 0.3s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
 .pricing-card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 
@@ -208,7 +208,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 .plan-tag { position: absolute; top: 12px; right: 12px; background: var(--primary); color: white; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
 
 /* Modal Checkbox */
-.modal-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.85rem; }
+.modal-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--glass-border); display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; color: var(--text-muted); font-size: 0.85rem; }
 /* Pricing modal: mobile layout fixes */
 @media (max-width: 900px) {
     #pricing-modal .modal-card { max-width: 94vw; padding: 20px; }
@@ -611,7 +611,7 @@ Employee creation via chat:
 - Required fields: full_name, email, role (employee|manager|hr_manager), phone.
 - Optional: department, temp_password.
 - If any required field is missing, ask only for the missing fields.
-- Only return create_employee if the user's plan is bundle_2 or bundle_3 AND user_role is ceo|hr_manager|manager.
+- Only return create_employee if the user's plan is starter, growth, or custom AND user_role is ceo|hr_manager|manager.
 - When the user confirms and all required fields exist, output a JSON object ONLY with this schema:
 {
   "action": "create_employee",
@@ -681,32 +681,74 @@ Never invent data. Ask if unsure.`;
 // --- 1. INSERT AFTER 'const state = { ... }' ---
 
     // BUNDLE & FEATURE CONFIGURATION
+    const TIER_ALIASES = { bundle_2: 'starter', bundle_3: 'growth' };
     const BUNDLE_CONFIG = {
-        'free': { 
-            name: 'Standard', 
-            features: ['attendance', 'basic_payroll', 'dashboard', 'employees'], 
-            can_broadcast: false 
-        },
-        'bundle_2': { 
-            name: 'Growth', 
-            features: ['attendance', 'basic_payroll', 'dashboard', 'employees', 'wfm', 'ats', 'broadcast'], 
-            can_broadcast: true 
-        },
-        'bundle_3': { 
-            name: 'Enterprise', 
-            features: ['all'], 
-            can_broadcast: true 
-        }
+        free:    { name: "Free",    features: ["dashboard", "employees", "basic_hr", "ai_preview"], can_broadcast: false },
+        starter: { name: "Starter", features: ["dashboard", "employees", "basic_hr", "ai_full"],    can_broadcast: false },
+        growth:  { name: "Growth",  features: ["dashboard", "employees", "basic_hr", "ai_full", "wfm", "ats", "broadcast"], can_broadcast: true },
+        custom:  { name: "Custom",  features: ["all"], can_broadcast: true }
     };
+
+    function normalizeTier(rawTier) {
+        const tier = String(rawTier || 'free').toLowerCase();
+        return TIER_ALIASES[tier] || tier;
+    }
+
+    function getTierConfig(tierKey) {
+        return BUNDLE_CONFIG[tierKey] || BUNDLE_CONFIG.free;
+    }
 
     // Helper: Check if feature is allowed
     function hasAccess(featureKey) {
         if (!state.org) return false;
-        const tier = state.org.subscription_tier || 'free';
-        const config = BUNDLE_CONFIG[tier] || BUNDLE_CONFIG['free'];
-        
+        const tier = normalizeTier(state.org.subscription_tier);
+        const config = getTierConfig(tier);
         if (config.features.includes('all')) return true;
         return config.features.includes(featureKey);
+    }
+
+    function requireFeature(featureKey, actionFn) {
+        if (!hasAccess(featureKey)) {
+            openPricingModal();
+            return;
+        }
+        return actionFn();
+    }
+
+    function getPlanDisplayName(tierKey) {
+        const config = getTierConfig(tierKey);
+        return config?.name || 'Free';
+    }
+
+    function updatePlanBadge() {
+        if (!state.org) return;
+        const tier = normalizeTier(state.org.subscription_tier || 'free');
+        let planName = getPlanDisplayName(tier);
+        let planColor = '#94a3b8'; // Grey
+        let planBg = 'rgba(148, 163, 184, 0.2)';
+        let icon = 'fa-seedling';
+
+        if (tier === 'starter') {
+            planColor = '#3498db';
+            planBg = 'rgba(52, 152, 219, 0.2)';
+            icon = 'fa-layer-group';
+        } else if (tier === 'growth') {
+            planColor = '#f1c40f';
+            planBg = 'rgba(241, 196, 15, 0.2)';
+            icon = 'fa-rocket';
+        } else if (tier === 'custom') {
+            planColor = '#9b59b6';
+            planBg = 'rgba(155, 89, 182, 0.2)';
+            icon = 'fa-gem';
+        }
+
+        const badgeHtml = `
+            <span style="background:${planBg}; color:${planColor}; border:1px solid ${planColor}; padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 0 10px ${planBg};">
+                <i class="fa-solid ${icon}"></i> ${planName}
+            </span>`;
+            
+        const badgeContainer = document.getElementById('plan-badge-container');
+        if(badgeContainer) badgeContainer.innerHTML = badgeHtml;
     }
     // Translations
     // --- FULL TRANSLATIONS ---
@@ -847,19 +889,21 @@ const i18n = {
             source_context: "Source Context (CV / Portfolio)",
             pricing_title: "Upgrade Your Operation",
             pricing_subtitle: "Choose the bundle that fits your scale.",
+            plan_free: "Free",
             plan_starter: "Starter",
-            plan_growth: "Growth",
-            plan_enterprise: "Enterprise",
-            price_free: "Free",
-            price_growth: "$49",
-            price_enterprise: "$199",
+            plan_growth: "Growth (Identity Verified)",
+            plan_custom: "Custom",
+            price_free: "$0",
+            price_starter: "$10",
+            price_growth: "$18",
+            price_custom: "Contact Sales",
             per_month: "/mo",
-            feature_time_attendance: "Time & Attendance",
-            feature_basic_payroll: "Basic Payroll",
             feature_employee_db: "Employee Database",
             feature_live_dashboard: "Live Dashboard",
-            feature_ai_recruitment: "AI Recruitment",
-            feature_workforce: "Workforce Management",
+            feature_basic_hr: "Basic HR Suite",
+            feature_ai_preview: "AI Assistant Preview",
+            feature_ai_full: "AI Assistant Full Access",
+            feature_everything_in_free: "Everything in Free",
             feature_everything_in_starter: "Everything in Starter",
             feature_ats: "AI Recruitment (ATS)",
             feature_wfm: "Workforce WFM (Maps)",
@@ -867,15 +911,24 @@ const i18n = {
             feature_adherence: "Adherence Charts",
             feature_everything_in_growth: "Everything in Growth",
             feature_self_hosted: "Self-Hosted VPS Option",
-            feature_adv_payroll: "Advanced Payroll Automation",
             feature_custom_domain: "Custom Domain",
             feature_priority_support: "Priority Support",
             current_plan: "Current Plan",
             recommended: "Recommended",
-            upgrade_growth: "Upgrade to Growth",
+            cta_free: "Get started for free",
+            cta_starter: "Start Starter",
+            cta_growth: "Upgrade to Growth",
+            cta_custom: "Contact Sales",
             contact_sales: "Contact Sales",
+            billing_note: "Displayed in {currency}. Billed in USD.",
+            billing_note_usd_only: "Displayed in USD. Billed in USD.",
+            billing_status: "Status: {status}",
+            billing_renews: "Renews on",
+            billing_ends: "Ends on",
             dont_show_again: "Don't show this automatically again",
+            currency_label: "Currency",
             close_btn: "Close",
+            meeting_limit_reached: "Meeting limit reached for your organization.",
             profile_title: "My Profile",
             profile_basic_info: "Basic Info",
             profile_company_role: "Company & Role",
@@ -907,7 +960,7 @@ const i18n = {
             ai_fallback: "I can help with navigation, onboarding, policies, and ATS workflows. Share your request and I will guide you.",
             ai_try_again: "Please try again.",
             ai_action_role_block: "Only CEO, HR Manager, or Manager can add employees via the assistant.",
-            ai_action_upgrade_body: "Employee creation via the assistant is available on the Growth plan and above.\nI can still answer HR questions. Open Pricing to upgrade and unlock this.",
+            ai_action_upgrade_body: "Employee creation via the assistant is available on the Starter plan and above.\nI can still answer HR questions. Open Pricing to upgrade and unlock this.",
             ai_action_missing: "I need a bit more detail to create the employee.",
             ai_action_created: "Employee created successfully.",
             ai_action_field_name: "Name",
@@ -936,9 +989,10 @@ const i18n = {
             docs_tab_reports: "Strategic Reports: ROI, burnout, and efficiency analytics.",
             docs_tab_wfm: "Workforce WFM: schedules, live roster, and coverage forecasting.",
             docs_tab_workspace: "My Workspace: personal attendance and tools.",
-            docs_bundle_starter: "Starter (Free): time & attendance, basic payroll, employee database, live dashboard.",
-            docs_bundle_growth: "Growth: everything in Starter + ATS, workforce maps, internal broadcasting, adherence charts.",
-            docs_bundle_enterprise: "Enterprise: everything in Growth + advanced payroll automation, custom domain, priority support.",
+            docs_bundle_free: "Free: basic dashboard, employees, basic HR, AI assistant preview.",
+            docs_bundle_starter: "Starter: everything in Free + full AI assistant.",
+            docs_bundle_growth: "Growth: everything in Starter + ATS, workforce WFM, internal broadcasting.",
+            docs_bundle_custom: "Custom: tailored plan with dedicated support.",
             ai_prompts: {
                 add_employee: "Add a new employee named John Doe, email john@company.com, role employee, phone +1 555 0100, department Sales",
                 add_hr: "Create an HR manager named Sara Ali, email sara@company.com, phone +1 555 0200, department HR",
@@ -1088,19 +1142,21 @@ const i18n = {
             source_context: "المحتوى الأصلي (السيرة / البورتفوليو)",
             pricing_title: "ترقية عمليتك",
             pricing_subtitle: "اختر الباقة الأنسب لنطاق عملك.",
+            plan_free: "مجانية",
             plan_starter: "الأساسية",
-            plan_growth: "النمو",
-            plan_enterprise: "المؤسسات",
-            price_free: "مجانية",
-            price_growth: "49$",
-            price_enterprise: "199$",
+            plan_growth: "النمو (موثّق الهوية)",
+            plan_custom: "مخصص",
+            price_free: "0$",
+            price_starter: "10$",
+            price_growth: "18$",
+            price_custom: "تواصل مع المبيعات",
             per_month: "/شهرياً",
-            feature_time_attendance: "الحضور والانصراف",
-            feature_basic_payroll: "الرواتب الأساسية",
             feature_employee_db: "قاعدة بيانات الموظفين",
             feature_live_dashboard: "لوحة معلومات مباشرة",
-            feature_ai_recruitment: "التوظيف بالذكاء الاصطناعي",
-            feature_workforce: "إدارة القوى العاملة",
+            feature_basic_hr: "مجموعة الموارد البشرية الأساسية",
+            feature_ai_preview: "معاينة المساعد الذكي",
+            feature_ai_full: "وصول كامل للمساعد الذكي",
+            feature_everything_in_free: "كل مزايا الباقة المجانية",
             feature_everything_in_starter: "كل مزايا الباقة الأساسية",
             feature_ats: "التوظيف الذكي (ATS)",
             feature_wfm: "خرائط القوى العاملة",
@@ -1108,15 +1164,24 @@ const i18n = {
             feature_adherence: "مخططات الالتزام",
             feature_everything_in_growth: "كل مزايا باقة النمو",
             feature_self_hosted: "خيار استضافة ذاتية",
-            feature_adv_payroll: "أتمتة رواتب متقدمة",
             feature_custom_domain: "نطاق مخصص",
             feature_priority_support: "دعم أولوية",
             current_plan: "الخطة الحالية",
             recommended: "موصى بها",
-            upgrade_growth: "الترقية إلى النمو",
+            cta_free: "ابدأ مجاناً",
+            cta_starter: "ابدأ الأساسية",
+            cta_growth: "الترقية إلى النمو",
+            cta_custom: "تواصل مع المبيعات",
             contact_sales: "تواصل مع المبيعات",
+            billing_note: "يتم العرض بعملة {currency}. تتم الفوترة بالدولار الأمريكي.",
+            billing_note_usd_only: "يتم العرض بالدولار الأمريكي. تتم الفوترة بالدولار الأمريكي.",
+            billing_status: "الحالة: {status}",
+            billing_renews: "تجدد في",
+            billing_ends: "تنتهي في",
             dont_show_again: "لا تظهر هذا تلقائياً مرة أخرى",
+            currency_label: "العملة",
             close_btn: "إغلاق",
+            meeting_limit_reached: "تم الوصول إلى حد الاجتماعات للمؤسسة.",
             profile_title: "ملفي الشخصي",
             profile_basic_info: "المعلومات الأساسية",
             profile_company_role: "الشركة والدور",
@@ -1148,7 +1213,7 @@ const i18n = {
             ai_fallback: "يمكنني المساعدة في التنقل، التأهيل، السياسات، وتدفقات ATS. شارك طلبك وسأرشدك.",
             ai_try_again: "يرجى المحاولة مرة أخرى.",
             ai_action_role_block: "يمكن فقط للمدير التنفيذي أو مدير الموارد البشرية أو المدير إضافة موظفين عبر المساعد.",
-            ai_action_upgrade_body: "إضافة الموظفين عبر المساعد متاحة في باقة النمو فما فوق.\nيمكنني الاستمرار في الإجابة على الأسئلة. سنفتح نافذة الأسعار للترقية.",
+            ai_action_upgrade_body: "إضافة الموظفين عبر المساعد متاحة في الباقة الأساسية فما فوق.\nيمكنني الاستمرار في الإجابة على الأسئلة. سنفتح نافذة الأسعار للترقية.",
             ai_action_missing: "أحتاج بعض التفاصيل الإضافية لإنشاء الموظف.",
             ai_action_created: "تم إنشاء الموظف بنجاح.",
             ai_action_field_name: "الاسم",
@@ -1177,9 +1242,10 @@ const i18n = {
             docs_tab_reports: "التقارير الاستراتيجية: ROI والاحتراق والإنتاجية.",
             docs_tab_wfm: "إدارة القوى العاملة: الجداول، قائمة الحضور الحية، والتنبؤ بالتغطية.",
             docs_tab_workspace: "مساحتي: الحضور والأدوات الشخصية.",
-            docs_bundle_starter: "الباقة الأساسية (مجانية): الحضور والانصراف، الرواتب الأساسية، قاعدة الموظفين، لوحة مباشرة.",
-            docs_bundle_growth: "باقة النمو: كل مزايا الأساسية + ATS، خرائط القوى العاملة، البث الداخلي، مخططات الالتزام.",
-            docs_bundle_enterprise: "باقة المؤسسات: كل مزايا النمو + أتمتة رواتب متقدمة، نطاق مخصص، دعم أولوية.",
+            docs_bundle_free: "الباقة المجانية: لوحة معلومات أساسية، الموظفون، موارد بشرية أساسية، ومعاينة المساعد الذكي.",
+            docs_bundle_starter: "الباقة الأساسية: كل مزايا المجانية + وصول كامل للمساعد الذكي.",
+            docs_bundle_growth: "باقة النمو: كل مزايا الأساسية + ATS، إدارة القوى العاملة، والبث الداخلي.",
+            docs_bundle_custom: "باقة مخصصة: خطة مصممة حسب الحاجة مع دعم مخصص.",
             ai_prompts: {
                 add_employee: "أضف موظفاً جديداً باسم John Doe، البريد john@company.com، الدور موظف، الهاتف +1 555 0100، القسم المبيعات",
                 add_hr: "أنشئ مدير موارد بشرية باسم Sara Ali، البريد sara@company.com، الهاتف +1 555 0200، القسم الموارد البشرية",
@@ -1413,9 +1479,9 @@ const i18n = {
         const container = document.getElementById('payroll-content'); 
         if (container) {
             container.classList.remove('hidden'); 
-            const isReadOnly = (state.org?.subscription_tier || 'free') === 'free';
+            const isReadOnly = normalizeTier(state.org?.subscription_tier || 'free') === 'free';
             const noteHtml = isReadOnly
-                ? `<div style="font-size:0.75rem; color:var(--warning);">Read-only on Starter. Upgrade to edit payroll rows.</div>`
+                ? `<div style="font-size:0.75rem; color:var(--warning);">Read-only on Free. Upgrade to edit payroll rows.</div>`
                 : '';
             let html = `<div style="height:100%; overflow:hidden; display:flex; flex-direction:column;"><div class="card-header" style="padding:20px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;"><div><div class="card-title">Payroll Data</div>${noteHtml}</div><button class="btn-outline" onclick="renderPayrollUI(document.getElementById('main-view'))"><i class="fa-solid fa-rotate"></i> Refresh</button></div><div style="flex-grow:1; overflow-y:auto; padding:0 20px 20px 20px;"><table class="payroll-table"><thead><tr><th>Employee</th><th>Salary</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th></tr></thead><tbody>`; 
             if(items) {
@@ -1775,32 +1841,7 @@ document.getElementById('auth-container').classList.add('hidden');
 
         renderSidebar(); 
         
-        // --- PLAN BADGE LOGIC ---
-        const tier = state.org.subscription_tier || 'free';
-        let planName = 'Starter';
-        let planColor = '#94a3b8'; // Grey
-        let planBg = 'rgba(255,255,255,0.1)';
-        let icon = 'fa-seedling';
-
-        if (tier === 'bundle_2') {
-            planName = 'Growth Plus'; 
-            planColor = '#f1c40f'; // Gold
-            planBg = 'rgba(241, 196, 15, 0.2)';
-            icon = 'fa-rocket';
-        } else if (tier === 'bundle_3') {
-            planName = 'Enterprise Pro'; 
-            planColor = '#9b59b6'; // Purple
-            planBg = 'rgba(155, 89, 182, 0.2)';
-            icon = 'fa-gem';
-        }
-
-        const badgeHtml = `
-            <span style="background:${planBg}; color:${planColor}; border:1px solid ${planColor}; padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 0 10px ${planBg};">
-                <i class="fa-solid ${icon}"></i> ${planName}
-            </span>`;
-            
-        const badgeContainer = document.getElementById('plan-badge-container');
-        if(badgeContainer) badgeContainer.innerHTML = badgeHtml;
+        updatePlanBadge();
 
         // Show Setup Modal if new
         const isNew = new Date() - new Date(state.org.created_at) < 60000; 
@@ -1811,6 +1852,9 @@ document.getElementById('auth-container').classList.add('hidden');
         renderMainContent();
         checkPricingPopup(); // Trigger the pricing modal check
         applyStaticTranslations();
+        updatePricingDisplay();
+        updateMeetingBookingVisibility();
+        handleStripeSuccess();
     }
     // 1. DASHBOARD
   async function loadDashboardView(container) {
@@ -2259,12 +2303,12 @@ document.getElementById('auth-container').classList.add('hidden');
             <div class="page-title">
                 Workforce Command Center 
                 <div style="display:flex; gap:10px;">
-                    <button class="btn-primary" onclick="document.getElementById('wfm-upload-input').click()">
+                    <button class="btn-primary" onclick="requireFeature('wfm', () => document.getElementById('wfm-upload-input').click())">
                         <i class="fa-solid fa-cloud-arrow-up"></i> AI Forecast Import
                     </button>
                     <input type="file" id="wfm-upload-input" style="display:none" accept=".csv, .xlsx" onchange="handleWFMUpload(this)">
                     
-                    <button class="btn-outline" onclick="exportWFMData()">
+                    <button class="btn-outline" onclick="requireFeature('wfm', exportWFMData)">
                         <i class="fa-solid fa-file-export"></i> Export Report
                     </button>
                 </div>
@@ -2351,59 +2395,61 @@ document.getElementById('auth-container').classList.add('hidden');
 
     // 1. Upload & Start AI (Doesn't wait for answer)
     window.handleWFMUpload = async function(input) {
-        const file = input.files[0];
-        if (!file) return;
+        return requireFeature('wfm', async () => {
+            const file = input.files[0];
+            if (!file) return;
 
-        // UI Feedback
-        const btn = document.querySelector('.page-title .btn-primary');
-        const oldHtml = btn ? btn.innerHTML : 'Import';
-        if(btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Starting AI...';
-        showToast("Uploading...", false);
-
-        try {
-            // A. Upload File to Supabase Storage
-            const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
-            const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
-            if (uploadError) throw uploadError;
-            
-            const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
-
-            // B. Trigger N8N (Fire & Forget)
-            // We verify the request was SENT, but we DO NOT wait for the analysis to finish.
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Handshake limit
+            // UI Feedback
+            const btn = document.querySelector('.page-title .btn-primary');
+            const oldHtml = btn ? btn.innerHTML : 'Import';
+            if(btn) btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Starting AI...';
+            showToast("Uploading...", false);
 
             try {
-                await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'wfm_forecast_analysis',
-                        file_url: publicUrl,
-                        file_name: fileName, // Important: Sent so N8N can save it to DB
-                        org_id: state.org.id,
-                        user_id: state.user.id,
-                        bundle_tier: state.org.subscription_tier || 'free'
-                    }),
-                    signal: controller.signal
-                });
-            } catch (e) {
-                // Ignore timeout errors here - it means N8N got the message and is working.
-                if (e.name !== 'AbortError') console.warn("Webhook trigger warning:", e);
+                // A. Upload File to Supabase Storage
+                const fileName = `wfm_forecast_${Date.now()}_${file.name}`;
+                const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file);
+                if (uploadError) throw uploadError;
+                
+                const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName);
+
+                // B. Trigger N8N (Fire & Forget)
+                // We verify the request was SENT, but we DO NOT wait for the analysis to finish.
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Handshake limit
+
+                try {
+                    await fetch('https://n8n.srv1174105.hstgr.cloud/webhook/workforce_hr_digitivia', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'wfm_forecast_analysis',
+                            file_url: publicUrl,
+                            file_name: fileName, // Important: Sent so N8N can save it to DB
+                            org_id: state.org.id,
+                            user_id: state.user.id,
+                            bundle_tier: state.org.subscription_tier || 'free'
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (e) {
+                    // Ignore timeout errors here - it means N8N got the message and is working.
+                    if (e.name !== 'AbortError') console.warn("Webhook trigger warning:", e);
+                }
+                clearTimeout(timeoutId);
+
+                // C. Start Looking for the Result in DB
+                showToast("AI is analyzing. Results will appear automatically.", false);
+                pollForWFMResults(fileName);
+
+            } catch (err) {
+                console.error("Upload Error:", err);
+                showToast("Failed to start: " + err.message, true);
+            } finally {
+                if(btn) btn.innerHTML = oldHtml;
+                if(input) input.value = '';
             }
-            clearTimeout(timeoutId);
-
-            // C. Start Looking for the Result in DB
-            showToast("AI is analyzing. Results will appear automatically.", false);
-            pollForWFMResults(fileName);
-
-        } catch (err) {
-            console.error("Upload Error:", err);
-            showToast("Failed to start: " + err.message, true);
-        } finally {
-            if(btn) btn.innerHTML = oldHtml;
-            if(input) input.value = '';
-        }
+        });
     }
 
     // 2. Poll Database for Results (Bypasses Server Timeout)
@@ -2495,29 +2541,31 @@ document.getElementById('auth-container').classList.add('hidden');
     }
     // 4. EXPORT FUNCTION
     window.exportWFMData = async function() {
-        showToast("Generating Report...");
-        const { data: logs } = await supabaseClient
-            .from('audit_logs')
-            .select('*')
-            .eq('org_id', state.org.id)
-            .eq('action_type', 'WFM_FORECAST_GENERATED')
-            .order('created_at', { ascending: false });
+        return requireFeature('wfm', async () => {
+            showToast("Generating Report...");
+            const { data: logs } = await supabaseClient
+                .from('audit_logs')
+                .select('*')
+                .eq('org_id', state.org.id)
+                .eq('action_type', 'WFM_FORECAST_GENERATED')
+                .order('created_at', { ascending: false });
 
-        if(!logs || logs.length === 0) return showToast("No data to export", true);
+            if(!logs || logs.length === 0) return showToast("No data to export", true);
 
-        let csv = "Date,File,Service Level,Adherence,Occupancy,Insight\n";
-        logs.forEach(log => {
-            const d = new Date(log.created_at).toLocaleDateString();
-            const f = (log.details?.file || "Unknown").split('_').pop();
-            const m = log.details?.metrics || {};
-            const i = (log.details?.insight || "").replace(/,/g, " ").replace(/\n/g, " ");
-            csv += `${d},${f},${m.sl||0}%,${m.adherence||0}%,${m.occupancy||0}%,${i.substring(0,100)}...\n`;
+            let csv = "Date,File,Service Level,Adherence,Occupancy,Insight\n";
+            logs.forEach(log => {
+                const d = new Date(log.created_at).toLocaleDateString();
+                const f = (log.details?.file || "Unknown").split('_').pop();
+                const m = log.details?.metrics || {};
+                const i = (log.details?.insight || "").replace(/,/g, " ").replace(/\n/g, " ");
+                csv += `${d},${f},${m.sl||0}%,${m.adherence||0}%,${m.occupancy||0}%,${i.substring(0,100)}...\n`;
+            });
+
+            const link = document.createElement("a");
+            link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+            link.download = "WFM_Strategy_Report.csv";
+            link.click();
         });
-
-        const link = document.createElement("a");
-        link.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
-        link.download = "WFM_Strategy_Report.csv";
-        link.click();
     }
 
     // --- UPDATED: Handle Upload with CORRECT Webhook & Instant Reflection ---
@@ -2732,8 +2780,10 @@ document.getElementById('auth-container').classList.add('hidden');
         const { data: org, error } = await supabaseClient.from('organizations').select('*').eq('id', state.org.id).single();
         if(error) return showToast("Failed to load org data", true);
 
+        const tierLabel = getPlanDisplayName(normalizeTier(state.org?.subscription_tier || 'free'));
+
         container.innerHTML = `
-            <div class="page-title">Organization Settings <span class="badge" style="position:static; font-size:0.9rem; background:var(--info)">Enterprise Tier</span></div>
+            <div class="page-title">Organization Settings <span class="badge" style="position:static; font-size:0.9rem; background:var(--info)">${tierLabel} Tier</span></div>
             
             <div class="dashboard-grid" style="grid-template-columns: 1fr;">
                 <div class="card">
@@ -2883,13 +2933,7 @@ document.getElementById('auth-container').classList.add('hidden');
                 ul.innerHTML += `<li class="nav-item ${state.activeView==='payroll'?'active':''}" onclick="navigateTo('payroll')"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
             }
             
-            // --- ATS MOVED HERE WITH GATING LOGIC ---
-            if (hasAccess('ats')) { 
-                 ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="navigateTo('ats')"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
-            } else {
-                // LOCKED -> Opens Pricing Modal
-                ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.ats}</span></li>`;
-            }
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='ats'?'active':''}" onclick="navigateTo('ats')"><i class="fa-solid fa-briefcase"></i> <span>${t.ats}</span></li>`;
             
             sec.appendChild(ul); container.appendChild(sec);
         }
@@ -2900,12 +2944,7 @@ document.getElementById('auth-container').classList.add('hidden');
             sec.innerHTML = `<div class="nav-header">${t.nav_team_mgmt}</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             
-            // WFM Feature Gating
-            if (hasAccess('wfm')) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="navigateTo('wfm')"><i class="fa-solid fa-chart-line"></i> <span>${t.wfm}</span></li>`;
-            } else {
-                ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.wfm}</span></li>`;
-            }
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="navigateTo('wfm')"><i class="fa-solid fa-chart-line"></i> <span>${t.wfm}</span></li>`;
 
             // ATS was removed from here to prevent duplication
 
@@ -3093,7 +3132,25 @@ body: JSON.stringify({
     function openPerformanceModal() { document.getElementById('perf-modal').classList.remove('hidden'); }
     function setPerfInput(mode) { state.perfInputMode = mode; const btnFile = document.getElementById('btn-file-mode'); const btnManual = document.getElementById('btn-manual-mode'); const boxFile = document.getElementById('perf-input-file'); const boxManual = document.getElementById('perf-input-manual'); if (mode === 'file') { btnFile.style.borderColor = 'var(--primary)'; btnManual.style.borderColor = 'var(--glass-border)'; boxFile.classList.remove('hidden'); boxManual.classList.add('hidden'); } else { btnManual.style.borderColor = 'var(--primary)'; btnFile.style.borderColor = 'var(--glass-border)'; boxManual.classList.remove('hidden'); boxFile.classList.add('hidden'); } }
     async function handlePerformanceSubmit() { const btn = document.querySelector('#perf-modal .btn-primary'); const oldText = btn.innerHTML; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...'; try { const dept = document.getElementById('perf-dept').value; let payloadData = ""; if (state.perfInputMode === 'file') { const fileInput = document.getElementById('perf-file'); if (!fileInput.files.length) throw new Error("Please select a file."); const file = fileInput.files[0]; const fileName = `perf_${Date.now()}_${file.name}`; const { error: uploadError } = await supabaseClient.storage.from('payroll_files').upload(fileName, file); if (uploadError) throw uploadError; const { data: { publicUrl } } = supabaseClient.storage.from('payroll_files').getPublicUrl(fileName); payloadData = publicUrl; } else { payloadData = document.getElementById('perf-text').value; if (!payloadData) throw new Error("Please enter text logs."); } const response = await fetch(N8N_PERF_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: "analyze_performance", org_id: state.org.id, department: dept, review_period: state.perfCycle, input_type: state.perfInputMode, data_content: payloadData }) }); if (!response.ok) throw new Error("AI Analysis Failed"); let aiResponse = await response.json(); if (Array.isArray(aiResponse) && aiResponse.length > 0) aiResponse = aiResponse[0]; if (typeof aiResponse === 'string') try { aiResponse = JSON.parse(aiResponse); } catch(e) {} const results = aiResponse.results || []; if (results.length === 0) throw new Error("AI returned no results."); let successCount = 0; for (const res of results) { const { data: userProfile } = await supabaseClient.from('profiles').select('user_id').eq('email', res.email).maybeSingle(); if (userProfile) { await supabaseClient.from('performance_reviews').insert({ org_id: state.org.id, user_id: userProfile.user_id, review_period: state.perfCycle, period_start: new Date(), period_end: new Date(), score_quality: res.score_quality || 0, score_speed: res.score_speed || 0, score_teamwork: res.score_teamwork || 0, score_efficiency: res.score_efficiency || 0, score_final: res.score_final || 0, ai_feedback: res.ai_feedback || "No feedback.", raw_data_source: state.perfInputMode }); successCount++; } } showToast(`Success! Saved ${successCount} reviews.`); document.getElementById('perf-modal').classList.add('hidden'); renderPerformanceUI(document.getElementById('main-view')); } catch (err) { console.error(err); showToast(err.message, true); } finally { btn.innerHTML = oldText; } }
-    async function promoteCandidateToEmployee(candidateId) { const { data: candidate, error } = await supabaseClient.from('ats_applications').select('*, ats_jobs(title, department)').eq('id', candidateId).single(); if (error) { showToast("Error fetching details", true); return; } openOnboardModal(); document.getElementById('new-name').value = candidate.full_name; document.getElementById('new-email').value = candidate.email; document.getElementById('new-meta-phone').value = candidate.phone || ''; document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || ''; showToast("Candidate data pre-filled. Please set a password."); }
+    async function promoteCandidateToEmployee(candidateId) {
+        return requireFeature('ats', async () => {
+            const { data: candidate, error } = await supabaseClient
+                .from('ats_applications')
+                .select('*, ats_jobs(title, department)')
+                .eq('id', candidateId)
+                .single();
+            if (error) {
+                showToast("Error fetching details", true);
+                return;
+            }
+            openOnboardModal();
+            document.getElementById('new-name').value = candidate.full_name;
+            document.getElementById('new-email').value = candidate.email;
+            document.getElementById('new-meta-phone').value = candidate.phone || '';
+            document.getElementById('new-meta-dept').value = candidate.ats_jobs?.department || '';
+            showToast("Candidate data pre-filled. Please set a password.");
+        });
+    }
     function openOnboardModal() { const sel = document.getElementById('new-role'); sel.innerHTML=''; ['hr_manager','manager','employee'].forEach(r=>sel.innerHTML+=`<option value="${r}">${r}</option>`); document.getElementById('onboard-modal').classList.remove('hidden'); }
     function closeOnboardModal() { document.getElementById('onboard-modal').classList.add('hidden'); }
 // --- UPDATED ONBOARDING LOGIC ---
@@ -3230,6 +3287,8 @@ function toggleLang() {
     renderSidebar();
     renderMainContent();
     applyStaticTranslations();
+    updatePricingDisplay();
+    updateMeetingBookingVisibility();
     const aiWindow = document.getElementById('ai-window');
     if (aiWindow && !aiWindow.classList.contains('hidden')) {
         updateAiCredits();
@@ -3444,9 +3503,9 @@ function toggleLang() {
     }
 
     function canRunAiActions() {
-        const tier = state.org?.subscription_tier || 'free';
+        const tier = normalizeTier(state.org?.subscription_tier || 'free');
         const role = state.profile?.role || '';
-        const eligibleTier = ['bundle_2', 'bundle_3'].includes(tier);
+        const eligibleTier = ['starter', 'growth', 'custom'].includes(tier);
         const eligibleRole = ['ceo', 'hr_manager', 'manager'].includes(role);
         if (!eligibleRole) {
             return { ok: false, reason: t('ai_action_role_block'), openPricing: false };
@@ -3648,71 +3707,79 @@ function toggleLang() {
     }
     // --- ATS CANDIDATE LOGIC ---
     function openCandidateModal() {
-        // Create modal HTML dynamically if it doesn't exist
-        if (!document.getElementById('candidate-modal')) {
-            const modal = document.createElement('div');
-            modal.id = 'candidate-modal';
-            modal.className = 'modal-overlay hidden';
-            modal.innerHTML = `
-            <div class="modal-card">
-                <div class="modal-title">Add Candidate <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('candidate-modal').classList.add('hidden')"></i></div>
-                <div class="form-group"><label>Full Name</label><input type="text" id="cand-name" class="form-input"></div>
-                <div class="form-group"><label>Email</label><input type="email" id="cand-email" class="form-input"></div>
-                <div class="form-group"><label>Apply for Role (Job ID)</label><input type="text" id="cand-job" class="form-input" placeholder="Paste Job ID"></div>
-                <div class="form-group"><label>Upload CV (PDF)</label><input type="file" id="cand-cv" class="form-input"></div>
-                <button class="btn-primary" style="width:100%" onclick="saveCandidate()">Submit Application</button>
-            </div>`;
-            document.body.appendChild(modal);
-        }
-        document.getElementById('candidate-modal').classList.remove('hidden');
+        return requireFeature('ats', () => {
+            // Create modal HTML dynamically if it doesn't exist
+            if (!document.getElementById('candidate-modal')) {
+                const modal = document.createElement('div');
+                modal.id = 'candidate-modal';
+                modal.className = 'modal-overlay hidden';
+                modal.innerHTML = `
+                <div class="modal-card">
+                    <div class="modal-title">Add Candidate <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('candidate-modal').classList.add('hidden')"></i></div>
+                    <div class="form-group"><label>Full Name</label><input type="text" id="cand-name" class="form-input"></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="cand-email" class="form-input"></div>
+                    <div class="form-group"><label>Apply for Role (Job ID)</label><input type="text" id="cand-job" class="form-input" placeholder="Paste Job ID"></div>
+                    <div class="form-group"><label>Upload CV (PDF)</label><input type="file" id="cand-cv" class="form-input"></div>
+                    <button class="btn-primary" style="width:100%" onclick="saveCandidate()">Submit Application</button>
+                </div>`;
+                document.body.appendChild(modal);
+            }
+            document.getElementById('candidate-modal').classList.remove('hidden');
+        });
     }
 
     async function saveCandidate() {
-        const name = document.getElementById('cand-name').value;
-        const email = document.getElementById('cand-email').value;
-        const jobId = document.getElementById('cand-job').value; // In a real app, this would be a dropdown
-        const fileInput = document.getElementById('cand-cv');
+        return requireFeature('ats', async () => {
+            const name = document.getElementById('cand-name').value;
+            const email = document.getElementById('cand-email').value;
+            const jobId = document.getElementById('cand-job').value; // In a real app, this would be a dropdown
+            const fileInput = document.getElementById('cand-cv');
 
-        if (!name || !email) return showToast("Name and Email required", true);
+            if (!name || !email) return showToast("Name and Email required", true);
 
-        let cvUrl = null;
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            const fileName = `cvs/${Date.now()}_${file.name}`;
-            const { error: upErr } = await supabaseClient.storage.from('resumes').upload(fileName, file);
-            if (!upErr) {
-                const { data } = supabaseClient.storage.from('resumes').getPublicUrl(fileName);
-                cvUrl = data.publicUrl;
+            let cvUrl = null;
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const fileName = `cvs/${Date.now()}_${file.name}`;
+                const { error: upErr } = await supabaseClient.storage.from('resumes').upload(fileName, file);
+                if (!upErr) {
+                    const { data } = supabaseClient.storage.from('resumes').getPublicUrl(fileName);
+                    cvUrl = data.publicUrl;
+                }
             }
-        }
 
-        const payload = {
-            job_id: jobId || null,
-            full_name: name,
-            email: email,
-            resume_url: cvUrl,
-            status: 'Applied'
-        };
+            const payload = {
+                job_id: jobId || null,
+                full_name: name,
+                email: email,
+                resume_url: cvUrl,
+                status: 'Applied'
+            };
 
-        const orgColumn = await resolveAtsOrgColumn();
-        if (!orgColumn && atsUseJobOrgFilter && !jobId) {
-            showToast("Please provide a Job ID so we can link this candidate to your organization.", true);
-            return;
-        }
-        if (orgColumn) payload[orgColumn] = state.org.id;
+            const orgColumn = await resolveAtsOrgColumn();
+            if (!orgColumn && atsUseJobOrgFilter && !jobId) {
+                showToast("Please provide a Job ID so we can link this candidate to your organization.", true);
+                return;
+            }
+            if (orgColumn) payload[orgColumn] = state.org.id;
 
-        const { error } = await supabaseClient.from('ats_applications').insert(payload);
+            const { error } = await supabaseClient.from('ats_applications').insert(payload);
 
-        if (error) showToast("Error: " + error.message, true);
-        else {
-            showToast("Candidate Added");
-            document.getElementById('candidate-modal').classList.add('hidden');
-            loadATSView(document.getElementById('main-view'));
-        }
+            if (error) showToast("Error: " + error.message, true);
+            else {
+                showToast("Candidate Added");
+                document.getElementById('candidate-modal').classList.add('hidden');
+                loadATSView(document.getElementById('main-view'));
+            }
+        });
     }
 
     // --- EMAIL INTEGRATION LOGIC ---
-function openEmailConnectModal() { document.getElementById('email-connect-modal').classList.remove('hidden'); }
+function openEmailConnectModal() {
+    return requireFeature('ats', () => {
+        document.getElementById('email-connect-modal').classList.remove('hidden');
+    });
+}
 
 function toggleImapFields() {
     const type = document.getElementById('imap-provider').value;
@@ -3755,40 +3822,42 @@ async function refreshAtsIntegrationStatus() {
 }
 
 async function saveEmailIntegration() {
-    const email = document.getElementById('imap-email').value;
-    const pass = document.getElementById('imap-pass').value;
-    const host = document.getElementById('imap-host').value;
-    const port = document.getElementById('imap-port').value || 993;
-    const provider = document.getElementById('imap-provider').value;
+    return requireFeature('ats', async () => {
+        const email = document.getElementById('imap-email').value;
+        const pass = document.getElementById('imap-pass').value;
+        const host = document.getElementById('imap-host').value;
+        const port = document.getElementById('imap-port').value || 993;
+        const provider = document.getElementById('imap-provider').value;
 
-    if(!email || !pass) return showToast("Email and Password required", true);
+        if(!email || !pass) return showToast("Email and Password required", true);
 
-    const payload = {
-        org_id: state.org.id,
-        integration_type: 'imap_email',
-        provider,
-        email,
-        password: pass,
-        host,
-        port,
-        tls: true,
-        status: 'active'
-    };
+        const payload = {
+            org_id: state.org.id,
+            integration_type: 'imap_email',
+            provider,
+            email,
+            password: pass,
+            host,
+            port,
+            tls: true,
+            status: 'active'
+        };
 
-    try {
-        const res = await fetch(N8N_ATS_CONNECT_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Webhook rejected the request");
-        showToast("Connected! AI is now watching your inbox.");
-        document.getElementById('email-connect-modal').classList.add('hidden');
-        await refreshAtsIntegrationStatus();
-    } catch (err) {
-        console.error("ATS Connect Error:", err);
-        showToast("Connect failed: " + err.message, true);
-    }
+        try {
+            const res = await fetch(N8N_ATS_CONNECT_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error("Webhook rejected the request");
+            showToast("Connected! AI is now watching your inbox.");
+            document.getElementById('email-connect-modal').classList.add('hidden');
+            await refreshAtsIntegrationStatus();
+        } catch (err) {
+            console.error("ATS Connect Error:", err);
+            showToast("Connect failed: " + err.message, true);
+        }
+    });
 }
     // OPEN CANDIDATE MODAL
 window.viewCandidateAI = async function(candidateId) {
@@ -3816,8 +3885,210 @@ window.viewCandidateAI = async function(candidateId) {
 }
     // --- PRICING MODAL LOGIC ---
 
+const STARTER_DISPLAY_PRICES = {
+    USD: { amount: 10.0, digits: 2 },
+    AED: { amount: 36.7275, digits: 4 },
+    EGP: { amount: 472.834, digits: 3 },
+    EUR: { amount: 8.5796, digits: 4 },
+    GBP: { amount: 7.4325, digits: 4 },
+    SAR: { amount: 37.5028, digits: 4 }
+};
+const GROWTH_DISPLAY_PRICES = {
+    USD: { amount: 18.0, digits: 2 }
+};
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'EGP', 'AED', 'SAR'];
+const appStorage = (() => {
+    try { return localStorage; } catch (e) { return { getItem: () => null, setItem: () => {}, removeItem: () => {} }; }
+})();
+
+function inferCurrency() {
+    const lang = (navigator.language || '').toLowerCase();
+    const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
+    if (tz.includes('africa/cairo')) return 'EGP';
+    if (lang.startsWith('ar') || tz.includes('asia/riyadh') || tz.includes('asia/kuwait') || tz.includes('asia/qatar') || tz.includes('asia/bahrain')) {
+        return 'SAR';
+    }
+    if (tz.includes('asia/dubai')) return 'SAR';
+    if (tz.startsWith('europe/') || lang.includes('-gb') || lang.includes('-ie')) {
+        return lang.includes('-gb') ? 'GBP' : 'EUR';
+    }
+    if (lang.includes('en-gb')) return 'GBP';
+    if (lang.includes('en-us') || tz.startsWith('america/')) return 'USD';
+    return 'USD';
+}
+
+function getPricingCurrency() {
+    const stored = appStorage.getItem('app_currency');
+    if (stored && SUPPORTED_CURRENCIES.includes(stored)) return stored;
+    const inferred = inferCurrency();
+    appStorage.setItem('app_currency', inferred);
+    return inferred;
+}
+
+function formatCurrencyAmount(amount, currency, digits = 2) {
+    return new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+    }).format(amount);
+}
+
+function setPricingCurrency(currency) {
+    const safeCurrency = SUPPORTED_CURRENCIES.includes(currency) ? currency : 'USD';
+    appStorage.setItem('app_currency', safeCurrency);
+    updatePricingDisplay(safeCurrency);
+}
+
+function updatePricingCtas() {
+    const tier = normalizeTier(state.org?.subscription_tier || 'free');
+    const ctas = {
+        free: t('cta_free'),
+        starter: t('cta_starter'),
+        growth: t('cta_growth'),
+        custom: t('cta_custom')
+    };
+    document.querySelectorAll('[data-cta-plan]').forEach((btn) => {
+        const plan = btn.getAttribute('data-cta-plan');
+        const isCurrent = plan === tier;
+        const labelEl = btn.querySelector('[data-cta-label]') || btn;
+        if (isCurrent) {
+            labelEl.textContent = t('current_plan');
+            btn.setAttribute('disabled', 'disabled');
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'default';
+            btn.onclick = null;
+        } else {
+            labelEl.textContent = ctas[plan] || labelEl.textContent;
+            btn.removeAttribute('disabled');
+            btn.style.opacity = '';
+            btn.style.cursor = '';
+            const url = btn.getAttribute('data-plan-url');
+            if (url) {
+                btn.onclick = () => window.open(url, '_blank');
+            }
+        }
+    });
+}
+
+function updatePricingDisplay(forcedCurrency) {
+    const currency = SUPPORTED_CURRENCIES.includes(forcedCurrency) ? forcedCurrency : getPricingCurrency();
+    const select = document.getElementById('pricing-currency');
+    if (select && select.value !== currency) select.value = currency;
+    document.querySelectorAll('[data-price-plan]').forEach((el) => {
+        const plan = el.getAttribute('data-price-plan');
+        if (plan === 'custom') {
+            el.textContent = t('contact_sales');
+            return;
+        }
+        if (plan === 'free') {
+            el.textContent = formatCurrencyAmount(0, currency, 2);
+            return;
+        }
+        let table = null;
+        if (plan === 'starter') table = STARTER_DISPLAY_PRICES;
+        if (plan === 'growth') table = GROWTH_DISPLAY_PRICES;
+        if (!table) return;
+        const entry = table[currency] || table.USD;
+        const currencyUsed = table[currency] ? currency : 'USD';
+        el.textContent = formatCurrencyAmount(entry.amount, currencyUsed, entry.digits);
+    });
+    const showNote = currency !== 'USD';
+    document.querySelectorAll('[data-price-note]').forEach((el) => {
+        const plan = el.getAttribute('data-price-note');
+        if (!showNote) {
+            el.textContent = '';
+            el.style.display = 'none';
+            return;
+        }
+        if (plan === 'growth' && !GROWTH_DISPLAY_PRICES[currency]) {
+            el.textContent = t('billing_note_usd_only');
+            el.style.display = 'block';
+            return;
+        }
+        el.textContent = tf('billing_note', { currency });
+        el.style.display = 'block';
+    });
+    document.querySelectorAll('[data-per-month]').forEach((el) => {
+        const plan = el.getAttribute('data-per-month');
+        el.style.display = plan === 'custom' ? 'none' : '';
+    });
+    updatePricingCtas();
+    updateBillingStatus();
+}
+
+async function startCheckout(planId) {
+    if (!planId) return;
+    const currency = getPricingCurrency();
+    const baseUrl = window.location.origin + window.location.pathname;
+    const success_url = `${baseUrl}?stripe_success=1`;
+    const cancel_url = `${baseUrl}?stripe_cancel=1`;
+
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('create-checkout-session', {
+            body: { plan_id: planId, currency, success_url, cancel_url }
+        });
+        if (error) throw error;
+        const url = data?.url || data?.checkout_url || data?.redirect_url;
+        if (!url) throw new Error("Missing checkout URL");
+        window.location.href = url;
+    } catch (err) {
+        console.error("Checkout Error:", err);
+        showToast("Checkout failed: " + err.message, true);
+    }
+}
+
+function updateBillingStatus() {
+    const statusEl = document.getElementById('billing-status');
+    if (!statusEl) return;
+    if (!state.org) {
+        statusEl.textContent = '';
+        return;
+    }
+    const status = state.org.subscription_status || 'inactive';
+    const periodEnd = state.org.current_period_end;
+    const cancelAtPeriodEnd = Boolean(state.org.cancel_at_period_end);
+    if (!periodEnd) {
+        statusEl.textContent = tf('billing_status', { status }, `Status: ${status}`);
+        return;
+    }
+    const dateStr = new Date(periodEnd).toLocaleDateString();
+    const timingLabel = cancelAtPeriodEnd ? t('billing_ends') : t('billing_renews');
+    statusEl.textContent = `${tf('billing_status', { status }, `Status: ${status}`)} · ${timingLabel} ${dateStr}`;
+}
+
+async function refreshOrgState() {
+    if (!state.org) return false;
+    const previousTier = normalizeTier(state.org.subscription_tier || 'free');
+    const { data, error } = await supabaseClient.from('organizations').select('*').eq('id', state.org.id).single();
+    if (error || !data) return false;
+    state.org = data;
+    updatePlanBadge();
+    updatePricingDisplay();
+    return normalizeTier(state.org.subscription_tier || 'free') !== previousTier;
+}
+
+async function handleStripeSuccess() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('stripe_success') !== '1') return;
+    showToast("Payment successful");
+    params.delete('stripe_success');
+    const nextQuery = params.toString();
+    const nextUrl = nextQuery ? `${window.location.pathname}?${nextQuery}` : window.location.pathname;
+    window.history.replaceState({}, '', nextUrl);
+
+    const initialTier = normalizeTier(state.org?.subscription_tier || 'free');
+    for (let i = 0; i < 3; i++) {
+        const updated = await refreshOrgState();
+        const currentTier = normalizeTier(state.org?.subscription_tier || 'free');
+        if (updated || currentTier !== initialTier) break;
+        if (i < 2) await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+}
+
 function openPricingModal() {
     document.getElementById('pricing-modal').classList.remove('hidden');
+    updatePricingDisplay();
 }
 
 function closePricingModal() {
@@ -3844,15 +4115,77 @@ function closeDocumentationModal() {
     document.getElementById('documentation-modal').classList.add('hidden');
 }
 
+let meetingBookingLocked = false;
+
+function updateMeetingBookingVisibility() {
+    const isCeo = state.profile?.role === 'ceo';
+    if (!isCeo) {
+        document.querySelectorAll('[data-booking-button]').forEach((btn) => {
+            btn.style.display = 'none';
+        });
+        document.querySelectorAll('[data-booking-message]').forEach((msg) => msg.classList.add('hidden'));
+        return;
+    }
+    if (meetingBookingLocked) {
+        setMeetingLimitReached();
+        return;
+    }
+    document.querySelectorAll('[data-booking-button]').forEach((btn) => {
+        btn.style.display = '';
+    });
+    document.querySelectorAll('[data-booking-message]').forEach((msg) => msg.classList.add('hidden'));
+}
+
+function setMeetingLimitReached() {
+    meetingBookingLocked = true;
+    document.querySelectorAll('[data-booking-button]').forEach((btn) => {
+        btn.style.display = 'none';
+    });
+    document.querySelectorAll('[data-booking-message]').forEach((msg) => {
+        msg.classList.remove('hidden');
+    });
+}
+
+async function handleMeetingBooking(event) {
+    if (event) event.preventDefault();
+    if (!state.profile || state.profile.role !== 'ceo') return false;
+    if (meetingBookingLocked) {
+        setMeetingLimitReached();
+        return false;
+    }
+    const btn = event?.currentTarget;
+    const url = btn?.getAttribute('data-booking-url');
+    const source = btn?.getAttribute('data-booking-source') || 'unknown';
+    const metadata = {
+        source,
+        user_id: state.user?.id,
+        email: state.profile?.email,
+        role: state.profile?.role,
+        org_name: state.org?.name,
+        timestamp: new Date().toISOString()
+    };
+    const { error } = await supabaseClient.rpc('book_org_meeting', { p_org_id: state.org.id, p_metadata: metadata });
+    if (error) {
+        if (error.code === 'MEETING_LIMIT_REACHED' || error.message === 'MEETING_LIMIT_REACHED') {
+            setMeetingLimitReached();
+            return false;
+        }
+        showToast("Booking failed: " + error.message, true);
+        return false;
+    }
+    if (url) window.open(url, '_blank');
+    return false;
+}
+
 // Function to check and show on load
 function checkPricingPopup() {
     // Only show for CEO role, and if not hidden by user preference
     if (state.profile && state.profile.role === 'ceo') {
         const shouldHide = localStorage.getItem('digitivia_hide_pricing');
-        // Also, don't show if they are ALREADY on Bundle 3 (Enterprise)
-        const currentTier = state.org.subscription_tier || 'free';
+        // Also, don't show if they are already on Growth or Custom
+        const currentTier = normalizeTier(state.org.subscription_tier || 'free');
         
-        if (!shouldHide && currentTier !== 'bundle_3') {
+        if (!shouldHide && !['growth', 'custom'].includes(currentTier)) {
             setTimeout(() => {
                 openPricingModal();
             }, 1500); // Small delay for nice effect after load
@@ -3994,6 +4327,7 @@ function openProfileModal() {
     }
 
     window.handleWFMUpload = async function(input) {
+        return requireFeature('wfm', async () => {
         const file = input.files[0];
         if (!file) return;
 
@@ -4068,6 +4402,7 @@ function openProfileModal() {
             if(btn) btn.innerHTML = oldHtml;
             if(input) input.value = '';
         }
+        });
     }
 
     // 2. Check Database Loop
@@ -4184,9 +4519,10 @@ function openProfileModal() {
             We are thrilled to have you. To ensure your HR data is migrated correctly, we offer <b>2 Free Setup Calls</b> (30 mins each).
         </p>
         <div style="display:grid; gap:10px;">
-            <a href="https://calendly.com" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+            <a href="#" class="btn-primary" style="justify-content:center; text-decoration:none;" data-booking-button data-booking-url="https://calendly.com" data-booking-source="setup" onclick="return handleMeetingBooking(event)">
                 <i class="fa-solid fa-calendar-check"></i> <span data-i18n="setup_cta">Book Integration Call</span>
             </a>
+            <div class="hidden" style="font-size:0.85rem; color:var(--warning);" data-i18n="meeting_limit_reached" data-booking-message>Meeting limit reached for your organization.</div>
             <button class="btn-outline" onclick="document.getElementById('setup-modal').classList.add('hidden')">
                 <span data-i18n="setup_skip">I'll explore on my own</span>
             </button>
@@ -4202,9 +4538,10 @@ function openProfileModal() {
             <p style="color:var(--text-muted); margin-bottom:20px; line-height:1.6;" data-i18n="help_body">
                 Book two free 30-minute sessions (1 hour total) and we will help you integrate and set up your HR workspace.
             </p>
-            <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+            <a href="#" class="btn-primary" style="justify-content:center; text-decoration:none;" data-booking-button data-booking-url="https://calendar.app.google/aYZBqU3M32EX2fM57" data-booking-source="help" onclick="return handleMeetingBooking(event)">
                 <i class="fa-solid fa-calendar-check"></i> <span data-i18n="help_cta">Book a Free Meeting</span>
             </a>
+            <div class="hidden" style="font-size:0.85rem; color:var(--warning); margin-top:8px;" data-i18n="meeting_limit_reached" data-booking-message>Meeting limit reached for your organization.</div>
         </div>
     </div>
     <div id="documentation-modal" class="modal-overlay hidden">
@@ -4234,15 +4571,17 @@ function openProfileModal() {
             <div class="settings-section">
                 <div class="settings-header"><i class="fa-solid fa-tags"></i> <span data-i18n="docs_bundles_title">Bundles</span></div>
                 <ul class="feature-list">
-                    <li data-i18n="docs_bundle_starter">Starter (Free): time & attendance, basic payroll, employee database, live dashboard.</li>
-                    <li data-i18n="docs_bundle_growth">Growth: everything in Starter + ATS, workforce maps, internal broadcasting, adherence charts.</li>
-                    <li data-i18n="docs_bundle_enterprise">Enterprise: everything in Growth + advanced payroll automation, custom domain, priority support.</li>
+                    <li data-i18n="docs_bundle_free">Free: basic dashboard, employees, basic HR, AI assistant preview.</li>
+                    <li data-i18n="docs_bundle_starter">Starter: everything in Free + full AI assistant.</li>
+                    <li data-i18n="docs_bundle_growth">Growth: everything in Starter + ATS, workforce WFM, internal broadcasting.</li>
+                    <li data-i18n="docs_bundle_custom">Custom: tailored plan with dedicated support.</li>
                 </ul>
             </div>
             <div style="margin-top:20px; text-align:center;">
-                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+                <a href="#" class="btn-primary" style="justify-content:center; text-decoration:none;" data-booking-button data-booking-url="https://calendar.app.google/aYZBqU3M32EX2fM57" data-booking-source="docs" onclick="return handleMeetingBooking(event)">
                     <i class="fa-solid fa-calendar-check"></i> <span data-i18n="docs_cta">Need a walkthrough? Book a free meeting.</span>
                 </a>
+                <div class="hidden" style="font-size:0.85rem; color:var(--warning); margin-top:8px;" data-i18n="meeting_limit_reached" data-booking-message>Meeting limit reached for your organization.</div>
             </div>
         </div>
     </div>
@@ -4345,23 +4684,35 @@ function openProfileModal() {
 
         <div class="pricing-grid">
             <div class="pricing-card">
-                <div class="plan-name" data-i18n="plan_starter">Starter</div>
-                <div class="plan-price"><span data-i18n="price_free">Free</span><span data-i18n="per_month">/mo</span></div>
+                <div class="plan-name" data-i18n="plan_free">Free</div>
+                <div class="plan-price"><span data-price-plan="free">$0</span><span data-per-month="free" data-i18n="per_month">/mo</span></div>
                 <ul class="feature-list">
-                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_time_attendance">Time & Attendance</span></li>
-                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_basic_payroll">Basic Payroll</span></li>
-                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_employee_db">Employee Database</span></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_live_dashboard">Live Dashboard</span></li>
-                    <li class="locked"><i class="fa-solid fa-lock"></i> <span data-i18n="feature_ai_recruitment">AI Recruitment</span></li>
-                    <li class="locked"><i class="fa-solid fa-lock"></i> <span data-i18n="feature_workforce">Workforce Management</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_employee_db">Employee Database</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_basic_hr">Basic HR Suite</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_ai_preview">AI Assistant Preview</span></li>
                 </ul>
-                <button class="btn-outline" style="width: 100%; opacity: 0.5; cursor: default;"><span data-i18n="current_plan">Current Plan</span></button>
+                <button class="btn-outline" style="width: 100%;" data-cta-plan="free"><span data-i18n="cta_free" data-cta-label>Get started for free</span></button>
+            </div>
+
+            <div class="pricing-card">
+                <div class="plan-name" data-i18n="plan_starter">Starter</div>
+                <div class="plan-price"><span data-price-plan="starter">$10.00</span><span data-per-month="starter" data-i18n="per_month">/mo</span></div>
+                <div class="price-note" data-price-note="starter" style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;"></div>
+                <ul class="feature-list">
+                    <li><i class="fa-solid fa-check"></i> <b data-i18n="feature_everything_in_free">Everything in Free</b></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_ai_full">AI Assistant Full Access</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_basic_hr">Basic HR Suite</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_employee_db">Employee Database</span></li>
+                </ul>
+                <button class="btn-primary" style="width: 100%;" data-cta-plan="starter" onclick="startCheckout('starter')"><span data-i18n="cta_starter" data-cta-label>Start Starter</span></button>
             </div>
 
             <div class="pricing-card popular">
                 <div class="plan-tag" data-i18n="recommended">Recommended</div>
-                <div class="plan-name" style="color:var(--primary)" data-i18n="plan_growth">Growth</div>
-                <div class="plan-price"><span data-i18n="price_growth">$49</span><span data-i18n="per_month">/mo</span></div>
+                <div class="plan-name" style="color:var(--primary)" data-i18n="plan_growth">Growth (Identity Verified)</div>
+                <div class="plan-price"><span data-price-plan="growth">$18.00</span><span data-per-month="growth" data-i18n="per_month">/mo</span></div>
+                <div class="price-note" data-price-note="growth" style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;"></div>
                 <ul class="feature-list">
                     <li><i class="fa-solid fa-check"></i> <b data-i18n="feature_everything_in_starter">Everything in Starter</b></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_ats">AI Recruitment (ATS)</span></li>
@@ -4369,27 +4720,40 @@ function openProfileModal() {
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_broadcast">Internal Broadcasting</span></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_adherence">Adherence Charts</span></li>
                 </ul>
-                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="width: 100%; justify-content: center; text-decoration:none;"><span data-i18n="upgrade_growth">Upgrade to Growth</span></a>
+                <button class="btn-primary" style="width: 100%;" data-cta-plan="growth" onclick="startCheckout('growth')"><span data-i18n="cta_growth" data-cta-label>Upgrade to Growth</span></button>
             </div>
 
             <div class="pricing-card enterprise">
-                <div class="plan-name" style="color:var(--info)" data-i18n="plan_enterprise">Enterprise</div>
-                <div class="plan-price"><span data-i18n="price_enterprise">$199</span><span data-i18n="per_month">/mo</span></div>
+                <div class="plan-name" style="color:var(--info)" data-i18n="plan_custom">Custom</div>
+                <div class="plan-price"><span data-price-plan="custom">Contact Sales</span><span data-per-month="custom" data-i18n="per_month">/mo</span></div>
                 <ul class="feature-list">
                     <li><i class="fa-solid fa-check"></i> <b data-i18n="feature_everything_in_growth">Everything in Growth</b></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_self_hosted">Self-Hosted VPS Option</span></li>
-                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_adv_payroll">Advanced Payroll Automation</span></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_custom_domain">Custom Domain</span></li>
                     <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_priority_support">Priority Support</span></li>
                 </ul>
-                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-outline" style="width: 100%; justify-content: center; border-color: var(--info); color: var(--info); text-decoration:none;"><span data-i18n="contact_sales">Contact Sales</span></a>
+                <button class="btn-outline" style="width: 100%; justify-content: center; border-color: var(--info); color: var(--info);" data-cta-plan="custom" data-plan-url="https://calendar.app.google/aYZBqU3M32EX2fM57"><span data-i18n="cta_custom" data-cta-label>Contact Sales</span></button>
             </div>
         </div>
 
         <div class="modal-footer">
-            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="checkbox" id="dont-show-pricing"> <span data-i18n="dont_show_again">Don't show this automatically again</span>
-            </label>
+            <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="dont-show-pricing"> <span data-i18n="dont_show_again">Don't show this automatically again</span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                    <span data-i18n="currency_label">Currency</span>
+                    <select id="pricing-currency" class="form-input" style="max-width:160px; background:var(--sidebar-bg);" onchange="setPricingCurrency(this.value)">
+                        <option value="USD">USD (Dollar)</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="EGP">EGP</option>
+                        <option value="AED">AED</option>
+                        <option value="SAR">SAR</option>
+                    </select>
+                </label>
+            </div>
+            <div id="billing-status" style="font-size:0.75rem; color:var(--text-muted);"></div>
             <button class="btn-outline" onclick="closePricingModal()" style="padding: 5px 15px; font-size: 0.8rem;"><span data-i18n="close_btn">Close</span></button>
         </div>
     </div>
