@@ -4024,9 +4024,18 @@ async function startCheckout(planId) {
     const success_url = `${baseUrl}?stripe_success=1`;
     const cancel_url = `${baseUrl}?stripe_cancel=1`;
 
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+    if (sessionError || !sessionData?.session) {
+        showToast("Please sign in again to proceed with checkout.", true);
+        return;
+    }
+
+    const sessionToken = sessionData.session.access_token;
+
     try {
         const { data, error } = await supabaseClient.functions.invoke('create-checkout-session', {
-            body: { plan_id: planId, currency, success_url, cancel_url }
+            body: { plan_id: planId, currency, success_url, cancel_url },
+            headers: { Authorization: `Bearer ${sessionToken}` }
         });
         if (error) throw error;
         const url = data?.url || data?.checkout_url || data?.redirect_url;
