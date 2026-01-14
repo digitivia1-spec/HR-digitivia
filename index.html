@@ -152,6 +152,21 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     .header-right { width: 100%; justify-content: space-between; }
     .header-actions { width: 100%; justify-content: flex-start; }
 }
+@media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: 1fr !important; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .payroll-layout,
+    .ats-layout { flex-direction: column; height: auto; }
+    .payroll-sidebar,
+    .payroll-main,
+    .ats-sidebar { width: 100%; }
+    .ats-main-board { flex-direction: column; }
+    .ats-column { flex: 1 0 auto; min-width: 260px; }
+    .modal-card { max-width: 95vw; }
+}
+@media (max-width: 600px) {
+    .app-footer { flex-wrap: wrap; gap: 12px; text-align: center; }
+}
 
         /* --- PRICING MODAL STYLES --- */
 .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
@@ -200,7 +215,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 
         /* New: Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 10000; display: flex; justify-content: center; align-items: center; }
-        .modal-card { background: rgba(13, 27, 42, 0.95); border: 1px solid var(--glass-border); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        .modal-card { background: rgba(13, 27, 42, 0.95); border: 1px solid var(--glass-border); border-radius: 16px; padding: 30px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         .modal-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; }
         .close-modal { float: right; cursor: pointer; color: var(--text-muted); }
         .close-modal:hover { color: white; }
@@ -261,8 +276,8 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
             --ai-launcher-bg: linear-gradient(135deg, #0f2a3d, #2c5364);
         }
 
-        #ai-widget { position: fixed; bottom: 24px; left: 24px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-        html[dir="rtl"] #ai-widget { left: auto; right: 24px; }
+        #ai-widget { position: fixed; bottom: 24px; right: 24px; left: auto; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+        html[dir="rtl"] #ai-widget { right: auto; left: 24px; align-items: flex-start; }
         #ai-window { width: 420px; max-width: 92vw; height: 560px; max-height: 75vh; padding: 0; overflow: hidden; display: flex; flex-direction: column; border-radius: 18px; background: var(--ai-panel-bg); border: 1px solid var(--ai-panel-border); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); }
         #ai-window.hidden { display: none !important; }
         .ai-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; background: rgba(52, 152, 219, 0.18); border-bottom: 1px solid var(--ai-panel-border); }
@@ -284,7 +299,8 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
         .ai-send-btn { padding: 10px 14px; border-radius: 10px; }
         .ai-launcher { width: 60px; height: 60px; border-radius: 50%; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; background: var(--ai-launcher-bg); box-shadow: 0 10px 30px rgba(10, 30, 45, 0.35); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
         .ai-launcher:hover { transform: translateY(-2px); }
-        #ai-widget.ai-open { inset: auto auto 24px 24px; }
+        #ai-widget.ai-open { inset: auto 24px 24px auto; }
+        html[dir="rtl"] #ai-widget.ai-open { inset: auto auto 24px 24px; }
         @media (max-width: 900px) {
             #ai-window { width: 92vw; height: 70vh; }
         }
@@ -293,8 +309,8 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
             html[dir="rtl"] #ai-widget.ai-open { left: 0; right: 0; }
             #ai-widget.ai-open #ai-window { width: 100vw; height: 100vh; border-radius: 0; }
             .ai-bubble { max-width: 90%; }
-            #ai-widget.ai-open .ai-launcher { position: absolute; bottom: 16px; left: 16px; }
-            html[dir="rtl"] #ai-widget.ai-open .ai-launcher { left: auto; right: 16px; }
+            #ai-widget.ai-open .ai-launcher { position: absolute; bottom: 16px; right: 16px; left: auto; }
+            html[dir="rtl"] #ai-widget.ai-open .ai-launcher { left: 16px; right: auto; }
         }
     </style>
 </head>
@@ -303,12 +319,12 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     <div id="auth-container">
         <div class="auth-card" id="login-card">
             <img src="https://i.ibb.co/Z1fFwrhZ/cropped-solid-logo-1.png" alt="DIGITIVIA" class="auth-logo">
-            <div class="auth-title">Enterprise Access</div>
-            <div class="auth-subtitle">Secure Login to Digitivia Operations</div>
-            <div class="form-group"><label>Email Address</label><input type="email" id="login-email" class="form-input" placeholder="name@company.com"></div>
-            <div class="form-group"><label>Password</label><input type="password" id="login-pass" class="form-input" placeholder="••••••••"></div>
-            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()">Login</button>
-            <div class="social-divider" id="auth-divider">Login or create an account with</div>
+            <div class="auth-title" data-i18n="login_title">Enterprise Access</div>
+            <div class="auth-subtitle" data-i18n="login_subtitle">Secure Login to Digitivia Operations</div>
+            <div class="form-group"><label data-i18n="login_email_label">Email Address</label><input type="email" id="login-email" class="form-input" data-i18n-placeholder="login_email_placeholder" placeholder="name@company.com"></div>
+            <div class="form-group"><label data-i18n="login_password_label">Password</label><input type="password" id="login-pass" class="form-input" data-i18n-placeholder="login_password_placeholder" placeholder="••••••••"></div>
+            <button class="btn-primary" style="width: 100%; justify-content: center;" onclick="handleLogin()"><span data-i18n="login_button">Login</span></button>
+            <div class="social-divider" id="auth-divider" data-i18n="auth_divider">Log in or create an account with</div>
             <div class="social-buttons">
                 <div class="social-btn" onclick="socialLogin('google')" style="color:#DB4437"><i class="fa-brands fa-google"></i></div>
 <div class="social-btn" onclick="socialLogin('linkedin_oidc')" style="color:#0077b5"><i class="fa-brands fa-linkedin-in"></i></div>                <div class="social-btn" onclick="socialLogin('azure')" style="color:#00a4ef"><i class="fa-brands fa-microsoft"></i></div>
@@ -336,13 +352,13 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     </div>
 
     <div class="header-actions">
-        <button class="btn-outline" onclick="openPricingModal()"><i class="fa-solid fa-tags"></i> Pricing</button>
-        <button class="btn-outline" onclick="openHelpModal()"><i class="fa-solid fa-circle-question"></i> Need Help?</button>
+        <button class="btn-outline" onclick="openPricingModal()"><i class="fa-solid fa-tags"></i> <span data-i18n="pricing_btn">Pricing</span></button>
+        <button class="btn-outline" onclick="openHelpModal()"><i class="fa-solid fa-circle-question"></i> <span data-i18n="help_btn">Need Help?</span></button>
     </div>
 
     <div class="user-controls">
-        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
-        <button class="btn-outline" onclick="toggleLang()" id="lang-btn">عربي</button>
+        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)" data-i18n="role_loading">Loading...</div>
+        <button class="btn-outline" onclick="toggleLang()" id="lang-btn" data-i18n="lang_btn">عربي</button>
         <div class="dropdown" onclick="openProfileModal()"> <img src="" alt="User" id="user-avatar">
         </div>
     </div>
@@ -356,91 +372,91 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     <div id="job-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
-                Smart Job Wizard
+                <span data-i18n="job_wizard_title">Smart Job Wizard</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('job-modal').classList.add('hidden')"></i>
             </div>
             <div class="form-group">
-                <label>Job Title</label>
-                <input type="text" id="job-title" class="form-input" placeholder="e.g. Senior Backend Engineer">
+                <label data-i18n="job_title_label">Job Title</label>
+                <input type="text" id="job-title" class="form-input" data-i18n-placeholder="job_title_placeholder" placeholder="e.g. Senior Backend Engineer">
             </div>
             <div class="form-group">
-                <label>Department</label>
-                <input type="text" id="job-dept" class="form-input" placeholder="e.g. Engineering">
+                <label data-i18n="job_dept_label">Department</label>
+                <input type="text" id="job-dept" class="form-input" data-i18n-placeholder="job_dept_placeholder" placeholder="e.g. Engineering">
             </div>
             <div class="form-group">
-                <label>Salary Range</label>
-                <input type="text" id="job-salary" class="form-input" placeholder="e.g. $80k - $120k">
+                <label data-i18n="job_salary_label">Salary Range</label>
+                <input type="text" id="job-salary" class="form-input" data-i18n-placeholder="job_salary_placeholder" placeholder="e.g. $80k - $120k">
             </div>
             <div class="form-group">
-                <label>Status</label>
+                <label data-i18n="job_status_label">Status</label>
                 <select id="job-status" class="form-input" style="background:rgba(255,255,255,0.05);">
-                    <option value="Open">Open</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Closed">Closed</option>
+                    <option value="Open" data-i18n="job_status_open">Open</option>
+                    <option value="Draft" data-i18n="job_status_draft">Draft</option>
+                    <option value="Closed" data-i18n="job_status_closed">Closed</option>
                 </select>
             </div>
             <button class="btn-primary" style="width:100%; justify-content:center" onclick="saveNewJob()">
-                <i class="fa-solid fa-rocket"></i> Publish Job
+                <i class="fa-solid fa-rocket"></i> <span data-i18n="job_publish_btn">Publish Job</span>
             </button>
         </div>
     </div>
 
 <div id="onboard-modal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width: 700px;"> <div class="modal-title">
-                Onboard New Hire
+                <span data-i18n="onboard_title">Onboard New Hire</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="closeOnboardModal()"></i>
             </div>
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                 <div>
-                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;">1. Employee Details</h4>
+                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;" data-i18n="onboard_step1">1. Employee Details</h4>
                     
                     <div class="form-group">
-                        <label>Full Name <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="new-name" class="form-input" placeholder="Jane Doe">
+                        <label><span data-i18n="onboard_full_name">Full Name</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-name" class="form-input" data-i18n-placeholder="onboard_full_name_placeholder" placeholder="Jane Doe">
                     </div>
                     <div class="form-group">
-                        <label>Company Email <span style="color:var(--danger)">*</span></label>
-                        <input type="email" id="new-email" class="form-input" placeholder="jane@company.com">
+                        <label><span data-i18n="onboard_email">Company Email</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="email" id="new-email" class="form-input" data-i18n-placeholder="onboard_email_placeholder" placeholder="jane@company.com">
                     </div>
                     <div class="form-group">
-                        <label>Temporary Password <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="new-pass" class="form-input" placeholder="Welcome123">
+                        <label><span data-i18n="onboard_password">Temporary Password</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-pass" class="form-input" data-i18n-placeholder="onboard_password_placeholder" placeholder="Welcome123">
                     </div>
                     <div class="form-group">
-                        <label>Role <span style="color:var(--danger)">*</span></label>
+                        <label><span data-i18n="onboard_role">Role</span> <span style="color:var(--danger)">*</span></label>
                         <select id="new-role" class="form-input" style="background:var(--sidebar-bg);">
-                            <option value="employee">Employee</option>
-                            <option value="manager">Manager</option>
-                            <option value="hr_manager">HR Manager</option>
+                            <option value="employee" data-i18n="role_employee">Employee</option>
+                            <option value="manager" data-i18n="role_manager">Manager</option>
+                            <option value="hr_manager" data-i18n="role_hr_manager">HR Manager</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Phone Number <span style="color:var(--danger)">*</span></label>
-                        <input type="text" id="new-meta-phone" class="form-input" placeholder="+1 234 567 890">
+                        <label><span data-i18n="onboard_phone">Phone Number</span> <span style="color:var(--danger)">*</span></label>
+                        <input type="text" id="new-meta-phone" class="form-input" data-i18n-placeholder="onboard_phone_placeholder" placeholder="+1 234 567 890">
                     </div>
                     <div class="form-group">
-                        <label>Department (Optional)</label>
-                        <input type="text" id="new-meta-dept" class="form-input" placeholder="Engineering">
+                        <label data-i18n="onboard_dept">Department (Optional)</label>
+                        <input type="text" id="new-meta-dept" class="form-input" data-i18n-placeholder="onboard_dept_placeholder" placeholder="Engineering">
                     </div>
                 </div>
 
                 <div style="border-left:1px solid var(--glass-border); padding-left:20px;">
-                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;">2. Starter Documents</h4>
-                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Add Contracts, IDs, or Passports immediately.</p>
+                    <h4 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid var(--glass-border); padding-bottom:5px;" data-i18n="onboard_step2">2. Starter Documents</h4>
+                    <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;" data-i18n="onboard_docs_hint">Add Contracts, IDs, or Passports immediately.</p>
                     
                     <div id="onboard-docs-list" style="max-height: 350px; overflow-y:auto; padding-right:5px; margin-bottom:10px;">
                         </div>
 
                     <button class="btn-outline" style="width:100%; font-size:0.85rem; padding:10px; border-style:dashed;" onclick="addObjDocRow()">
-                        <i class="fa-solid fa-plus"></i> Add Document Row
+                        <i class="fa-solid fa-plus"></i> <span data-i18n="onboard_add_doc_row">Add Document Row</span>
                     </button>
                 </div>
             </div>
 
             <div style="margin-top:20px; padding-top:15px; border-top:1px solid var(--glass-border);">
                 <button class="btn-primary" style="width:100%; justify-content:center; padding:12px;" onclick="executeOnboard()">
-                    <i class="fa-solid fa-check"></i> Create Employee & Save Docs
+                    <i class="fa-solid fa-check"></i> <span data-i18n="onboard_submit">Create Employee & Save Docs</span>
                 </button>
             </div>
         </div>
@@ -449,19 +465,19 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     <div id="import-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
-                Import Legacy Attendance
+                <span data-i18n="import_title">Import Legacy Attendance</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('import-modal').classList.add('hidden')"></i>
             </div>
             <div class="form-group">
-                <label>Upload CSV</label>
-                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Format: email, date, in_time, out_time</p>
+                <label data-i18n="import_upload_label">Upload CSV</label>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;" data-i18n="import_format_hint">Format: email, date, in_time, out_time</p>
                 <input type="file" id="attendance-file" class="form-input" accept=".csv">
             </div>
             <div style="background:rgba(231,76,60,0.1); padding:10px; border-radius:8px; border:1px solid rgba(231,76,60,0.3); font-size:0.8rem; margin-bottom:15px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> Smart Merge Active: Rows that conflict with verified "Live" data will be skipped to preserve integrity.
+                <i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="import_warning">Smart Merge Active: Rows that conflict with verified "Live" data will be skipped to preserve integrity.</span>
             </div>
             <button class="btn-primary" style="width:100%; justify-content:center" onclick="handleAttendanceImport()">
-                Process Import
+                <span data-i18n="import_process_btn">Process Import</span>
             </button>
         </div>
     </div>
@@ -469,48 +485,48 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     <div id="perf-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
-                Upload Performance Data
+                <span data-i18n="perf_modal_title">Upload Performance Data</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('perf-modal').classList.add('hidden')"></i>
             </div>
             <div class="form-group">
-                <label>Department Rules</label>
+                <label data-i18n="perf_dept_rules">Department Rules</label>
                 <select id="perf-dept" class="form-input" style="background:rgba(255,255,255,0.05);">
-                    <option value="Engineering">Engineering (Qual 40 / Spd 30)</option>
-                    <option value="Sales">Sales (Rev 50 / Spd 30)</option>
-                    <option value="Support">Support (Qual 50 / Spd 30)</option>
-                    <option value="General">General (Balanced)</option>
+                    <option value="Engineering" data-i18n="perf_dept_engineering">Engineering (Qual 40 / Spd 30)</option>
+                    <option value="Sales" data-i18n="perf_dept_sales">Sales (Rev 50 / Spd 30)</option>
+                    <option value="Support" data-i18n="perf_dept_support">Support (Qual 50 / Spd 30)</option>
+                    <option value="General" data-i18n="perf_dept_general">General (Balanced)</option>
                 </select>
             </div>
             <div class="form-group">
-                <label>Input Method</label>
+                <label data-i18n="perf_input_method">Input Method</label>
                 <div style="display:flex; gap:10px; margin-bottom:15px;">
-                    <button class="btn-outline" onclick="setPerfInput('file')" id="btn-file-mode" style="flex:1; border-color:var(--primary)">File Upload</button>
-                    <button class="btn-outline" onclick="setPerfInput('manual')" id="btn-manual-mode" style="flex:1;">Manual Text</button>
+                    <button class="btn-outline" onclick="setPerfInput('file')" id="btn-file-mode" style="flex:1; border-color:var(--primary)"><span data-i18n="perf_input_file">File Upload</span></button>
+                    <button class="btn-outline" onclick="setPerfInput('manual')" id="btn-manual-mode" style="flex:1;"><span data-i18n="perf_input_manual">Manual Text</span></button>
                 </div>
             </div>
             <div id="perf-input-file" class="form-group">
-                <label>Upload CSV/Excel Log</label>
+                <label data-i18n="perf_upload_label">Upload CSV/Excel Log</label>
                 <input type="file" id="perf-file" class="form-input">
             </div>
             <div id="perf-input-manual" class="form-group hidden">
-                <label>Paste Raw Work Logs</label>
-                <textarea id="perf-text" class="form-input" rows="5" placeholder="e.g. John completed 40 tickets with 2 errors. Sarah closed 5 deals..."></textarea>
+                <label data-i18n="perf_manual_label">Paste Raw Work Logs</label>
+                <textarea id="perf-text" class="form-input" rows="5" data-i18n-placeholder="perf_manual_placeholder" placeholder="e.g. John completed 40 tickets with 2 errors. Sarah closed 5 deals..."></textarea>
             </div>
             <button class="btn-primary" style="width:100%; justify-content:center" onclick="handlePerformanceSubmit()">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze with AI
+                <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="perf_analyze_btn">Analyze with AI</span>
             </button>
         </div>
     </div>
 
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <div class="modal-title">Department Schedules (Option B)<i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('settings-modal').classList.add('hidden')"></i></div>
+            <div class="modal-title"><span data-i18n="settings_title">Department Schedules (Option B)</span><i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('settings-modal').classList.add('hidden')"></i></div>
             <div class="form-group">
-                <label>Department Name</label>
-                <input type="text" id="set-dept" class="form-input" placeholder="e.g. Sales, Engineering, or Global">
+                <label data-i18n="settings_dept_label">Department Name</label>
+                <input type="text" id="set-dept" class="form-input" data-i18n-placeholder="settings_dept_placeholder" placeholder="e.g. Sales, Engineering, or Global">
             </div>
             <div class="form-group">
-                <label>Work Days</label>
+                <label data-i18n="settings_work_days">Work Days</label>
                 <div class="day-selector">
                     <input type="checkbox" id="d0" class="day-check" value="0"><label for="d0" class="day-label">S</label>
                     <input type="checkbox" id="d1" class="day-check" value="1"><label for="d1" class="day-label">M</label>
@@ -522,10 +538,10 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
                 </div>
             </div>
             <div style="display:flex; gap:10px;">
-                <div class="form-group" style="flex:1"><label>Start Time</label><input type="time" id="set-start" class="form-input" value="09:00"></div>
-                <div class="form-group" style="flex:1"><label>End Time</label><input type="time" id="set-end" class="form-input" value="17:00"></div>
+                <div class="form-group" style="flex:1"><label data-i18n="settings_start_time">Start Time</label><input type="time" id="set-start" class="form-input" value="09:00"></div>
+                <div class="form-group" style="flex:1"><label data-i18n="settings_end_time">End Time</label><input type="time" id="set-end" class="form-input" value="17:00"></div>
             </div>
-            <button class="btn-primary" style="width:100%; justify-content:center" onclick="saveDepartmentSchedule()">Save Rule</button>
+            <button class="btn-primary" style="width:100%; justify-content:center" onclick="saveDepartmentSchedule()"><span data-i18n="settings_save_btn">Save Rule</span></button>
         </div>
     </div>
 
@@ -544,16 +560,23 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
 You are "Digitivia HR Assistant", a senior HR operations consultant inside an HR SaaS dashboard.
 Goals: fast, accurate, actionable answers with high information density.
 Language: always respond in the same language as the user's last message.
-Tone: concise, confident, friendly, business-like.
+Tone: concise, confident, friendly, business-like. Keep replies short and high signal.
 
 Navigation guidance:
 - Use these exact menu names when pointing users: Dashboard, Org Profile, Employees, Payroll Automation, Attendance, ATS Recruitment, Performance AI, Strategic Reports, Workforce WFM, My Workspace.
 - If asked "where do I do X", provide the shortest path with steps.
+- If the user asks to open/navigate to a section, respond with JSON ONLY:
+{
+  "action": "navigate",
+  "view": "dashboard|org_profile|employees|payroll|attendance|ats|performance|reports|wfm|employee_dash",
+  "reply": "short confirmation shown to user"
+}
 
 Employee creation via chat:
 - Required fields: full_name, email, role (employee|manager|hr_manager), phone.
 - Optional: department, temp_password.
 - If any required field is missing, ask only for the missing fields.
+- Only return create_employee if the user's plan is bundle_2 or bundle_3 AND user_role is ceo|hr_manager|manager.
 - When the user confirms and all required fields exist, output a JSON object ONLY with this schema:
 {
   "action": "create_employee",
@@ -829,6 +852,10 @@ const i18n = {
             footer_docs: "Documentation",
             footer_privacy: "Privacy Policy",
             footer_legal: "Legal Notes",
+            role_ceo: "CEO",
+            role_hr_manager: "HR Manager",
+            role_manager: "Manager",
+            role_employee: "Employee",
             ai_title: "Your HR Assistant",
             ai_intro: "Hello! I can help you navigate, onboard employees, and explain any HR feature.",
             ai_placeholder: "Ask anything...",
@@ -842,6 +869,41 @@ const i18n = {
             ai_credit_debit_failed: "Unable to debit AI credits.",
             ai_credits: "{count} Credits",
             ai_thinking: "Thinking...",
+            ai_fallback: "I can help with navigation, onboarding, policies, and ATS workflows. Share your request and I will guide you.",
+            ai_try_again: "Please try again.",
+            ai_action_role_block: "Only CEO, HR Manager, or Manager can add employees via the assistant.",
+            ai_action_upgrade_body: "Employee creation via the assistant is available on the Growth plan and above.\nI can still answer HR questions. Open Pricing to upgrade and unlock this.",
+            ai_action_missing: "I need a bit more detail to create the employee.",
+            ai_action_created: "Employee created successfully.",
+            ai_action_field_name: "Name",
+            ai_action_field_email: "Email",
+            ai_action_field_role: "Role",
+            ai_action_field_department: "Department",
+            ai_action_field_phone: "Phone",
+            ai_action_temp_password: "Temporary password",
+            ai_action_next_steps: "Next steps: Review the record in Employees.",
+            ai_navigate_confirm: "Opening that section now.",
+            ai_navigate_invalid: "I can only open sections inside the main menu. Tell me which tab to open.",
+            docs_modal_title: "Documentation",
+            docs_modal_intro: "Digitivia unifies HR operations, payroll, attendance, recruiting, performance, and workforce management in one secure workspace.",
+            docs_tabs_title: "What each tab does",
+            docs_bundles_title: "Bundles",
+            docs_cta: "Need a walkthrough? Book a free meeting.",
+            docs_btn: "Docs",
+            meta_btn: "Meta",
+            docs_tab_dashboard: "Dashboard: live KPIs, activity, and risk highlights.",
+            docs_tab_org_profile: "Org Profile: company identity and compliance settings (CEO only).",
+            docs_tab_employees: "Employees: employee directory, profiles, and document tracking.",
+            docs_tab_payroll: "Payroll Automation: upload files, review AI calculations, and approve batches.",
+            docs_tab_attendance: "Attendance: clock-ins, geo-fence verification, and history.",
+            docs_tab_ats: "ATS Recruitment: email intake, AI candidate scoring, and hiring flow.",
+            docs_tab_performance: "Performance AI: upload reviews and track quality/speed scores.",
+            docs_tab_reports: "Strategic Reports: ROI, burnout, and efficiency analytics.",
+            docs_tab_wfm: "Workforce WFM: schedules, live roster, and coverage forecasting.",
+            docs_tab_workspace: "My Workspace: personal attendance and tools.",
+            docs_bundle_starter: "Starter (Free): time & attendance, basic payroll, employee database, live dashboard.",
+            docs_bundle_growth: "Growth: everything in Starter + ATS, workforce maps, internal broadcasting, adherence charts.",
+            docs_bundle_enterprise: "Enterprise: everything in Growth + advanced payroll automation, custom domain, priority support.",
             ai_prompts: {
                 add_employee: "Add a new employee named John Doe, email john@company.com, role employee, phone +1 555 0100, department Sales",
                 add_hr: "Create an HR manager named Sara Ali, email sara@company.com, phone +1 555 0200, department HR",
@@ -1031,6 +1093,10 @@ const i18n = {
             footer_docs: "التوثيق",
             footer_privacy: "سياسة الخصوصية",
             footer_legal: "ملاحظات قانونية",
+            role_ceo: "المدير التنفيذي",
+            role_hr_manager: "مدير الموارد البشرية",
+            role_manager: "مدير",
+            role_employee: "موظف",
             ai_title: "مساعد الموارد البشرية",
             ai_intro: "مرحباً! يمكنني مساعدتك في التنقل، تأهيل الموظفين، وشرح ميزات الموارد البشرية.",
             ai_placeholder: "اسأل أي شيء...",
@@ -1044,6 +1110,41 @@ const i18n = {
             ai_credit_debit_failed: "تعذر خصم أرصدة الذكاء الاصطناعي.",
             ai_credits: "الرصيد: {count}",
             ai_thinking: "جارٍ التفكير...",
+            ai_fallback: "يمكنني المساعدة في التنقل، التأهيل، السياسات، وتدفقات ATS. شارك طلبك وسأرشدك.",
+            ai_try_again: "يرجى المحاولة مرة أخرى.",
+            ai_action_role_block: "يمكن فقط للمدير التنفيذي أو مدير الموارد البشرية أو المدير إضافة موظفين عبر المساعد.",
+            ai_action_upgrade_body: "إضافة الموظفين عبر المساعد متاحة في باقة النمو فما فوق.\nيمكنني الاستمرار في الإجابة على الأسئلة. سنفتح نافذة الأسعار للترقية.",
+            ai_action_missing: "أحتاج بعض التفاصيل الإضافية لإنشاء الموظف.",
+            ai_action_created: "تم إنشاء الموظف بنجاح.",
+            ai_action_field_name: "الاسم",
+            ai_action_field_email: "البريد الإلكتروني",
+            ai_action_field_role: "الدور",
+            ai_action_field_department: "القسم",
+            ai_action_field_phone: "الهاتف",
+            ai_action_temp_password: "كلمة المرور المؤقتة",
+            ai_action_next_steps: "الخطوة التالية: راجع السجل في صفحة الموظفين.",
+            ai_navigate_confirm: "جارٍ فتح القسم الآن.",
+            ai_navigate_invalid: "يمكنني فتح الأقسام الموجودة في القائمة فقط. أخبرني بأي تبويب تريد فتحه.",
+            docs_modal_title: "التوثيق",
+            docs_modal_intro: "Digitivia توحّد عمليات الموارد البشرية والرواتب والحضور والتوظيف والأداء وإدارة القوى العاملة في مساحة واحدة آمنة.",
+            docs_tabs_title: "ماذا يفعل كل تبويب",
+            docs_bundles_title: "الباقات",
+            docs_cta: "تحتاج جولة تعريفية؟ احجز اجتماعاً مجانياً.",
+            docs_btn: "المستندات",
+            meta_btn: "البيانات",
+            docs_tab_dashboard: "لوحة القيادة: مؤشرات حية، نشاطات، وتنبيهات المخاطر.",
+            docs_tab_org_profile: "ملف المؤسسة: إعدادات الهوية والامتثال (للمدير التنفيذي فقط).",
+            docs_tab_employees: "الموظفون: دليل الموظفين والملفات وتتبع المستندات.",
+            docs_tab_payroll: "أتمتة الرواتب: رفع الملفات، مراجعة حسابات الذكاء الاصطناعي، واعتماد الدُفعات.",
+            docs_tab_attendance: "الحضور والانصراف: تسجيل الدخول، التحقق الجغرافي، والسجل.",
+            docs_tab_ats: "التوظيف الذكي ATS: استقبال البريد، تقييم المرشحين، ومسار التوظيف.",
+            docs_tab_performance: "تحليل الأداء: رفع المراجعات وتتبع درجات الجودة والسرعة.",
+            docs_tab_reports: "التقارير الاستراتيجية: ROI والاحتراق والإنتاجية.",
+            docs_tab_wfm: "إدارة القوى العاملة: الجداول، قائمة الحضور الحية، والتنبؤ بالتغطية.",
+            docs_tab_workspace: "مساحتي: الحضور والأدوات الشخصية.",
+            docs_bundle_starter: "الباقة الأساسية (مجانية): الحضور والانصراف، الرواتب الأساسية، قاعدة الموظفين، لوحة مباشرة.",
+            docs_bundle_growth: "باقة النمو: كل مزايا الأساسية + ATS، خرائط القوى العاملة، البث الداخلي، مخططات الالتزام.",
+            docs_bundle_enterprise: "باقة المؤسسات: كل مزايا النمو + أتمتة رواتب متقدمة، نطاق مخصص، دعم أولوية.",
             ai_prompts: {
                 add_employee: "أضف موظفاً جديداً باسم John Doe، البريد john@company.com، الدور موظف، الهاتف +1 555 0100، القسم المبيعات",
                 add_hr: "أنشئ مدير موارد بشرية باسم Sara Ali، البريد sara@company.com، الهاتف +1 555 0200، القسم الموارد البشرية",
@@ -1455,6 +1556,7 @@ const i18n = {
     window.addEventListener('DOMContentLoaded', async () => {
         const dateEl = document.getElementById('current-date');
         if (dateEl) dateEl.innerText = new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        applyStaticTranslations();
 
         // 1. LISTEN for Auth State Changes (Handles both Redirects and Normal Session)
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -1512,7 +1614,11 @@ const i18n = {
         }); 
     }
     async function handleLogout() { await supabaseClient.auth.signOut(); window.location.reload(); }
-    function showAuthScreen() { document.getElementById('auth-container').classList.remove('hidden'); document.getElementById('app-container').classList.add('hidden'); }
+    function showAuthScreen() { 
+        document.getElementById('auth-container').classList.remove('hidden'); 
+        document.getElementById('app-container').classList.add('hidden'); 
+        applyStaticTranslations();
+    }
 
     // --- MAIN DATA LOADER ---
     // --- MAIN DATA LOADER (Fixed for Corporate Logins) ---
@@ -1626,7 +1732,7 @@ document.getElementById('auth-container').classList.add('hidden');
         if (userNameEl) userNameEl.innerText = state.profile.full_name;
 
         document.getElementById('user-avatar').src = state.profile.avatar_url || 'default.png';
-        document.getElementById('role-display').innerText = state.profile.role.toUpperCase().replace('_', ' '); 
+        document.getElementById('role-display').innerText = formatRoleLabel(state.profile.role); 
         document.getElementById('org-display-name').innerText = state.org.name;
         
         if (state.profile.role === 'employee') state.activeView = 'employee_dash';
@@ -1669,6 +1775,7 @@ document.getElementById('auth-container').classList.add('hidden');
         
         renderMainContent();
         checkPricingPopup(); // Trigger the pricing modal check
+        applyStaticTranslations();
     }
     // 1. DASHBOARD
   async function loadDashboardView(container) {
@@ -1910,8 +2017,8 @@ document.getElementById('auth-container').classList.add('hidden');
                 <td>${emp.role}</td>
                 <td>${emp.email}</td>
                 <td>
-                    <button class="btn-outline" style="font-size:0.75rem; padding:5px 10px; margin-right:5px;" onclick="openDocsModal('${emp.id}', '${emp.full_name}')"><i class="fa-solid fa-folder-open"></i> Docs</button>
-                    <span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">Meta</span>
+                    <button class="btn-outline" style="font-size:0.75rem; padding:5px 10px; margin-right:5px;" onclick="openDocsModal('${emp.id}', '${emp.full_name}')"><i class="fa-solid fa-folder-open"></i> ${t('docs_btn')}</button>
+                    <span class="details-btn" onclick="this.parentElement.querySelector('.details-json').style.display = 'block'">${t('meta_btn')}</span>
                     <div class="details-json">${JSON.stringify(meta, null, 2)}</div>
                 </td>
             </tr>`;
@@ -2711,8 +2818,8 @@ document.getElementById('auth-container').classList.add('hidden');
         // 0. EMPLOYEE VIEW
         if (role === 'employee') {
              const ul = document.createElement('ul'); ul.className = 'nav-links';
-             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="navigateTo('employee_dash')"><i class="fa-solid fa-home"></i> <span>My Home</span></li>`;
-             ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>Time Clock</span></li>`;
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="navigateTo('employee_dash')"><i class="fa-solid fa-home"></i> <span>${t.nav_my_home}</span></li>`;
+             ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>${t.nav_time_clock}</span></li>`;
              container.appendChild(ul);
              return;
         }
@@ -2720,7 +2827,7 @@ document.getElementById('auth-container').classList.add('hidden');
         // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER)
         if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
-            sec.innerHTML = `<div class="nav-header">Executive Suite</div>`;
+            sec.innerHTML = `<div class="nav-header">${t.nav_exec_suite}</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="navigateTo('dashboard')"><i class="fa-solid fa-chart-pie"></i> <span>${t.dashboard}</span></li>`;
             
@@ -2738,7 +2845,7 @@ document.getElementById('auth-container').classList.add('hidden');
         // 2. HR OPERATIONS (CEO + HR MANAGER)
         if (['ceo', 'admin', 'hr_manager'].includes(role)) {
             const sec = document.createElement('div');
-            sec.innerHTML = `<div class="nav-header">HR Operations</div>`;
+            sec.innerHTML = `<div class="nav-header">${t.nav_hr_ops}</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             
             ul.innerHTML += `<li class="nav-item ${state.activeView==='employees'?'active':''}" onclick="navigateTo('employees')"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
@@ -2762,7 +2869,7 @@ document.getElementById('auth-container').classList.add('hidden');
         // 3. TEAM MANAGEMENT (Managers + Admins)
         if (['ceo', 'admin', 'hr_manager', 'manager'].includes(role)) {
             const sec = document.createElement('div');
-            sec.innerHTML = `<div class="nav-header">Team Management</div>`;
+            sec.innerHTML = `<div class="nav-header">${t.nav_team_mgmt}</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
             
             // WFM Feature Gating
@@ -2781,7 +2888,7 @@ document.getElementById('auth-container').classList.add('hidden');
 
         // 4. WORKSPACE (Everyone)
         const sec = document.createElement('div');
-        sec.innerHTML = `<div class="nav-header">My Workspace</div>`;
+        sec.innerHTML = `<div class="nav-header">${t.nav_workspace}</div>`;
         const ul = document.createElement('ul'); ul.className = 'nav-links';
         ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>${t.attendance}</span></li>`;
         sec.appendChild(ul); container.appendChild(sec);
@@ -3089,11 +3196,16 @@ function toggleLang() {
     document.documentElement.setAttribute('dir', state.lang === 'ar' ? 'rtl' : 'ltr');
 
     // 2. Update the button text itself
-    document.getElementById('lang-btn').innerText = t.langBtn;
+    document.getElementById('lang-btn').innerText = t.lang_btn;
 
     // 3. Re-render the UI to apply translations
     renderSidebar();
     renderMainContent();
+    applyStaticTranslations();
+    const aiWindow = document.getElementById('ai-window');
+    if (aiWindow && !aiWindow.classList.contains('hidden')) {
+        updateAiCredits();
+    }
 
     // 4. Update other static parts of the UI
     // Example: Update the profile modal title and labels
@@ -3235,7 +3347,7 @@ function toggleLang() {
         const credits = Number(data?.ai_credits_balance || 0);
         state.aiCredits = credits;
         const creditsEl = document.getElementById('ai-credits');
-        if (creditsEl) creditsEl.innerText = `${credits} Credits`;
+        if (creditsEl) creditsEl.innerText = tf('ai_credits', { count: credits }, `${credits} Credits`);
     }
 
     async function debitAiCredits(cost) {
@@ -3252,7 +3364,7 @@ function toggleLang() {
         if (updateError) return false;
         state.aiCredits = next;
         const creditsEl = document.getElementById('ai-credits');
-        if (creditsEl) creditsEl.innerText = `${next} Credits`;
+        if (creditsEl) creditsEl.innerText = tf('ai_credits', { count: next }, `${next} Credits`);
         return true;
     }
 
@@ -3272,7 +3384,7 @@ function toggleLang() {
         if (raw === null || raw === undefined) return { text: '' };
         if (typeof raw === 'string') return { text: raw };
         if (raw.reply || raw.message || raw.text) {
-            return { text: raw.reply || raw.message || raw.text, action: raw.action, auto_create: raw.auto_create, employee: raw.employee };
+            return { text: raw.reply || raw.message || raw.text, action: raw.action, auto_create: raw.auto_create, employee: raw.employee, view: raw.view };
         }
         if (raw.output) return { text: typeof raw.output === 'string' ? raw.output : JSON.stringify(raw.output) };
         return { text: JSON.stringify(raw) };
@@ -3290,6 +3402,57 @@ function toggleLang() {
         const rand = Math.floor(1000 + Math.random() * 9000);
         return `Welcome${rand}!`;
     }
+
+    function canRunAiActions() {
+        const tier = state.org?.subscription_tier || 'free';
+        const role = state.profile?.role || '';
+        const eligibleTier = ['bundle_2', 'bundle_3'].includes(tier);
+        const eligibleRole = ['ceo', 'hr_manager', 'manager'].includes(role);
+        if (!eligibleRole) {
+            return { ok: false, reason: t('ai_action_role_block'), openPricing: false };
+        }
+        if (!eligibleTier) {
+            return { ok: false, reason: t('ai_action_upgrade_body'), openPricing: true };
+        }
+        return { ok: true };
+    }
+
+    function formatRoleLabel(role) {
+        const map = {
+            ceo: t('role_ceo'),
+            hr_manager: t('role_hr_manager'),
+            manager: t('role_manager'),
+            employee: t('role_employee')
+        };
+        return map[role] || String(role || '').replace('_', ' ');
+    }
+
+    function formatEmployeeSummary(payload, tempPassword) {
+        const lines = [
+            t('ai_action_created'),
+            `${t('ai_action_field_name')}: ${payload.full_name}`,
+            `${t('ai_action_field_email')}: ${payload.email}`,
+            `${t('ai_action_field_role')}: ${formatRoleLabel(payload.role)}`
+        ];
+        if (payload.department) lines.push(`${t('ai_action_field_department')}: ${payload.department}`);
+        if (payload.phone) lines.push(`${t('ai_action_field_phone')}: ${payload.phone}`);
+        if (tempPassword) lines.push(`${t('ai_action_temp_password')}: ${tempPassword}`);
+        lines.push(t('ai_action_next_steps'));
+        return lines.join('\n');
+    }
+
+    const AI_NAV_VIEWS = new Set([
+        'dashboard',
+        'org_profile',
+        'employees',
+        'payroll',
+        'attendance',
+        'ats',
+        'performance',
+        'reports',
+        'wfm',
+        'employee_dash'
+    ]);
 
     async function createEmployeeFromChat(employee = {}) {
         if (!state.org || !state.user) return { ok: false, error: 'Not authenticated.' };
@@ -3348,16 +3511,16 @@ function toggleLang() {
         appendAiMessage(text, 'user');
         input.value = '';
         if (!state.user || !state.org) {
-            appendAiMessage('Please log in or create an account with Google or LinkedIn to use the HR assistant.', 'assistant');
+            appendAiMessage(t('ai_login_required'), 'assistant');
             return;
         }
 
-        const thinkingBubble = appendAiMessage('<i class="fa-solid fa-circle-notch fa-spin"></i> Thinking...', 'assistant', true);
+        const thinkingBubble = appendAiMessage(`<i class="fa-solid fa-circle-notch fa-spin"></i> ${escapeHtml(t('ai_thinking'))}`, 'assistant', true);
         if (state.aiCredits === null) await updateAiCredits();
         if (!Number.isFinite(state.aiCredits)) state.aiCredits = 0;
         if (state.aiCredits < AI_CREDIT_COST) {
             if (thinkingBubble) {
-                thinkingBubble.innerHTML = formatAiText('You are out of AI credits. Upgrade your plan to keep using the HR assistant.');
+                thinkingBubble.innerHTML = formatAiText(t('ai_no_credits'));
             }
             openPricingModal();
             return;
@@ -3369,7 +3532,7 @@ function toggleLang() {
 
         try {
             if (!N8N_HR_ASSISTANT_URL) {
-                replyText = `I can help with navigation, onboarding, policies, and ATS workflows. Share your request and I will guide you.`;
+                replyText = t('ai_fallback');
             } else {
                 const response = await fetch(N8N_HR_ASSISTANT_URL, {
                     method: 'POST',
@@ -3394,32 +3557,53 @@ function toggleLang() {
                 if (actionPayload) {
                     const normalized = normalizeAssistantResponse(actionPayload);
                     replyText = normalized.text;
+                    actionPayload = { ...actionPayload, ...normalized };
                 } else {
                     replyText = raw;
                 }
             }
         } catch (e) {
             console.error(e);
-            replyText = 'Sorry, I could not reach the assistant right now. Please try again.';
+            replyText = t('ai_assistant_error');
         }
 
-        if (actionPayload && actionPayload.action === 'create_employee') {
+        if (actionPayload && actionPayload.action === 'navigate' && actionPayload.view) {
+            if (AI_NAV_VIEWS.has(actionPayload.view)) {
+                navigateTo(actionPayload.view);
+                replyText = actionPayload.reply || t('ai_navigate_confirm');
+            } else {
+                replyText = t('ai_navigate_invalid');
+            }
+        } else if (actionPayload && actionPayload.action === 'create_employee') {
             if (actionPayload.auto_create) {
-                const result = await createEmployeeFromChat(actionPayload.employee || {});
-                if (result.ok) {
-                    replyText = (actionPayload.reply || 'Employee created.') + `\nTemporary password: ${result.tempPassword}`;
+                const eligibility = canRunAiActions();
+                if (!eligibility.ok) {
+                    replyText = eligibility.reason;
+                    if (eligibility.openPricing) openPricingModal();
                 } else {
-                    replyText = (actionPayload.reply || 'I need more details.') + `\n${result.error}`;
+                    const result = await createEmployeeFromChat(actionPayload.employee || {});
+                    if (result.ok) {
+                        const summary = formatEmployeeSummary(
+                            {
+                                ...actionPayload.employee,
+                                role: normalizeEmployeeRole(actionPayload.employee?.role)
+                            },
+                            result.tempPassword
+                        );
+                        replyText = actionPayload.reply ? `${actionPayload.reply}\n${summary}` : summary;
+                    } else {
+                        replyText = (actionPayload.reply || t('ai_action_missing')) + `\n${result.error}`;
+                    }
                 }
             } else if (actionPayload.reply) {
                 replyText = actionPayload.reply;
             }
         }
 
-        if (thinkingBubble) thinkingBubble.innerHTML = formatAiText(replyText || 'Please try again.');
+        if (thinkingBubble) thinkingBubble.innerHTML = formatAiText(replyText || t('ai_try_again'));
         if (didCallAi) {
             const debited = await debitAiCredits(AI_CREDIT_COST);
-            if (!debited) showToast('Unable to debit AI credits.', true);
+            if (!debited) showToast(t('ai_credit_debit_failed'), true);
         }
     }
     // --- ATS CANDIDATE LOGIC ---
@@ -3612,6 +3796,14 @@ function closeHelpModal() {
     document.getElementById('help-modal').classList.add('hidden');
 }
 
+function openDocumentationModal() {
+    document.getElementById('documentation-modal').classList.remove('hidden');
+}
+
+function closeDocumentationModal() {
+    document.getElementById('documentation-modal').classList.add('hidden');
+}
+
 // Function to check and show on load
 function checkPricingPopup() {
     // Only show for CEO role, and if not hidden by user preference
@@ -3632,7 +3824,7 @@ function openProfileModal() {
     const p = state.profile;
     document.getElementById('profile-modal-avatar').src = p.avatar_url || 'https://ui-avatars.com/api/?background=random';
     document.getElementById('profile-modal-name').innerText = p.full_name;
-    document.getElementById('profile-modal-role').innerText = p.role.toUpperCase().replace('_', ' ');
+    document.getElementById('profile-modal-role').innerText = formatRoleLabel(p.role);
 
     document.getElementById('profile-modal-email').value = p.email;
     document.getElementById('profile-modal-phone').value = p.meta_data?.phone || 'N/A';
@@ -3641,16 +3833,6 @@ function openProfileModal() {
     document.getElementById('profile-modal-dept').value = p.department || 'N/A';
 
     document.getElementById('profile-modal').classList.remove('hidden');
-}
-        function closePricingModal() {
-    if(document.getElementById('dont-show-pricing').checked) localStorage.setItem('hide_pricing', 'true');
-    document.getElementById('pricing-modal').classList.add('hidden');
-}
-
-function checkPricingPopup() {
-    if(state.profile.role === 'ceo' && !localStorage.getItem('hide_pricing') && state.org.subscription_tier !== 'bundle_3') {
-        setTimeout(() => document.getElementById('pricing-modal').classList.remove('hidden'), 2000);
-    }
 }
 
     // =========================================================
@@ -3891,56 +4073,56 @@ function checkPricingPopup() {
 </script>
     <div id="docs-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <div class="modal-title">Employee Documents <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('docs-modal').classList.add('hidden')"></i></div>
+            <div class="modal-title"><span data-i18n="docs_title">Employee Documents</span> <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('docs-modal').classList.add('hidden')"></i></div>
             <h4 id="docs-user-name" style="color:var(--primary); margin-bottom:15px;"></h4>
             <div id="docs-list" style="max-height:300px; overflow-y:auto; margin-bottom:20px;"></div>
             
             <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px;">
-                <div style="font-weight:700; margin-bottom:10px;">Add New Document</div>
-                <div class="form-group"><input type="text" id="doc-type" class="form-input" placeholder="Document Name (e.g. Passport)"></div>
-                <div class="form-group"><input type="date" id="doc-expiry" class="form-input"></div>
-                <div class="form-group"><input type="text" id="doc-link" class="form-input" placeholder="External Drive Link (Optional)"></div>
+                <div style="font-weight:700; margin-bottom:10px;" data-i18n="docs_add_title">Add New Document</div>
+                <div class="form-group"><input type="text" id="doc-type" class="form-input" data-i18n-placeholder="docs_type_placeholder" placeholder="Document Name (e.g. Passport)"></div>
+                <div class="form-group"><label data-i18n="docs_expiry_label">Expiry Date</label><input type="date" id="doc-expiry" class="form-input"></div>
+                <div class="form-group"><input type="text" id="doc-link" class="form-input" data-i18n-placeholder="docs_link_placeholder" placeholder="External Drive Link (Optional)"></div>
                 <div class="form-group" style="display:flex; gap:10px; align-items:center;">
-                    <input type="checkbox" id="doc-checklist"> <label for="doc-checklist">Checklist Item Only (No File)</label>
+                    <input type="checkbox" id="doc-checklist"> <label for="doc-checklist" data-i18n="docs_checklist_label">Checklist Item Only (No File)</label>
                 </div>
-                <button class="btn-primary" style="width:100%" onclick="saveEmployeeDoc()">Save Record</button>
+                <button class="btn-primary" style="width:100%" onclick="saveEmployeeDoc()"><span data-i18n="docs_save_btn">Save Record</span></button>
             </div>
         </div>
     </div>
 
     <div id="broadcast-modal" class="modal-overlay hidden">
         <div class="modal-card">
-            <div class="modal-title">Send Company Announcement <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('broadcast-modal').classList.add('hidden')"></i></div>
-            <div class="form-group"><label>Subject</label><input type="text" id="bc-subject" class="form-input"></div>
-            <div class="form-group"><label>Message</label><textarea id="bc-msg" class="form-input" rows="4"></textarea></div>
-            <div class="form-group"><label>Type</label>
+            <div class="modal-title"><span data-i18n="broadcast_title">Send Company Announcement</span> <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('broadcast-modal').classList.add('hidden')"></i></div>
+            <div class="form-group"><label data-i18n="broadcast_subject">Subject</label><input type="text" id="bc-subject" class="form-input"></div>
+            <div class="form-group"><label data-i18n="broadcast_message">Message</label><textarea id="bc-msg" class="form-input" rows="4"></textarea></div>
+            <div class="form-group"><label data-i18n="broadcast_type">Type</label>
                 <select id="bc-severity" class="form-input" style="background:var(--sidebar-bg)">
-                    <option value="info">General Info (Blue)</option>
-                    <option value="urgent">Urgent Alert (Red)</option>
+                    <option value="info" data-i18n="broadcast_info">General Info (Blue)</option>
+                    <option value="urgent" data-i18n="broadcast_urgent">Urgent Alert (Red)</option>
                 </select>
             </div>
-            <button class="btn-primary" style="width:100%" onclick="sendBroadcast()">Post Announcement</button>
+            <button class="btn-primary" style="width:100%" onclick="sendBroadcast()"><span data-i18n="broadcast_post_btn">Post Announcement</span></button>
         </div>
     </div>
     <div id="ai-widget">
         <div id="ai-window" class="hidden">
             <div class="ai-header">
-                <span class="ai-title"><i class="fa-solid fa-robot"></i> Your HR Assistant</span>
+                <span class="ai-title"><i class="fa-solid fa-robot"></i> <span data-i18n="ai_title">Your HR Assistant</span></span>
                 <span class="ai-credits" id="ai-credits">0 Credits</span>
             </div>
             <div class="ai-quick-actions">
-                <button class="ai-quick-btn" onclick="prefillAiPrompt('Add a new employee named John Doe, email john@company.com, role employee, phone +1 555 0100, department Sales')">Add employee</button>
-                <button class="ai-quick-btn" onclick="prefillAiPrompt('Create an HR manager named Sara Ali, email sara@company.com, phone +1 555 0200, department HR')">Add HR manager</button>
-                <button class="ai-quick-btn" onclick="prefillAiPrompt('Where can I upload payroll files and run payroll?')">Payroll help</button>
-                <button class="ai-quick-btn" onclick="prefillAiPrompt('Where do I view attendance and clock-in records?')">Attendance help</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt(t('ai_prompts.add_employee'))" data-i18n="ai_quick_add_employee">Add employee</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt(t('ai_prompts.add_hr'))" data-i18n="ai_quick_add_hr">Add HR manager</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt(t('ai_prompts.payroll_help'))" data-i18n="ai_quick_payroll_help">Payroll help</button>
+                <button class="ai-quick-btn" onclick="prefillAiPrompt(t('ai_prompts.attendance_help'))" data-i18n="ai_quick_attendance_help">Attendance help</button>
             </div>
             <div id="ai-chat-body" class="ai-chat-body">
                 <div class="ai-msg assistant">
-                    <div class="ai-bubble">Hello! I can help you navigate, onboard employees, and explain any HR feature.</div>
+                    <div class="ai-bubble" data-i18n="ai_intro">Hello! I can help you navigate, onboard employees, and explain any HR feature.</div>
                 </div>
             </div>
             <div class="ai-input-row">
-                <input type="text" id="ai-input" class="ai-input" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAiMessage()">
+                <input type="text" id="ai-input" class="ai-input" data-i18n-placeholder="ai_placeholder" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendAiMessage()">
                 <button class="btn-primary ai-send-btn" onclick="sendAiMessage()"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
@@ -3950,23 +4132,23 @@ function checkPricingPopup() {
         </button>
     </div>
     <footer class="app-footer">
-        <a href="#" onclick="return false;">Documentation</a>
-        <a href="#" onclick="return false;">Privacy Policy</a>
-        <a href="#" onclick="return false;">Legal Notes</a>
+        <a href="#" onclick="openDocumentationModal(); return false;" data-i18n="footer_docs">Documentation</a>
+        <a href="#" onclick="return false;" data-i18n="footer_privacy">Privacy Policy</a>
+        <a href="#" onclick="return false;" data-i18n="footer_legal">Legal Notes</a>
     </footer>
     <div id="setup-modal" class="modal-overlay hidden">
     <div class="modal-card" style="text-align:center;">
         <i class="fa-solid fa-handshake" style="font-size:3rem; color:var(--success); margin-bottom:20px;"></i>
-        <div class="modal-title" style="border:none; justify-content:center;">Welcome to Digitivia!</div>
-        <p style="color:var(--text-muted); margin-bottom:25px; line-height:1.6;">
+        <div class="modal-title" style="border:none; justify-content:center;" data-i18n="setup_title">Welcome to Digitivia!</div>
+        <p style="color:var(--text-muted); margin-bottom:25px; line-height:1.6;" data-i18n-html="setup_body">
             We are thrilled to have you. To ensure your HR data is migrated correctly, we offer <b>2 Free Setup Calls</b> (30 mins each).
         </p>
         <div style="display:grid; gap:10px;">
             <a href="https://calendly.com" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
-                <i class="fa-solid fa-calendar-check"></i> Book Integration Call
+                <i class="fa-solid fa-calendar-check"></i> <span data-i18n="setup_cta">Book Integration Call</span>
             </a>
             <button class="btn-outline" onclick="document.getElementById('setup-modal').classList.add('hidden')">
-                I'll explore on my own
+                <span data-i18n="setup_skip">I'll explore on my own</span>
             </button>
         </div>
     </div>
@@ -3974,55 +4156,94 @@ function checkPricingPopup() {
     <div id="help-modal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width:560px; text-align:center;">
             <div class="modal-title">
-                Need Help?
+                <span data-i18n="help_title">Need Help?</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="closeHelpModal()"></i>
             </div>
-            <p style="color:var(--text-muted); margin-bottom:20px; line-height:1.6;">
+            <p style="color:var(--text-muted); margin-bottom:20px; line-height:1.6;" data-i18n="help_body">
                 Book two free 30-minute sessions (1 hour total) and we will help you integrate and set up your HR workspace.
             </p>
             <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
-                <i class="fa-solid fa-calendar-check"></i> Book a Free Meeting
+                <i class="fa-solid fa-calendar-check"></i> <span data-i18n="help_cta">Book a Free Meeting</span>
             </a>
+        </div>
+    </div>
+    <div id="documentation-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 860px;">
+            <div class="modal-title">
+                <span data-i18n="docs_modal_title">Documentation</span>
+                <i class="fa-solid fa-xmark close-modal" onclick="closeDocumentationModal()"></i>
+            </div>
+            <p style="color:var(--text-muted); line-height:1.6; margin-bottom:20px;" data-i18n="docs_modal_intro">
+                Digitivia unifies HR operations, payroll, attendance, recruiting, performance, and workforce management in one secure workspace.
+            </p>
+            <div class="settings-section" style="margin-bottom:20px;">
+                <div class="settings-header"><i class="fa-solid fa-layer-group"></i> <span data-i18n="docs_tabs_title">What each tab does</span></div>
+                <ul class="feature-list">
+                    <li data-i18n="docs_tab_dashboard">Dashboard: live KPIs, activity, and risk highlights.</li>
+                    <li data-i18n="docs_tab_org_profile">Org Profile: company identity and compliance settings (CEO only).</li>
+                    <li data-i18n="docs_tab_employees">Employees: employee directory, profiles, and document tracking.</li>
+                    <li data-i18n="docs_tab_payroll">Payroll Automation: upload files, review AI calculations, and approve batches.</li>
+                    <li data-i18n="docs_tab_attendance">Attendance: clock-ins, geo-fence verification, and history.</li>
+                    <li data-i18n="docs_tab_ats">ATS Recruitment: email intake, AI candidate scoring, and hiring flow.</li>
+                    <li data-i18n="docs_tab_performance">Performance AI: upload reviews and track quality/speed scores.</li>
+                    <li data-i18n="docs_tab_reports">Strategic Reports: ROI, burnout, and efficiency analytics.</li>
+                    <li data-i18n="docs_tab_wfm">Workforce WFM: schedules, live roster, and coverage forecasting.</li>
+                    <li data-i18n="docs_tab_workspace">My Workspace: personal attendance and tools.</li>
+                </ul>
+            </div>
+            <div class="settings-section">
+                <div class="settings-header"><i class="fa-solid fa-tags"></i> <span data-i18n="docs_bundles_title">Bundles</span></div>
+                <ul class="feature-list">
+                    <li data-i18n="docs_bundle_starter">Starter (Free): time & attendance, basic payroll, employee database, live dashboard.</li>
+                    <li data-i18n="docs_bundle_growth">Growth: everything in Starter + ATS, workforce maps, internal broadcasting, adherence charts.</li>
+                    <li data-i18n="docs_bundle_enterprise">Enterprise: everything in Growth + advanced payroll automation, custom domain, priority support.</li>
+                </ul>
+            </div>
+            <div style="margin-top:20px; text-align:center;">
+                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="justify-content:center; text-decoration:none;">
+                    <i class="fa-solid fa-calendar-check"></i> <span data-i18n="docs_cta">Need a walkthrough? Book a free meeting.</span>
+                </a>
+            </div>
         </div>
     </div>
    <div id="email-connect-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-title">
-                Connect Recruitment Email
+                <span data-i18n="email_connect_title">Connect Recruitment Email</span>
                 <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('email-connect-modal').classList.add('hidden')"></i>
             </div>
             
-            <div style="background:rgba(52, 152, 219, 0.1); padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-main); border-left: 3px solid var(--primary);">
+            <div style="background:rgba(52, 152, 219, 0.1); padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem; color:var(--text-main); border-left: 3px solid var(--primary);" data-i18n-html="email_auto_scan">
                 <i class="fa-solid fa-robot"></i> <b>AI Auto-Scan:</b> The AI will connect via IMAP and scan this inbox every 10 minutes for emails with "Resume" or "CV" in the subject.
             </div>
             
             <div class="form-group">
                 <label>
-                    Email Provider 
-                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="Choose 'Custom' if you use Zoho, GoDaddy, or a private server."></i>
+                    <span data-i18n="email_provider">Email Provider</span>
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" data-i18n-title="email_provider_tip" title="Choose 'Custom' if you use Zoho, GoDaddy, or a private server."></i>
                 </label>
                 <select id="imap-provider" class="form-input" style="background:var(--sidebar-bg)" onchange="toggleImapFields()" title="Select your email service provider">
-                    <option value="gmail">Gmail</option>
-                    <option value="outlook">Outlook / Office 365</option>
-                    <option value="custom">Custom IMAP (Other)</option>
+                    <option value="gmail" data-i18n="email_provider_gmail">Gmail</option>
+                    <option value="outlook" data-i18n="email_provider_outlook">Outlook / Office 365</option>
+                    <option value="custom" data-i18n="email_provider_custom">Custom IMAP (Other)</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>
-                    Email Address
-                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="The email address where you receive job applications."></i>
+                    <span data-i18n="email_address">Email Address</span>
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" data-i18n-title="email_address_tip" title="The email address where you receive job applications."></i>
                 </label>
-                <input type="email" id="imap-email" class="form-input" placeholder="careers@company.com" title="Enter the email address to scan">
+                <input type="email" id="imap-email" class="form-input" data-i18n-placeholder="email_address_placeholder" placeholder="careers@company.com" title="Enter the email address to scan">
             </div>
 
             <div class="form-group">
                 <label>
-                    App Password
-                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" title="Do NOT use your login password. Generate a secure 'App Password' in your Google/Microsoft Account Security settings."></i>
+                    <span data-i18n="app_password">App Password</span>
+                    <i class="fa-solid fa-circle-question" style="color:var(--primary); cursor:help;" data-i18n-title="app_password_tip" title="Do NOT use your login password. Generate a secure 'App Password' in your Google/Microsoft Account Security settings."></i>
                 </label>
-                <input type="password" id="imap-pass" class="form-input" placeholder="abcd xxxx yyyy zzzz" title="Paste your 16-character App Password here">
-                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;">
+                <input type="password" id="imap-pass" class="form-input" data-i18n-placeholder="app_password_placeholder" placeholder="abcd xxxx yyyy zzzz" title="Paste your 16-character App Password here">
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:5px;" data-i18n-html="security_tip">
                     <i class="fa-solid fa-shield-halved"></i> <strong>Security Tip:</strong> Use an 
                     <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--primary); text-decoration:underline;">App Password</a>, not your main password.
                 </div>
@@ -4030,24 +4251,24 @@ function checkPricingPopup() {
             
             <div id="custom-imap" class="hidden" style="padding:10px; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:15px;">
                 <div class="form-group">
-                    <label>IMAP Host <i class="fa-solid fa-circle-question" title="e.g. imap.zoho.com or mail.yourdomain.com"></i></label>
-                    <input type="text" id="imap-host" class="form-input" value="imap.gmail.com" placeholder="imap.server.com">
+                    <label><span data-i18n="imap_host">IMAP Host</span> <i class="fa-solid fa-circle-question" title="e.g. imap.zoho.com or mail.yourdomain.com"></i></label>
+                    <input type="text" id="imap-host" class="form-input" value="imap.gmail.com" data-i18n-placeholder="imap_host_placeholder" placeholder="imap.server.com">
                 </div>
                 <div class="form-group">
-                    <label>IMAP Port <i class="fa-solid fa-circle-question" title="Standard SSL port is 993"></i></label>
+                    <label><span data-i18n="imap_port">IMAP Port</span> <i class="fa-solid fa-circle-question" title="Standard SSL port is 993"></i></label>
                     <input type="number" id="imap-port" class="form-input" value="993">
                 </div>
             </div>
 
             <button class="btn-primary" style="width:100%" onclick="saveEmailIntegration()">
-                <i class="fa-solid fa-plug"></i> Connect & Start AI Scanning
+                <i class="fa-solid fa-plug"></i> <span data-i18n="email_connect_btn">Connect & Start AI Scanning</span>
             </button>
         </div>
     </div>
     <div id="candidate-modal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width:800px; height:80vh; display:flex; flex-direction:column;">
         <div class="modal-title">
-            AI Candidate Analysis
+            <span data-i18n="candidate_ai_title">AI Candidate Analysis</span>
             <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('candidate-modal').classList.add('hidden')"></i>
         </div>
         <div style="display:flex; gap:20px; flex-grow:1; overflow:hidden;">
@@ -4056,17 +4277,17 @@ function checkPricingPopup() {
                     <div id="ai-score-circle" style="width:100px; height:100px; border-radius:50%; border:5px solid var(--primary); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:bold; margin:0 auto;">
                         0%
                     </div>
-                    <div style="margin-top:10px; font-weight:bold;">Match Score</div>
+                    <div style="margin-top:10px; font-weight:bold;" data-i18n="match_score">Match Score</div>
                 </div>
-                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px;">Executive Summary</h4>
+                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px;" data-i18n="exec_summary">Executive Summary</h4>
                 <p id="ai-summary-text" style="font-size:0.9rem; line-height:1.6; color:var(--text-main);">Loading...</p>
                 
-                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px; margin-top:20px;">Extracted Skills</h4>
+                <h4 style="color:var(--primary); border-bottom:1px solid var(--glass-border); padding-bottom:5px; margin-bottom:10px; margin-top:20px;" data-i18n="extracted_skills">Extracted Skills</h4>
                 <div id="ai-skills-tags" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
             </div>
 
             <div style="flex-grow:1; display:flex; flex-direction:column;">
-                <h4 style="margin-bottom:10px;">Source Context (CV / Portfolio)</h4>
+                <h4 style="margin-bottom:10px;" data-i18n="source_context">Source Context (CV / Portfolio)</h4>
                 <div id="ai-source-text" style="flex-grow:1; background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; overflow-y:auto; font-family:monospace; font-size:0.85rem; white-space:pre-wrap;">
                     Loading original text...
                 </div>
@@ -4077,66 +4298,66 @@ function checkPricingPopup() {
     <div id="pricing-modal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 1000px;">
         <div class="modal-title" style="text-align: center; border: none; font-size: 1.8rem;">
-            Upgrade Your Operation
-            <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400; margin-top: 5px;">Choose the bundle that fits your scale.</div>
+            <span data-i18n="pricing_title">Upgrade Your Operation</span>
+            <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400; margin-top: 5px;" data-i18n="pricing_subtitle">Choose the bundle that fits your scale.</div>
             <i class="fa-solid fa-xmark close-modal" onclick="closePricingModal()" style="position: absolute; right: 30px; top: 30px;"></i>
         </div>
 
         <div class="pricing-grid">
             <div class="pricing-card">
-                <div class="plan-name">Starter</div>
-                <div class="plan-price">Free<span>/mo</span></div>
+                <div class="plan-name" data-i18n="plan_starter">Starter</div>
+                <div class="plan-price"><span data-i18n="price_free">Free</span><span data-i18n="per_month">/mo</span></div>
                 <ul class="feature-list">
-                    <li><i class="fa-solid fa-check"></i> Time & Attendance</li>
-                    <li><i class="fa-solid fa-check"></i> Basic Payroll</li>
-                    <li><i class="fa-solid fa-check"></i> Employee Database</li>
-                    <li><i class="fa-solid fa-check"></i> Live Dashboard</li>
-                    <li class="locked"><i class="fa-solid fa-lock"></i> AI Recruitment</li>
-                    <li class="locked"><i class="fa-solid fa-lock"></i> Workforce Management</li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_time_attendance">Time & Attendance</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_basic_payroll">Basic Payroll</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_employee_db">Employee Database</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_live_dashboard">Live Dashboard</span></li>
+                    <li class="locked"><i class="fa-solid fa-lock"></i> <span data-i18n="feature_ai_recruitment">AI Recruitment</span></li>
+                    <li class="locked"><i class="fa-solid fa-lock"></i> <span data-i18n="feature_workforce">Workforce Management</span></li>
                 </ul>
-                <button class="btn-outline" style="width: 100%; opacity: 0.5; cursor: default;">Current Plan</button>
+                <button class="btn-outline" style="width: 100%; opacity: 0.5; cursor: default;"><span data-i18n="current_plan">Current Plan</span></button>
             </div>
 
             <div class="pricing-card popular">
-                <div class="plan-tag">Recommended</div>
-                <div class="plan-name" style="color:var(--primary)">Growth</div>
-                <div class="plan-price">$49<span>/mo</span></div>
+                <div class="plan-tag" data-i18n="recommended">Recommended</div>
+                <div class="plan-name" style="color:var(--primary)" data-i18n="plan_growth">Growth</div>
+                <div class="plan-price"><span data-i18n="price_growth">$49</span><span data-i18n="per_month">/mo</span></div>
                 <ul class="feature-list">
-                    <li><i class="fa-solid fa-check"></i> <b>Everything in Starter</b></li>
-                    <li><i class="fa-solid fa-check"></i> AI Recruitment (ATS)</li>
-                    <li><i class="fa-solid fa-check"></i> Workforce WFM (Maps)</li>
-                    <li><i class="fa-solid fa-check"></i> Internal Broadcasting</li>
-                    <li><i class="fa-solid fa-check"></i> Adherence Charts</li>
+                    <li><i class="fa-solid fa-check"></i> <b data-i18n="feature_everything_in_starter">Everything in Starter</b></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_ats">AI Recruitment (ATS)</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_wfm">Workforce WFM (Maps)</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_broadcast">Internal Broadcasting</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_adherence">Adherence Charts</span></li>
                 </ul>
-                <a href="#" class="btn-primary" style="width: 100%; justify-content: center; text-decoration:none;">Upgrade to Growth</a>
+                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-primary" style="width: 100%; justify-content: center; text-decoration:none;"><span data-i18n="upgrade_growth">Upgrade to Growth</span></a>
             </div>
 
             <div class="pricing-card enterprise">
-                <div class="plan-name" style="color:var(--info)">Enterprise</div>
-                <div class="plan-price">$199<span>/mo</span></div>
+                <div class="plan-name" style="color:var(--info)" data-i18n="plan_enterprise">Enterprise</div>
+                <div class="plan-price"><span data-i18n="price_enterprise">$199</span><span data-i18n="per_month">/mo</span></div>
                 <ul class="feature-list">
-                    <li><i class="fa-solid fa-check"></i> <b>Everything in Growth</b></li>
-                    <li><i class="fa-solid fa-check"></i> Self-Hosted VPS Option</li>
-                    <li><i class="fa-solid fa-check"></i> Advanced Payroll Automation</li>
-                    <li><i class="fa-solid fa-check"></i> Custom Domain</li>
-                    <li><i class="fa-solid fa-check"></i> Priority Support</li>
+                    <li><i class="fa-solid fa-check"></i> <b data-i18n="feature_everything_in_growth">Everything in Growth</b></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_self_hosted">Self-Hosted VPS Option</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_adv_payroll">Advanced Payroll Automation</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_custom_domain">Custom Domain</span></li>
+                    <li><i class="fa-solid fa-check"></i> <span data-i18n="feature_priority_support">Priority Support</span></li>
                 </ul>
-                <a href="#" class="btn-outline" style="width: 100%; justify-content: center; border-color: var(--info); color: var(--info); text-decoration:none;">Contact Sales</a>
+                <a href="https://calendar.app.google/aYZBqU3M32EX2fM57" target="_blank" class="btn-outline" style="width: 100%; justify-content: center; border-color: var(--info); color: var(--info); text-decoration:none;"><span data-i18n="contact_sales">Contact Sales</span></a>
             </div>
         </div>
 
         <div class="modal-footer">
             <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="checkbox" id="dont-show-pricing"> Don't show this automatically again
+                <input type="checkbox" id="dont-show-pricing"> <span data-i18n="dont_show_again">Don't show this automatically again</span>
             </label>
-            <button class="btn-outline" onclick="closePricingModal()" style="padding: 5px 15px; font-size: 0.8rem;">Close</button>
+            <button class="btn-outline" onclick="closePricingModal()" style="padding: 5px 15px; font-size: 0.8rem;"><span data-i18n="close_btn">Close</span></button>
         </div>
     </div>
 </div>
     <div id="profile-modal" class="modal-overlay hidden">
     <div class="modal-card" style="max-width: 700px;">
         <div class="modal-title">
-            My Profile
+            <span data-i18n="profile_title">My Profile</span>
             <i class="fa-solid fa-xmark close-modal" onclick="document.getElementById('profile-modal').classList.add('hidden')"></i>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center; padding: 20px; border-bottom: 1px solid var(--glass-border);">
@@ -4146,44 +4367,20 @@ function checkPricingPopup() {
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
             <div class="settings-section">
-                <div class="settings-header"><i class="fa-solid fa-user-tag"></i> Basic Info</div>
-                <div class="form-group"><label>Email</label><input type="text" id="profile-modal-email" class="form-input" disabled></div>
-                <div class="form-group"><label>Phone</label><input type="text" id="profile-modal-phone" class="form-input" disabled></div>
+                <div class="settings-header"><i class="fa-solid fa-user-tag"></i> <span data-i18n="profile_basic_info">Basic Info</span></div>
+                <div class="form-group"><label data-i18n="profile_email">Email</label><input type="text" id="profile-modal-email" class="form-input" disabled></div>
+                <div class="form-group"><label data-i18n="profile_phone">Phone</label><input type="text" id="profile-modal-phone" class="form-input" disabled></div>
             </div>
             <div class="settings-section">
-                <div class="settings-header"><i class="fa-solid fa-building-user"></i> Company & Role</div>
-                <div class="form-group"><label>Organization</label><input type="text" id="profile-modal-org" class="form-input" disabled></div>
-                <div class="form-group"><label>Department</label><input type="text" id="profile-modal-dept" class="form-input" disabled></div>
+                <div class="settings-header"><i class="fa-solid fa-building-user"></i> <span data-i18n="profile_company_role">Company & Role</span></div>
+                <div class="form-group"><label data-i18n="profile_org">Organization</label><input type="text" id="profile-modal-org" class="form-input" disabled></div>
+                <div class="form-group"><label data-i18n="profile_dept">Department</label><input type="text" id="profile-modal-dept" class="form-input" disabled></div>
             </div>
         </div>
         <div style="padding: 20px; border-top: 1px solid var(--glass-border);">
             <button class="btn-outline" style="width: 100%; border-color: var(--danger); color: var(--danger); justify-content: center;" onclick="handleLogout()">
-                <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+                <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="sign_out">Sign Out</span>
             </button>
-        </div>
-    </div>
-</div>
-    <div id="pricing-modal" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width: 1000px; text-align:center;">
-        <div class="modal-title">Upgrade Your Plan <i class="fa-solid fa-xmark close-modal" onclick="closePricingModal()"></i></div>
-        <div class="pricing-grid">
-            <div class="pricing-card">
-                <h3>Starter</h3><div class="plan-price">Free</div>
-                <ul class="feature-list"><li>Basic HR</li><li>Attendance</li></ul>
-            </div>
-            <div class="pricing-card popular" style="border:2px solid var(--primary); transform:scale(1.05);">
-                <div class="plan-tag">Best Value</div>
-                <h3 style="color:var(--primary)">Growth Plus</h3><div class="plan-price">$49</div>
-                <ul class="feature-list"><li><b>Everything in Starter</b></li><li>AI Recruitment</li><li>Workforce Maps</li></ul>
-                <button class="btn-primary" style="width:100%">Upgrade Now</button>
-            </div>
-            <div class="pricing-card">
-                <h3>Enterprise</h3><div class="plan-price">$199</div>
-                <ul class="feature-list"><li>Custom Domain</li><li>Priority Support</li></ul>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <label><input type="checkbox" id="dont-show-pricing"> Don't show again</label>
         </div>
     </div>
 </div>
