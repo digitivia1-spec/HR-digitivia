@@ -4037,8 +4037,10 @@ async function startCheckout(planId) {
     try {
         const response = await fetch(endpoint, {
             method: "POST",
+            mode: "cors",
+            credentials: "include",
             headers: {
-                Authorization: `Bearer ${sessionToken}`,
+                Authorization: `Bearer ${sessionToken}`, // use logged-in user token only
                 apikey: SUPABASE_KEY,
                 "Content-Type": "application/json",
             },
