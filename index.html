@@ -357,7 +357,7 @@ html[lang="ar"] .fa-bars { margin-right: 0 !important; margin-left: 15px; }
     </div>
 
     <div class="user-controls">
-        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)" data-i18n="role_loading">Loading...</div>
+        <div id="role-display" class="btn-outline" style="cursor:default; border-color:var(--primary); color:var(--primary)">Loading...</div>
         <button class="btn-outline" onclick="toggleLang()" id="lang-btn" data-i18n="lang_btn">عربي</button>
         <div class="dropdown" onclick="openProfileModal()"> <img src="" alt="User" id="user-avatar">
         </div>
@@ -2818,7 +2818,7 @@ document.getElementById('auth-container').classList.add('hidden');
         // 0. EMPLOYEE VIEW
         if (role === 'employee') {
              const ul = document.createElement('ul'); ul.className = 'nav-links';
-             ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="navigateTo('employee_dash')"><i class="fa-solid fa-home"></i> <span>${t.nav_my_home}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='employee_dash'?'active':''}" onclick="navigateTo('employee_dash')"><i class="fa-solid fa-house"></i> <span>${t.nav_my_home}</span></li>`;
              ul.innerHTML += `<li class="nav-item ${state.activeView==='attendance'?'active':''}" onclick="navigateTo('attendance')"><i class="fa-solid fa-clock"></i> <span>${t.nav_time_clock}</span></li>`;
              container.appendChild(ul);
              return;
@@ -2829,15 +2829,15 @@ document.getElementById('auth-container').classList.add('hidden');
             const sec = document.createElement('div');
             sec.innerHTML = `<div class="nav-header">${t.nav_exec_suite}</div>`;
             const ul = document.createElement('ul'); ul.className = 'nav-links';
-            ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="navigateTo('dashboard')"><i class="fa-solid fa-chart-pie"></i> <span>${t.dashboard}</span></li>`;
+            ul.innerHTML += `<li class="nav-item ${state.activeView==='dashboard'?'active':''}" onclick="navigateTo('dashboard')"><i class="fa-solid fa-gauge-high"></i> <span>${t.dashboard}</span></li>`;
             
             // CEO Only: Org Settings
             if (role === 'ceo') {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="navigateTo('org_profile')"><i class="fa-solid fa-building-shield"></i> <span>${t.org_profile}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='org_profile'?'active':''}" onclick="navigateTo('org_profile')"><i class="fa-solid fa-building"></i> <span>${t.org_profile}</span></li>`;
             }
             // Reports
             if (['ceo', 'admin'].includes(role)) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="navigateTo('reports')"><i class="fa-solid fa-file-alt"></i> <span>${t.reports}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='reports'?'active':''}" onclick="navigateTo('reports')"><i class="fa-solid fa-file-lines"></i> <span>${t.reports}</span></li>`;
             }
             sec.appendChild(ul); container.appendChild(sec);
         }
@@ -2874,7 +2874,7 @@ document.getElementById('auth-container').classList.add('hidden');
             
             // WFM Feature Gating
             if (hasAccess('wfm')) {
-                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="navigateTo('wfm')"><i class="fa-solid fa-timeline"></i> <span>${t.wfm}</span></li>`;
+                ul.innerHTML += `<li class="nav-item ${state.activeView==='wfm'?'active':''}" onclick="navigateTo('wfm')"><i class="fa-solid fa-chart-line"></i> <span>${t.wfm}</span></li>`;
             } else {
                 ul.innerHTML += `<li class="nav-item" style="opacity:0.5; cursor:pointer;" onclick="openPricingModal()"><i class="fa-solid fa-lock"></i> <span>${t.wfm}</span></li>`;
             }
@@ -3206,6 +3206,10 @@ function toggleLang() {
     if (aiWindow && !aiWindow.classList.contains('hidden')) {
         updateAiCredits();
     }
+    const roleDisplay = document.getElementById('role-display');
+    if (roleDisplay && state.profile?.role) {
+        roleDisplay.innerText = formatRoleLabel(state.profile.role);
+    }
 
     // 4. Update other static parts of the UI
     // Example: Update the profile modal title and labels
@@ -3378,6 +3382,14 @@ function toggleLang() {
         if (firstBrace === -1 || lastBrace === -1) return null;
         const candidate = text.slice(firstBrace, lastBrace + 1);
         try { return JSON.parse(candidate); } catch (e) { return null; }
+    }
+
+    function unwrapActionPayload(payload) {
+        if (!payload || typeof payload !== 'object') return payload;
+        if (payload.action) return payload;
+        if (payload.response && typeof payload.response === 'object') return payload.response;
+        if (payload.data && typeof payload.data === 'object') return payload.data;
+        return payload;
     }
 
     function normalizeAssistantResponse(raw) {
@@ -3553,7 +3565,7 @@ function toggleLang() {
                 if (!response.ok) throw new Error(`Assistant error: ${response.status}`);
                 didCallAi = true;
                 const raw = await response.text();
-                actionPayload = extractJsonPayload(raw);
+                actionPayload = unwrapActionPayload(extractJsonPayload(raw));
                 if (actionPayload) {
                     const normalized = normalizeAssistantResponse(actionPayload);
                     replyText = normalized.text;
