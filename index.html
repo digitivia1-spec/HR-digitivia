@@ -611,7 +611,7 @@ Employee creation via chat:
 - Required fields: full_name, email, role (employee|manager|hr_manager), phone.
 - Optional: department, temp_password.
 - If any required field is missing, ask only for the missing fields.
-- Only return create_employee if the user's plan is starter, growth, or custom AND user_role is ceo|hr_manager|manager.
+- Only return create_employee if the user's plan is starter, growth, bundle_3, or custom AND user_role is ceo|hr_manager|manager.
 - When the user confirms and all required fields exist, output a JSON object ONLY with this schema:
 {
   "action": "create_employee",
