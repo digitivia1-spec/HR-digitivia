@@ -3113,6 +3113,7 @@ Never invent data. Ask if unsure.`;
             const locStatus = document.getElementById('loc-status');
             const vidContainer = document.getElementById('camera-preview');
             const vid = document.getElementById('vid');
+            let stream = null; // Declare stream before try block to prevent ReferenceError in catch
             btn.classList.add('hidden'); locStatus.innerText = "Acquiring Secure GPS Signal...";
 
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -3148,7 +3149,22 @@ Never invent data. Ask if unsure.`;
                         renderAttendanceUI(document.getElementById('main-view'));
                     }, 'image/jpeg');
                 }, 1500);
-            } catch (err) { console.error(err); showToast("Access Denied: " + err.message, true); btn.classList.remove('hidden'); if (stream) stream.getTracks().forEach(t => t.stop()); }
+            } catch (err) {
+                console.error('Clock-in error:', err);
+                let errorMsg = 'Clock-in failed';
+                if (err.code === 1 || err.message?.includes('denied')) {
+                    errorMsg = 'Location access denied. Please enable GPS in your browser settings.';
+                } else if (err.name === 'NotAllowedError') {
+                    errorMsg = 'Camera access denied. Please enable camera permissions.';
+                } else {
+                    errorMsg = err.message || 'An error occurred during clock-in';
+                }
+                showToast(errorMsg, true);
+                locStatus.innerText = errorMsg;
+                locStatus.style.color = 'var(--danger)';
+                btn.classList.remove('hidden');
+                if (stream) stream.getTracks().forEach(t => t.stop());
+            }
         }
 
         // --- NEW: MISSING FUNCTION: Save Dept Schedule ---
@@ -3564,28 +3580,94 @@ Never invent data. Ask if unsure.`;
         }
         // 1.5 EMPLOYEE DASHBOARD (New)
         async function renderEmployeeDashboard(container) {
+            // Show loading state first
+            container.innerHTML = `<div style="text-align:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:2rem;"></i><p>Loading your dashboard...</p></div>`;
+
+            // Fetch real data from database
+            const userId = state.user.id;
+            const orgId = state.org.id;
+
+            // 1. Calculate On-Time Score from attendance history (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const { data: attendance } = await supabaseClient
+                .from('wfm_activity')
+                .select('clock_in_time, clock_out_time')
+                .eq('user_id', userId)
+                .gte('clock_in_time', thirtyDaysAgo.toISOString())
+                .order('clock_in_time', { ascending: false });
+
+            let onTimeScore = '--';
+            let totalShifts = 0;
+            let hoursThisMonth = 0;
+
+            if (attendance && attendance.length > 0) {
+                totalShifts = attendance.length;
+                // Calculate hours worked
+                attendance.forEach(shift => {
+                    if (shift.clock_in_time && shift.clock_out_time) {
+                        const inTime = new Date(shift.clock_in_time);
+                        const outTime = new Date(shift.clock_out_time);
+                        hoursThisMonth += (outTime - inTime) / (1000 * 60 * 60);
+                    }
+                });
+                hoursThisMonth = Math.round(hoursThisMonth * 10) / 10;
+                // Assume on-time if they clocked in (since we don't have late tracking)
+                onTimeScore = totalShifts > 0 ? '100%' : '--';
+            }
+
+            // 2. Check latest payroll status
+            const { data: payroll } = await supabaseClient
+                .from('payroll_items')
+                .select('created_at, net_pay')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            let payslipStatus = 'None';
+            let payslipColor = 'var(--text-muted)';
+            if (payroll && payroll.length > 0) {
+                payslipStatus = 'Processed';
+                payslipColor = 'var(--success)';
+            }
+
+            // 3. Check current clock-in status
+            const { data: activeShift } = await supabaseClient
+                .from('wfm_activity')
+                .select('*')
+                .eq('user_id', userId)
+                .is('clock_out_time', null)
+                .maybeSingle();
+
+            const isClockedIn = !!activeShift;
+            const statusBadge = isClockedIn
+                ? `<span style="color:var(--success);"><i class="fa-solid fa-circle"></i> Currently Clocked In</span>`
+                : `<span style="color:var(--text-muted);"><i class="fa-regular fa-circle"></i> Not Clocked In</span>`;
+
             container.innerHTML = `
-            <div class="page-title"><span>Welcome, <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span></div>
+            <div class="page-title"><span>Welcome, <span style="color:var(--primary)">${state.profile.full_name.split(' ')[0]}</span></span> ${statusBadge}</div>
             <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr);">
                 <div class="card" style="text-align:center; padding:30px;">
-                    <i class="fa-solid fa-clock" style="font-size:2rem; color:var(--success); margin-bottom:10px;"></i>
-                    <div style="font-size:1.2rem; font-weight:700;">On-Time Score</div>
-                    <div style="font-size:2rem; color:white; margin-top:5px;">98%</div>
+                    <i class="fa-solid fa-calendar-check" style="font-size:2rem; color:var(--success); margin-bottom:10px;"></i>
+                    <div style="font-size:1.2rem; font-weight:700;">Shifts This Month</div>
+                    <div style="font-size:2rem; color:white; margin-top:5px;">${totalShifts}</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">${hoursThisMonth} hours logged</div>
                 </div>
                 <div class="card" style="text-align:center; padding:30px;">
                     <i class="fa-solid fa-money-check-dollar" style="font-size:2rem; color:var(--warning); margin-bottom:10px;"></i>
                     <div style="font-size:1.2rem; font-weight:700;">Latest Payslip</div>
-                    <div style="font-size:1.5rem; color:white; margin-top:5px;">Processsed</div>
+                    <div style="font-size:1.5rem; color:${payslipColor}; margin-top:5px;">${payslipStatus}</div>
                 </div>
                 <div class="card" style="text-align:center; padding:30px;">
-                    <i class="fa-solid fa-list-check" style="font-size:2rem; color:var(--info); margin-bottom:10px;"></i>
-                    <div style="font-size:1.2rem; font-weight:700;">Assigned Tasks</div>
-                    <div style="font-size:2rem; color:white; margin-top:5px;">3 Pending</div>
+                    <i class="fa-solid fa-clock" style="font-size:2rem; color:var(--info); margin-bottom:10px;"></i>
+                    <div style="font-size:1.2rem; font-weight:700;">Attendance Rate</div>
+                    <div style="font-size:2rem; color:white; margin-top:5px;">${onTimeScore}</div>
                 </div>
             </div>
             <div class="card" style="margin-top:20px; padding:40px; text-align:center;">
                 <h3 style="margin-bottom:15px;">Quick Actions</h3>
-                <button class="btn-primary" onclick="navigateTo('attendance')">Go to Time Clock</button>
+                <button class="btn-primary" onclick="navigateTo('attendance')"><i class="fa-solid fa-fingerprint"></i> Go to Time Clock</button>
             </div>
         `;
         }
