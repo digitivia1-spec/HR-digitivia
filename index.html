@@ -3120,12 +3120,29 @@ Never invent data. Ask if unsure.`;
             const deviceType = isMobile ? 'mobile_app' : 'desktop_web';
 
             try {
-                // Geolocation options: fresh location, high accuracy, 10 second timeout
+                // STEP 1: Check permission status FIRST using Permissions API
+                locStatus.innerText = "Checking location permissions...";
+                let permissionStatus;
+                try {
+                    permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+                    console.log('Geolocation permission status:', permissionStatus.state);
+
+                    if (permissionStatus.state === 'denied') {
+                        throw new Error('PERMISSION_BLOCKED_BY_BROWSER');
+                    }
+                } catch (permErr) {
+                    console.warn('Permissions API not available or failed:', permErr);
+                    // Continue anyway - older browsers don't support Permissions API
+                }
+
+                // STEP 2: Request geolocation with options
+                locStatus.innerText = "Acquiring GPS location...";
                 const geoOptions = {
                     enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0  // Force fresh location, don't use cached
+                    timeout: 15000,  // Increased to 15 seconds
+                    maximumAge: 0    // Force fresh location
                 };
+
                 const position = await new Promise((resolve, reject) => {
                     navigator.geolocation.getCurrentPosition(resolve, reject, geoOptions);
                 });
@@ -3159,21 +3176,36 @@ Never invent data. Ask if unsure.`;
                 }, 1500);
             } catch (err) {
                 console.error('Clock-in error:', err);
+                console.error('Error details - code:', err.code, 'message:', err.message, 'name:', err.name);
+
                 let errorMsg = 'Clock-in failed';
+                let instructions = '';
+
+                // Custom error from Permissions API check
+                if (err.message === 'PERMISSION_BLOCKED_BY_BROWSER') {
+                    errorMsg = '🚫 Location is BLOCKED in Chrome Settings';
+                    instructions = '\n\nTO FIX:\n1. Click the 3 dots menu (⋮) → Settings\n2. Search for "Site settings"\n3. Click "Location"\n4. Remove hr.digitivia.com from blocked list\n5. Refresh this page';
+                }
                 // Geolocation error codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
-                if (err.code === 1) {
-                    errorMsg = 'Location access denied. Please click the lock icon in your address bar, set Location to "Allow", then refresh the page.';
+                else if (err.code === 1) {
+                    errorMsg = '🚫 Location Permission Denied';
+                    instructions = '\n\nTO FIX:\n1. Look for the 🔒 or ⓘ icon in address bar\n2. Click it and find "Location"\n3. Change to "Allow"\n4. Refresh the page (F5)';
                 } else if (err.code === 2) {
-                    errorMsg = 'Unable to determine your location. Please ensure GPS is enabled on your device.';
+                    errorMsg = '📍 Unable to get your location';
+                    instructions = '\n\nPossible fixes:\n• Enable GPS on your device\n• Move to area with better GPS signal\n• Check if browser has location services enabled';
                 } else if (err.code === 3) {
-                    errorMsg = 'Location request timed out. Please check your GPS signal and try again.';
+                    errorMsg = '⏱️ Location request timed out';
+                    instructions = '\n\nTry:\n• Check GPS/location services are on\n• Move closer to a window\n• Refresh and try again';
                 } else if (err.name === 'NotAllowedError') {
-                    errorMsg = 'Camera access denied. Please enable camera permissions.';
+                    errorMsg = '📷 Camera access denied';
+                    instructions = '\n\nAllow camera permissions in browser settings';
                 } else {
                     errorMsg = err.message || 'An error occurred during clock-in';
                 }
+
+                const fullMessage = errorMsg + instructions;
                 showToast(errorMsg, true);
-                locStatus.innerText = errorMsg;
+                locStatus.innerText = fullMessage;
                 locStatus.style.color = 'var(--danger)';
                 btn.classList.remove('hidden');
                 if (stream) stream.getTracks().forEach(t => t.stop());
