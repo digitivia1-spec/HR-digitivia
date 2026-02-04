@@ -3120,7 +3120,15 @@ Never invent data. Ask if unsure.`;
             const deviceType = isMobile ? 'mobile_app' : 'desktop_web';
 
             try {
-                const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, reject));
+                // Geolocation options: fresh location, high accuracy, 10 second timeout
+                const geoOptions = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0  // Force fresh location, don't use cached
+                };
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, geoOptions);
+                });
                 const { latitude, longitude } = position.coords;
                 const dist = getDistanceFromLatLonInM(latitude, longitude, OFFICE_COORDS.lat, OFFICE_COORDS.lng);
                 const workMode = dist < MAX_DISTANCE_METERS ? 'Office' : 'Remote';
@@ -3152,8 +3160,13 @@ Never invent data. Ask if unsure.`;
             } catch (err) {
                 console.error('Clock-in error:', err);
                 let errorMsg = 'Clock-in failed';
-                if (err.code === 1 || err.message?.includes('denied')) {
-                    errorMsg = 'Location access denied. Please enable GPS in your browser settings.';
+                // Geolocation error codes: 1=PERMISSION_DENIED, 2=POSITION_UNAVAILABLE, 3=TIMEOUT
+                if (err.code === 1) {
+                    errorMsg = 'Location access denied. Please click the lock icon in your address bar, set Location to "Allow", then refresh the page.';
+                } else if (err.code === 2) {
+                    errorMsg = 'Unable to determine your location. Please ensure GPS is enabled on your device.';
+                } else if (err.code === 3) {
+                    errorMsg = 'Location request timed out. Please check your GPS signal and try again.';
                 } else if (err.name === 'NotAllowedError') {
                     errorMsg = 'Camera access denied. Please enable camera permissions.';
                 } else {
