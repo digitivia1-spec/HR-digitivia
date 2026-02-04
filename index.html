@@ -3617,12 +3617,13 @@ Never invent data. Ask if unsure.`;
                 onTimeScore = totalShifts > 0 ? '100%' : '--';
             }
 
-            // 2. Check latest payroll status
+            // 2. Check latest payroll status (payroll_items uses employee_name, not user_id)
             const { data: payroll } = await supabaseClient
                 .from('payroll_items')
-                .select('created_at, net_pay')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
+                .select('updated_at, net_pay')
+                .eq('org_id', orgId)
+                .eq('employee_name', state.profile.full_name)
+                .order('updated_at', { ascending: false })
                 .limit(1);
 
             let payslipStatus = 'None';
