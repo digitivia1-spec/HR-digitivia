@@ -4568,7 +4568,7 @@ Never invent data. Ask if unsure.`;
             else if (view === 'org_profile') renderOrgProfile(main);
             else if (view === 'employees') { if (['ceo', 'hr_manager', 'manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
             else if (view === 'payroll') { if (['ceo', 'hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-            else if (view === 'wfm') { if (['ceo', 'admin', 'manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
+            else if (view === 'wfm') { if (['ceo', 'admin', 'manager', 'hr_manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
             else if (view === 'reports') { if (['ceo', 'admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
             else if (view === 'ats') { if (['ceo', 'admin', 'hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
             else if (view === 'performance') { if (['ceo', 'admin', 'hr_manager', 'manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
