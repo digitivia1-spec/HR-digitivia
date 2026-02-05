@@ -810,9 +810,8 @@
             }
 
             #pricing-modal .plan-tag {
-                top: 10px;
-                right: 10px;
-                font-size: 0.65rem;
+                font-size: 0.6rem;
+                padding: 3px 8px;
             }
 
             #pricing-modal .modal-footer {
@@ -900,13 +899,20 @@
             font-size: 2rem;
             font-weight: 800;
             color: white;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            line-height: 1.2;
         }
 
-        .plan-price span {
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: var(--text-muted);
+        .plan-price span[data-price-plan] {
+            font-size: 2rem;
+            font-weight: 800;
+            color: white;
+        }
+
+        .plan-price span[data-per-month] {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .feature-list {
@@ -936,16 +942,20 @@
         }
 
         .plan-tag {
-            position: absolute;
-            top: 12px;
-            right: 12px;
+            display: inline-block;
             background: var(--primary);
             color: white;
-            font-size: 0.7rem;
-            padding: 4px 8px;
-            border-radius: 4px;
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            border-radius: 20px;
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card.popular .plan-name {
+            margin-top: 0;
         }
 
         /* Discount pricing styles */
