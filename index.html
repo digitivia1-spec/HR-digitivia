@@ -3162,28 +3162,46 @@ Never invent data. Ask if unsure.`;
                 locStatus.innerText = `Verified: ${workMode} (${Math.round(dist)}m from HQ)`;
                 locStatus.style.color = 'var(--success)';
                 vidContainer.classList.remove('hidden');
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                vid.srcObject = stream;
-                setTimeout(async () => {
-                    const canvas = document.createElement('canvas'); canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
-                    canvas.getContext('2d').drawImage(vid, 0, 0);
-                    canvas.toBlob(async (blob) => {
+                let publicUrl = null;
+
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    vid.srcObject = stream;
+                    await new Promise(r => setTimeout(r, 1500)); // Wait for camera to warm up
+
+                    const blob = await new Promise(resolve => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = vid.videoWidth;
+                        canvas.height = vid.videoHeight;
+                        canvas.getContext('2d').drawImage(vid, 0, 0);
+                        canvas.toBlob(resolve, 'image/jpeg');
+                    });
+
+                    if (blob) {
                         const fileName = `selfie_${state.user.id}_${Date.now()}.jpg`;
                         const { error: upErr } = await supabaseClient.storage.from('attendance_photos').upload(fileName, blob);
-                        if (upErr) throw upErr;
-                        const { data: { publicUrl } } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
-                        await supabaseClient.from('wfm_activity').insert({
-                            org_id: state.org.id, user_id: state.user.id,
-                            clock_in_time: new Date().toISOString(),
-                            current_status: 'On Queue',
-                            check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
-                            record_source: deviceType
-                        });
-                        stream.getTracks().forEach(t => t.stop());
-                        showToast("Identity Verified. Welcome back!");
-                        renderAttendanceUI(document.getElementById('main-view'));
-                    }, 'image/jpeg');
-                }, 1500);
+                        if (!upErr) {
+                            const { data } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
+                            publicUrl = data.publicUrl;
+                        }
+                    }
+                } catch (camErr) {
+                    console.warn("Camera access failed or denied:", camErr);
+                    showToast("⚠️ Camera denied - Proceeding without photo", true);
+                }
+
+                // PROCEED TO CLOCK IN (With or without photo)
+                await supabaseClient.from('wfm_activity').insert({
+                    org_id: state.org.id, user_id: state.user.id,
+                    clock_in_time: new Date().toISOString(),
+                    current_status: 'On Queue',
+                    check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
+                    record_source: deviceType
+                });
+
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                showToast("✓ Clock-in successful" + (publicUrl ? "" : " (No Photo)"));
+                renderAttendanceUI(document.getElementById('main-view'));
             } catch (err) {
                 console.error('Clock-in error:', err);
                 console.error('Error details - code:', err.code, 'message:', err.message, 'name:', err.name);
@@ -3206,39 +3224,46 @@ Never invent data. Ask if unsure.`;
                     locStatus.innerText = `⚠️ GPS unavailable - Proceeding with Office Location`;
                     locStatus.style.color = 'var(--warning)';
                     vidContainer.classList.remove('hidden');
+                    let bypassUrl = null;
                     try {
                         stream = await navigator.mediaDevices.getUserMedia({ video: true });
                         vid.srcObject = stream;
-                        setTimeout(async () => {
-                            const canvas = document.createElement('canvas'); canvas.width = vid.videoWidth; canvas.height = vid.videoHeight;
+                        await new Promise(r => setTimeout(r, 1500));
+
+                        const blob = await new Promise(resolve => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = vid.videoWidth;
+                            canvas.height = vid.videoHeight;
                             canvas.getContext('2d').drawImage(vid, 0, 0);
-                            canvas.toBlob(async (blob) => {
-                                const fileName = `selfie_${state.user.id}_${Date.now()}.jpg`;
-                                const { error: upErr } = await supabaseClient.storage.from('attendance_photos').upload(fileName, blob);
-                                if (upErr) throw upErr;
-                                const { data: { publicUrl } } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
-                                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                                const deviceType = isMobile ? 'mobile_app' : 'desktop_web';
-                                await supabaseClient.from('wfm_activity').insert({
-                                    org_id: state.org.id, user_id: state.user.id,
-                                    clock_in_time: new Date().toISOString(),
-                                    current_status: 'On Queue',
-                                    check_in_lat: latitude, check_in_long: longitude, check_in_photo: publicUrl, device_info: navigator.userAgent,
-                                    record_source: deviceType
-                                });
-                                stream.getTracks().forEach(t => t.stop());
-                                showToast("✓ Clock-in successful (GPS bypass used)");
-                                renderAttendanceUI(document.getElementById('main-view'));
-                            }, 'image/jpeg');
-                        }, 1500);
-                        return; // Success - exit catch
+                            canvas.toBlob(resolve, 'image/jpeg');
+                        });
+
+                        if (blob) {
+                            const fileName = `selfie_${state.user.id}_${Date.now()}.jpg`;
+                            const { error: upErr } = await supabaseClient.storage.from('attendance_photos').upload(fileName, blob);
+                            if (!upErr) {
+                                const { data } = supabaseClient.storage.from('attendance_photos').getPublicUrl(fileName);
+                                bypassUrl = data.publicUrl;
+                            }
+                        }
                     } catch (camErr) {
-                        console.error('Camera also failed:', camErr);
-                        errorMsg = '📷 Camera access denied';
-                        instructions = '\n\nAllow camera permissions in browser settings';
-                        btn.classList.remove('hidden');
-                        if (stream) stream.getTracks().forEach(t => t.stop());
+                        console.warn("Camera failed during bypass:", camErr);
+                        showToast("⚠️ Camera denied - Proceeding without photo", true);
                     }
+
+                    // Proceed to clock in (bypass logic)
+                    await supabaseClient.from('wfm_activity').insert({
+                        org_id: state.org.id, user_id: state.user.id,
+                        clock_in_time: new Date().toISOString(),
+                        current_status: 'On Queue',
+                        check_in_lat: latitude, check_in_long: longitude, check_in_photo: bypassUrl, device_info: navigator.userAgent,
+                        record_source: deviceType
+                    });
+
+                    if (stream) stream.getTracks().forEach(t => t.stop());
+                    showToast("✓ Clock-in successful (GPS bypass used)");
+                    renderAttendanceUI(document.getElementById('main-view'));
+                    return; // EXIT CATCH BLOCK
                 } else if (err.code === 1) {
                     errorMsg = '🚫 Location Permission Denied';
                     instructions = '\n\nTO FIX:\n1. Look for the 🔒 or ⓘ icon in address bar\n2. Click it and find "Location"\n3. Change to "Allow"\n4. Refresh the page (F5)';
