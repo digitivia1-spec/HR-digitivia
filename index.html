@@ -5227,6 +5227,7 @@ Never invent data. Ask if unsure.`;
 
         function normalizeEmployeeRole(role) {
             const clean = String(role || '').toLowerCase().trim();
+            if (clean === 'consultant') return 'consultant';
             if (clean === 'hr manager' || clean === 'hr' || clean === 'hr_manager') return 'hr_manager';
             if (clean === 'manager') return 'manager';
             if (clean === 'employee') return 'employee';
@@ -5242,7 +5243,7 @@ Never invent data. Ask if unsure.`;
             const tier = normalizeTier(state.org?.subscription_tier || 'free');
             const role = state.profile?.role || '';
             const eligibleTier = ['starter', 'growth', 'custom'].includes(tier);
-            const eligibleRole = ['ceo', 'hr_manager', 'manager'].includes(role);
+            const eligibleRole = ['ceo', 'consultant', 'hr_manager', 'manager'].includes(role);
             if (!eligibleRole) {
                 return { ok: false, reason: t('ai_action_role_block'), openPricing: false };
             }
@@ -5255,6 +5256,7 @@ Never invent data. Ask if unsure.`;
         function formatRoleLabel(role) {
             const map = {
                 ceo: t('role_ceo'),
+                consultant: 'Consultant',
                 hr_manager: t('role_hr_manager'),
                 manager: t('role_manager'),
                 employee: t('role_employee')
@@ -5931,7 +5933,7 @@ Never invent data. Ask if unsure.`;
         let meetingBookingLocked = false;
 
         function updateMeetingBookingVisibility() {
-            const isCeo = state.profile?.role === 'ceo';
+            const isCeo = ['ceo', 'consultant'].includes(state.profile?.role);
             if (!isCeo) {
                 document.querySelectorAll('[data-booking-button]').forEach((btn) => {
                     btn.style.display = 'none';
@@ -5961,7 +5963,7 @@ Never invent data. Ask if unsure.`;
 
         async function handleMeetingBooking(event) {
             if (event) event.preventDefault();
-            if (!state.profile || state.profile.role !== 'ceo') return false;
+            if (!state.profile || !['ceo', 'consultant'].includes(state.profile.role)) return false;
             if (meetingBookingLocked) {
                 setMeetingLimitReached();
                 return false;
@@ -5992,8 +5994,8 @@ Never invent data. Ask if unsure.`;
 
         // Function to check and show on load
         function checkPricingPopup() {
-            // Only show for CEO role, and if not hidden by user preference
-            if (state.profile && state.profile.role === 'ceo') {
+            // Only show for CEO/Consultant role, and if not hidden by user preference
+            if (state.profile && ['ceo', 'consultant'].includes(state.profile.role)) {
                 const shouldHide = localStorage.getItem('digitivia_hide_pricing');
                 // Also, don't show if they are already on Growth or Custom
                 const currentTier = normalizeTier(state.org.subscription_tier || 'free');
