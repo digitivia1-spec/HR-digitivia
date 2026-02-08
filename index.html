@@ -4506,7 +4506,7 @@ Never invent data. Ask if unsure.`;
         // --- NEW: ORG PROFILE (CEO ONLY) ---
         // --- NEW: ORG PROFILE (CEO ONLY) - CLEANED ---
         async function renderOrgProfile(container) {
-            if (!await checkRoleAccess(['ceo'])) return;
+            if (!await checkRoleAccess(['ceo', 'consultant'])) return;
 
             container.innerHTML = `<div style="text-align:center; padding:50px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading Settings...</div>`;
 
@@ -4601,12 +4601,12 @@ Never invent data. Ask if unsure.`;
             if (view === 'dashboard') loadDashboardView(main);
             else if (view === 'employee_dash') renderEmployeeDashboard(main); // NEW EMPLOYEE DASH
             else if (view === 'org_profile') renderOrgProfile(main);
-            else if (view === 'employees') { if (['ceo', 'hr_manager', 'manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-            else if (view === 'payroll') { if (['ceo', 'hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-            else if (view === 'wfm') { if (['ceo', 'admin', 'manager', 'hr_manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
-            else if (view === 'reports') { if (['ceo', 'admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-            else if (view === 'ats') { if (['ceo', 'admin', 'hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
-            else if (view === 'performance') { if (['ceo', 'admin', 'hr_manager', 'manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+            else if (view === 'employees') { if (['ceo', 'consultant', 'hr_manager', 'manager'].includes(state.profile.role)) loadEmployeesView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+            else if (view === 'payroll') { if (['ceo', 'consultant', 'hr_manager'].includes(state.profile.role)) renderPayrollUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+            else if (view === 'wfm') { if (['ceo', 'consultant', 'admin', 'manager', 'hr_manager'].includes(state.profile.role)) renderWFMUI(main); else renderEmployeeWFM(main); }
+            else if (view === 'reports') { if (['ceo', 'consultant', 'admin'].includes(state.profile.role)) renderReportsUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+            else if (view === 'ats') { if (['ceo', 'consultant', 'admin', 'hr_manager'].includes(state.profile.role)) loadATSView(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
+            else if (view === 'performance') { if (['ceo', 'consultant', 'admin', 'hr_manager', 'manager'].includes(state.profile.role)) renderPerformanceUI(main); else main.innerHTML = `<div class="card">Access Denied</div>`; }
             else if (view === 'attendance') { renderAttendanceUI(main); }
             else main.innerHTML = `<div class="card"><h2>${view.toUpperCase()}</h2><p>Module active for ${state.profile.role}</p></div>`;
         }
@@ -4636,26 +4636,26 @@ Never invent data. Ask if unsure.`;
                 return;
             }
 
-            // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER)
-            if (['ceo', 'admin', 'hr_manager'].includes(role)) {
+            // 1. EXECUTIVE SUITE (CEO + ADMIN + HR MANAGER + CONSULTANT)
+            if (['ceo', 'consultant', 'admin', 'hr_manager'].includes(role)) {
                 const sec = document.createElement('div');
                 sec.innerHTML = `<div class="nav-header">${t.nav_exec_suite}</div>`;
                 const ul = document.createElement('ul'); ul.className = 'nav-links';
                 ul.innerHTML += `<li class="nav-item ${state.activeView === 'dashboard' ? 'active' : ''}" onclick="navigateTo('dashboard')"><i class="fa-solid fa-gauge-high"></i> <span>${t.dashboard}</span></li>`;
 
-                // CEO Only: Org Settings
-                if (role === 'ceo') {
+                // CEO/Consultant Only: Org Settings
+                if (['ceo', 'consultant'].includes(role)) {
                     ul.innerHTML += `<li class="nav-item ${state.activeView === 'org_profile' ? 'active' : ''}" onclick="navigateTo('org_profile')"><i class="fa-solid fa-building"></i> <span>${t.org_profile}</span></li>`;
                 }
                 // Reports
-                if (['ceo', 'admin'].includes(role)) {
+                if (['ceo', 'consultant', 'admin'].includes(role)) {
                     ul.innerHTML += `<li class="nav-item ${state.activeView === 'reports' ? 'active' : ''}" onclick="navigateTo('reports')"><i class="fa-solid fa-file-lines"></i> <span>${t.reports}</span></li>`;
                 }
                 sec.appendChild(ul); container.appendChild(sec);
             }
 
-            // 2. HR OPERATIONS (CEO + HR MANAGER)
-            if (['ceo', 'admin', 'hr_manager'].includes(role)) {
+            // 2. HR OPERATIONS (CEO + CONSULTANT + HR MANAGER)
+            if (['ceo', 'consultant', 'admin', 'hr_manager'].includes(role)) {
                 const sec = document.createElement('div');
                 sec.innerHTML = `<div class="nav-header">${t.nav_hr_ops}</div>`;
                 const ul = document.createElement('ul'); ul.className = 'nav-links';
@@ -4663,7 +4663,7 @@ Never invent data. Ask if unsure.`;
                 ul.innerHTML += `<li class="nav-item ${state.activeView === 'employees' ? 'active' : ''}" onclick="navigateTo('employees')"><i class="fa-solid fa-users"></i> <span>${t.employees}</span></li>`;
 
                 // Payroll
-                if (['ceo', 'hr_manager'].includes(role)) {
+                if (['ceo', 'consultant', 'hr_manager'].includes(role)) {
                     ul.innerHTML += `<li class="nav-item ${state.activeView === 'payroll' ? 'active' : ''}" onclick="navigateTo('payroll')"><i class="fa-solid fa-money-bill-wave"></i> <span>${t.payroll}</span></li>`;
                 }
 
@@ -4672,8 +4672,8 @@ Never invent data. Ask if unsure.`;
                 sec.appendChild(ul); container.appendChild(sec);
             }
 
-            // 3. TEAM MANAGEMENT (Managers + Admins)
-            if (['ceo', 'admin', 'hr_manager', 'manager'].includes(role)) {
+            // 3. TEAM MANAGEMENT (Managers + Admins + Consultants)
+            if (['ceo', 'consultant', 'admin', 'hr_manager', 'manager'].includes(role)) {
                 const sec = document.createElement('div');
                 sec.innerHTML = `<div class="nav-header">${t.nav_team_mgmt}</div>`;
                 const ul = document.createElement('ul'); ul.className = 'nav-links';
